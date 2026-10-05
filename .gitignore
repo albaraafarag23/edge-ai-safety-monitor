@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Models (large binaries — download separately)
+*.pt
+*.onnx
+*.engine
+*.trt
+
+# Dataset (not committed — lives elsewhere)
+data/
+
+# YOLO run outputs
+runs/
+
+# Env / secrets
+.env
+*.env
+
+# Docker
+*.override.yml
+
+# OS
+.DS_Store
+Thumbs.db

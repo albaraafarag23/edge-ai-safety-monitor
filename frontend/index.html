@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edge AI Safety Monitor</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+    .card {
+      text-align: center;
+      padding: 3rem 4rem;
+      border: 1px solid #1e293b;
+      border-radius: 1rem;
+      background: #1e293b;
+    }
+    h1 { color: #38bdf8; font-size: 1.75rem; margin-bottom: 0.5rem; }
+    .subtitle { color: #64748b; margin-bottom: 2rem; }
+    .links { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    a {
+      color: #38bdf8;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border: 1px solid #38bdf8;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+    a:hover { background: #38bdf820; }
+    .badge {
+      display: inline-block;
+      margin-top: 2rem;
+      font-size: 0.75rem;
+      color: #475569;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Edge AI Safety Monitor</h1>
+    <p class="subtitle">React dashboard — Sam is building this</p>
+    <div class="links">
+      <a href="http://localhost:8000/docs" target="_blank">Backend API Docs</a>
+      <a href="http://localhost:8000/incidents" target="_blank">Incidents JSON</a>
+      <a href="http://localhost:8000/health" target="_blank">Health Check</a>
+    </div>
+    <p class="badge">Capstone 2026 · Computer Engineering</p>
+  </div>
+</body>
+</html>

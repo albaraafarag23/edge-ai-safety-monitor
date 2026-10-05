@@ -1,0 +1,52 @@
+{
+  "input_detection_event": {
+    "detection_id": "test_detection_001",
+    "timestamp": "2026-04-25T16:42:06.393131+00:00",
+    "camera_id": "laptop_webcam_01",
+    "plugin_id": "factory_safety",
+    "model": "yolo11n",
+    "objects": [
+      {
+        "class": "person",
+        "confidence": 0.88,
+        "bbox": [
+          80.4,
+          167.6,
+          612.7,
+          479.8
+        ]
+      }
+    ]
+  },
+  "generated_incidents": [
+    {
+      "incident_id": "b5373487-d84e-44f4-a640-7175f81702f2",
+      "timestamp_start": "2026-04-25T16:42:06.393131+00:00",
+      "timestamp_end": "2026-04-25T16:42:06.393170+00:00",
+      "camera_id": "laptop_webcam_01",
+      "plugin_id": "factory_safety",
+      "event_type": "person_detected_test",
+      "severity": "low",
+      "zone_id": "test_zone_01",
+      "objects_involved": [
+        {
+          "class": "person",
+          "confidence": 0.88,
+          "bbox": [
+            80.4,
+            167.6,
+            612.7,
+            479.8
+          ]
+        }
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "rule_triggered": "person_detected_rule",
+      "metadata": {
+        "source": "laptop_simulation",
+        "model": "yolo11n"
+      }
+    }
+  ]
+}

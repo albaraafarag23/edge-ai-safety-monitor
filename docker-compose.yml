@@ -1,0 +1,104 @@
+services:
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-safety_monitor}
+      POSTGRES_USER: ${POSTGRES_USER:-monitor}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-monitor123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-monitor} -d ${POSTGRES_DB:-safety_monitor}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  cv_pipeline:
+    build: ./cv_pipeline
+    environment:
+      REDIS_URL: redis://redis:6379
+      SOURCE: ${CV_SOURCE:-0}
+      MODEL_PATH: /models/yolo11n.pt
+      CONFIDENCE: ${CV_CONFIDENCE:-0.4}
+      CAMERA_ID: cam_01
+      PLUGIN_ID: factory_safety
+      TEST_MODE: ${CV_TEST_MODE:-true}
+    volumes:
+      - ./yolo11n.pt:/models/yolo11n.pt:ro
+    devices:
+      - /dev/video0:/dev/video0
+    # For GPU inference (requires NVIDIA Container Toolkit):
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  event_engine:
+    build: ./event_engine
+    environment:
+      REDIS_URL: redis://redis:6379
+      PLUGINS_DIR: /app/plugins
+    volumes:
+      - ./event_engine/plugins:/app/plugins:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-monitor}:${POSTGRES_PASSWORD:-monitor123}@postgres:5432/${POSTGRES_DB:-safety_monitor}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ai_reporting:
+    build: ./ai_reporting
+    environment:
+      REDIS_URL: redis://redis:6379
+      BACKEND_URL: http://backend:8000
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

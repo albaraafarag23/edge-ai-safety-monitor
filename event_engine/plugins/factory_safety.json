@@ -1,0 +1,23 @@
+{
+  "plugin_id": "factory_safety",
+  "name": "Factory Safety Monitor",
+  "version": "1.0.0",
+  "rules": [
+    {
+      "rule_id": "person_in_zone",
+      "description": "Person detected in monitored zone",
+      "trigger_classes": ["person"],
+      "event_type": "person_detected",
+      "severity": "medium",
+      "zone_id": "factory_floor"
+    },
+    {
+      "rule_id": "forklift_proximity",
+      "description": "Forklift detected near personnel area",
+      "trigger_classes": ["forklift", "truck"],
+      "event_type": "vehicle_detected",
+      "severity": "high",
+      "zone_id": "personnel_area"
+    }
+  ]
+}
