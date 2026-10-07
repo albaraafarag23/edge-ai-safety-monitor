@@ -3,12 +3,17 @@
 # Its "Sign in" buttons link to the console's public address (Tailscale Funnel), and it shows
 # whether the live demo is up. See docs/deploy.md.
 #
-#   scripts/deploy-site.sh https://sitesentry.your-tailnet.ts.net [pages-project-name]
+#   scripts/deploy-site.sh https://edge-ai-safety.your-tailnet.ts.net [pages-project-name]
+#
+# PAGES_BRANCH must be the project's production branch (set when the project was created),
+# otherwise the upload becomes a preview and <project>.pages.dev doesn't change.
 set -euo pipefail
 
 CONSOLE_URL="${1:?Usage: $0 <console URL, e.g. https://sitesentry.tail1234.ts.net> [pages project name]}"
 CONSOLE_URL="${CONSOLE_URL%/}"
 PROJECT="${2:-edge-ai-safety}"
+# the edge-ai-safety project was created with this production branch
+BRANCH="${PAGES_BRANCH:-feature/construction-plugin-alerts}"
 [[ "$CONSOLE_URL" == https://* ]] || { echo "The console URL must start with https://" >&2; exit 1; }
 
 cd "$(dirname "$0")/../frontend"
@@ -28,5 +33,5 @@ cat > dist-site/_headers <<HEADERS
   Cache-Control: public, max-age=31536000, immutable
 HEADERS
 
-echo "Publishing to Cloudflare Pages project '$PROJECT'"
-npx --yes wrangler@4 pages deploy dist-site --project-name "$PROJECT" --branch main --commit-dirty=true
+echo "Publishing to Cloudflare Pages project '$PROJECT' (production branch: $BRANCH)"
+npx --yes wrangler@4 pages deploy dist-site --project-name "$PROJECT" --branch "$BRANCH" --commit-dirty=true
