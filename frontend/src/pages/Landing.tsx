@@ -15,27 +15,60 @@ import {
   Truck,
   Workflow,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { LogoMark, PRODUCT_NAME } from "../components/Brand";
 import { useAuth } from "../lib/auth";
+import { CONSOLE_URL, IS_STATIC_SITE, useDemoStatus, type DemoStatus } from "../lib/site";
 
 const NAV_LINKS = [
   { href: "#features", label: "Features" },
   { href: "#how-it-works", label: "How it works" },
+  { href: "#console", label: "Console" },
   { href: "#reports", label: "AI reports" },
-  { href: "#technology", label: "Technology" },
+  { href: "#faq", label: "FAQ" },
 ];
 
 function ConsoleButton({ className = "", children }: { className?: string; children?: ReactNode }) {
   const { user } = useAuth();
+  const classes = `inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition ${className}`;
+  // the static product page links out to the console's own address
+  if (IS_STATIC_SITE) {
+    return (
+      <a href={`${CONSOLE_URL}/login`} className={classes}>
+        {children ?? "Sign in"}
+      </a>
+    );
+  }
   return (
-    <Link
-      to={user ? "/app" : "/login"}
-      className={`inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition ${className}`}
-    >
+    <Link to={user ? "/app" : "/login"} className={classes}>
       {children ?? (user ? "Open console" : "Sign in")}
     </Link>
+  );
+}
+
+const DEMO_TEXT: Record<DemoStatus, [string, string]> = {
+  checking: ["bg-slate-400", "Checking live demo…"],
+  online: ["bg-emerald-400", "Live demo online"],
+  offline: ["bg-slate-500", "Live demo offline right now"],
+};
+
+function DemoBadge({ dark = true }: { dark?: boolean }) {
+  const status = useDemoStatus();
+  const [dot, text] = DEMO_TEXT[status];
+  return (
+    <span
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium ring-1 ${
+        dark ? "bg-white/5 text-slate-300 ring-white/10" : "bg-slate-50 text-slate-600 ring-slate-200"
+      }`}
+      title={status === "offline" ? "The console runs on the on-site device, which is switched off at the moment" : undefined}
+    >
+      <span className="relative flex h-2 w-2">
+        {status === "online" && <span className={`absolute h-2 w-2 animate-ping rounded-full ${dot} opacity-60`} />}
+        <span className={`relative h-2 w-2 rounded-full ${dot}`} />
+      </span>
+      {text}
+    </span>
   );
 }
 
@@ -222,7 +255,10 @@ function Hero() {
               See how it works
             </a>
           </div>
-          <ul className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-400">
+          <div className="mt-6">
+            <DemoBadge />
+          </div>
+          <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-400">
             {["Runs on site, on the edge", "Works with standard cameras", "Report written by AI in seconds"].map((t) => (
               <li key={t} className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-amber-400" /> {t}
@@ -493,6 +529,183 @@ function Technology() {
   );
 }
 
+const TOUR = [
+  { key: "overview", label: "Overview", text: "Today's incidents, what's still open and a live view of the site, on one screen." },
+  { key: "cameras", label: "Live cameras", text: "Watch every camera live, with what the detector sees drawn on the video." },
+  { key: "incident", label: "Incident", text: "Evidence, the AI report and the acknowledge-and-resolve workflow for each incident." },
+  { key: "analytics", label: "Analytics", text: "Spot patterns: the busiest hours, the riskiest zones and the PPE most often missing." },
+] as const;
+
+/** Real screenshots of the console (public/screenshots, captured from the running system in test mode). */
+function ConsoleTour() {
+  const [active, setActive] = useState<(typeof TOUR)[number]["key"]>("overview");
+  const current = TOUR.find((t) => t.key === active)!;
+  return (
+    <section id="console" className="scroll-mt-16 overflow-hidden bg-white py-24 sm:py-32">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <SectionHeading eyebrow="The console" title="One place to see, act on and learn from every incident" center>
+          Supervisors sign in from any browser. New incidents appear the moment they're detected, no refresh needed.
+        </SectionHeading>
+        <div className="mt-12 flex flex-wrap justify-center gap-2" role="tablist" aria-label="Console screens">
+          {TOUR.map((t) => (
+            <button
+              key={t.key}
+              role="tab"
+              aria-selected={active === t.key}
+              onClick={() => setActive(t.key)}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                active === t.key ? "bg-slate-950 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-4 text-center text-sm text-slate-500">{current.text}</p>
+        <div className="relative mx-auto mt-10 max-w-6xl">
+          <div className="absolute -inset-x-10 -top-10 -bottom-20 rounded-[3rem] bg-gradient-to-b from-amber-100/70 to-transparent" aria-hidden />
+          <div className="relative overflow-hidden rounded-xl bg-slate-900 shadow-2xl ring-1 ring-slate-900/10">
+            <div className="flex items-center gap-2 bg-slate-800 px-4 py-2.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
+              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
+              <span className="h-2.5 w-2.5 rounded-full bg-white/20" />
+              <span className="mx-auto rounded-md bg-slate-900/60 px-16 py-1 text-xs text-slate-400">{PRODUCT_NAME.toLowerCase()} console</span>
+            </div>
+            {TOUR.map((t) => (
+              <img
+                key={t.key}
+                src={`/screenshots/${t.key}.jpg`}
+                alt={`${PRODUCT_NAME} console: ${t.label}`}
+                width={1440}
+                height={900}
+                loading="lazy"
+                hidden={active !== t.key}
+                className="block w-full"
+              />
+            ))}
+          </div>
+        </div>
+        <p className="mt-6 text-center text-xs text-slate-400">Screens from the running system, with test-mode data.</p>
+      </div>
+    </section>
+  );
+}
+
+const FAQS = [
+  {
+    q: "Do I need special cameras?",
+    a: "No. Any standard USB camera works, and the detector can also read a video file. The reference setup uses a 12 MP Arducam with a 6 mm lens, which reliably sees hard hats up to about 12 m away.",
+  },
+  {
+    q: "Does video leave the site?",
+    a: "Video is analysed on the edge device on site. For each incident, a snapshot and a short clip are stored on site and attached to the supervisor's email. The AI that writes the report only receives the text facts of the incident, never images.",
+  },
+  {
+    q: "How do you avoid false alarms?",
+    a: "Rules have minimum durations and grace periods: a hard hat has to be missing for several seconds, not one frame, before an alert fires. Repeats of the same rule on the same camera are held back for a few minutes.",
+  },
+  {
+    q: "Can the AI report make things up?",
+    a: "It's instructed to use only the fields recorded for the incident, never to invent causes or names, and to write NOT SPECIFIED when something is missing. Recommended actions come from the site's own approved list. If the AI is unavailable, a fixed template is used instead.",
+  },
+  {
+    q: "What happens if the internet goes down?",
+    a: "Detection, the rules and the local console keep working, because they all run on site. Email and AI reports need the internet; without the AI, reports fall back to the template.",
+  },
+  {
+    q: "Is it only for construction?",
+    a: "No. Each type of site is a plugin with its own model, zones, rules and report style. Construction is the first plugin; healthcare is in development.",
+  },
+  {
+    q: "Who can see the console?",
+    a: "Only people with an account. Admins add users and choose their role: admin, supervisor (handles incidents) or viewer (read-only).",
+  },
+];
+
+function Faq() {
+  return (
+    <section id="faq" className="scroll-mt-16 bg-slate-50 py-24 sm:py-32">
+      <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-[1fr_2fr] lg:px-8">
+        <SectionHeading eyebrow="FAQ" title="Questions, answered">
+          The things site managers and safety officers ask first.
+        </SectionHeading>
+        <div className="divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white">
+          {FAQS.map(({ q, a }) => (
+            <details key={q} className="group px-6 py-5 [&_summary::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium text-slate-900">
+                {q}
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <p className="mt-3 text-sm leading-6 text-slate-600">{a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const TEAM: { name: string; role?: string }[] = [
+  { name: "Albaraa Waheed Farag", role: "Team lead" },
+  { name: "Youssef Hazem Mohammed" },
+  { name: "Youssef Mohammed Nofal" },
+  { name: "Omar Ahmed Abdelnabi" },
+  { name: "Abdullah Mohammed Attia" },
+  { name: "Ebtsam Mohamed Hassan" },
+  { name: "Hassan Salah Eldien Hassan" },
+];
+const SUPERVISOR = "Dr. Mahmoud Sayed Kamel Hassan";
+const UNIVERSITY = "Misr University for Science & Technology";
+
+const initials = (name: string) =>
+  name
+    .replace(/^Dr\.\s*/, "")
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("");
+
+function Team() {
+  return (
+    <section id="team" className="scroll-mt-16 bg-white py-24 sm:py-32">
+      <div className="mx-auto max-w-7xl px-6 lg:px-8">
+        <SectionHeading eyebrow="About" title="A graduation project, built like a product">
+          {PRODUCT_NAME} is a year-4 computer engineering capstone{UNIVERSITY ? ` at ${UNIVERSITY}` : ""}: real-time edge AI
+          safety monitoring with configurable plugin rules and generative incident reporting, built over two semesters.
+        </SectionHeading>
+
+        <div className="mt-12 flex items-center gap-4 rounded-2xl bg-slate-950 p-6 text-white sm:max-w-md">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-amber-400 text-base font-semibold text-slate-950">
+            {initials(SUPERVISOR)}
+          </span>
+          <div>
+            <p className="text-xs font-semibold tracking-wider text-amber-400 uppercase">Supervised by</p>
+            <p className="mt-1 text-lg font-semibold">{SUPERVISOR}</p>
+          </div>
+        </div>
+
+        <p className="mt-12 text-sm font-semibold tracking-wider text-slate-400 uppercase">The team</p>
+        <ul className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {TEAM.map((m) => (
+            <li key={m.name} className="flex items-center gap-3 rounded-2xl border border-slate-200 p-4">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-950 text-sm font-semibold text-amber-400">
+                {initials(m.name)}
+              </span>
+              <div className="min-w-0">
+                <p className="font-medium text-slate-900">{m.name}</p>
+                {m.role && <p className="text-sm text-amber-700">{m.role}</p>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 function CallToAction() {
   return (
     <section className="bg-white py-24 sm:py-32">
@@ -506,6 +719,9 @@ function CallToAction() {
           <ConsoleButton className="relative mt-8 bg-slate-950 px-6 py-3 text-sm text-white hover:bg-slate-800">
             Sign in to the console <ArrowRight className="h-4 w-4" />
           </ConsoleButton>
+          <div className="relative mt-5">
+            <DemoBadge dark={false} />
+          </div>
         </div>
       </div>
     </section>
@@ -536,8 +752,11 @@ export function Landing() {
         <Metrics />
         <Features />
         <HowItWorks />
+        <ConsoleTour />
         <ReportShowcase />
         <Technology />
+        <Faq />
+        <Team />
         <CallToAction />
       </main>
       <Footer />

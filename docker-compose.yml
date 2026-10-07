@@ -1,9 +1,12 @@
+# Ports are bound to 127.0.0.1 only: nothing is reachable from the network except through the
+# public tunnel (Tailscale Funnel -> localhost:3000, see docs/deploy.md). The database, Redis and the
+# API stay private; the browser reaches the API through the website's /api.
 services:
 
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -20,7 +23,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-monitor} -d ${POSTGRES_DB:-safety_monitor}"]
       interval: 5s
@@ -74,7 +77,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
       REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-monitor}:${POSTGRES_PASSWORD:-monitor123}@postgres:5432/${POSTGRES_DB:-safety_monitor}
@@ -121,7 +124,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
     depends_on:
       - backend
     restart: unless-stopped

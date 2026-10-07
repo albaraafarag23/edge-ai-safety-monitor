@@ -86,12 +86,31 @@ export interface IncidentQuery {
   hours?: number;
 }
 
+export type Role = "admin" | "supervisor" | "viewer";
+
 export interface User {
   id: number;
   email: string;
   name: string;
-  role: "admin" | "supervisor";
+  role: Role;
+  active: boolean;
+  created_at: string | null;
   last_login_at: string | null;
+}
+
+export interface Analytics {
+  days: number;
+  tz: string;
+  total: number;
+  previous_total: number;
+  by_day: ({ day: string } & Record<Severity, number>)[];
+  heatmap: { weekday: number; hour: number; count: number }[]; // weekday 1 = Monday
+  by_zone: { key: string; count: number }[];
+  by_type: { key: string; count: number }[];
+  by_camera: { key: string; count: number }[];
+  missing_equipment: { key: string; count: number }[];
+  by_status: Record<IncidentStatus, number>;
+  median_minutes_to_handle: number | null;
 }
 
 export interface Camera {

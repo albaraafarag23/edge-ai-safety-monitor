@@ -1,4 +1,4 @@
-import { Bell, Camera, ChevronDown, LayoutDashboard, ListChecks, LogOut } from "lucide-react";
+import { BarChart3, Bell, Camera, ChevronDown, LayoutDashboard, ListChecks, LogOut, UserCog, Users } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useIncidents } from "../api/queries";
@@ -13,8 +13,15 @@ const NAV = [
   { to: "/app", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/app/cameras", label: "Live cameras", icon: Camera, end: false },
   { to: "/app/incidents", label: "Incidents", icon: ListChecks, end: false },
+  { to: "/app/analytics", label: "Analytics", icon: BarChart3, end: false },
   { to: "/app/notifications", label: "Notifications", icon: Bell, end: false },
 ];
+const ADMIN_NAV = [{ to: "/app/users", label: "Users", icon: Users, end: false }];
+
+function useNav() {
+  const { user } = useAuth();
+  return user?.role === "admin" ? [...NAV, ...ADMIN_NAV] : NAV;
+}
 
 function LiveIndicator() {
   const { connection } = useLive();
@@ -186,6 +193,13 @@ function UserMenu() {
             <p className="text-sm font-medium text-slate-900">{user.name}</p>
             <p className="truncate text-xs text-slate-500">{user.email}</p>
           </div>
+          <Link
+            to="/app/account"
+            onClick={() => setOpen(false)}
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+          >
+            <UserCog className="h-4 w-4" /> Account and password
+          </Link>
           <button
             onClick={async () => {
               await logout();
@@ -202,6 +216,7 @@ function UserMenu() {
 }
 
 function SideNav() {
+  const nav = useNav();
   return (
     <aside className="hidden bg-slate-950 text-slate-300 lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
       <div className="px-5 py-5">
@@ -209,7 +224,7 @@ function SideNav() {
       </div>
       <nav className="flex-1 space-y-1 px-3 py-2">
         <p className="px-3 pb-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">Monitoring</p>
-        {NAV.map(({ to, label, icon: Icon, end }) => (
+        {nav.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
@@ -234,6 +249,7 @@ function SideNav() {
 }
 
 function TopBar() {
+  const nav = useNav();
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/85 backdrop-blur">
       <div className="flex h-16 items-center gap-4 px-4 sm:px-6 lg:px-8">
@@ -248,7 +264,7 @@ function TopBar() {
       </div>
       {/* small screens: nav as a scrollable row under the top bar */}
       <nav className="flex gap-1 overflow-x-auto px-3 pb-2 lg:hidden">
-        {NAV.map(({ to, label, icon: Icon, end }) => (
+        {nav.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}

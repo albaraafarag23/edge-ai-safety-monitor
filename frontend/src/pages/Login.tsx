@@ -40,7 +40,9 @@ export function Login() {
       setError(
         err instanceof ApiError && err.status === 401
           ? "Incorrect email or password."
-          : "Can't reach the server. Check that the backend is running.",
+          : err instanceof ApiError && err.status === 429
+            ? err.message
+            : "Can't reach the server. Check that the backend is running.",
       );
     } finally {
       setBusy(false);

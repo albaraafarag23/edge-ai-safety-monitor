@@ -4,6 +4,7 @@ import { Navigate, useLocation } from "react-router-dom";
 import { ApiError, api, setUnauthorizedHandler } from "../api/client";
 import type { User } from "../api/types";
 import { FullPageSpinner } from "../components/ui";
+import { IS_STATIC_SITE } from "./site";
 
 interface AuthContextValue {
   user: User | null;
@@ -38,6 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     staleTime: 5 * 60_000,
     refetchInterval: false,
     retry: 1,
+    enabled: !IS_STATIC_SITE, // the static product page has no API of its own
   });
 
   const signedOut = useCallback(() => {
@@ -66,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [signedOut]);
 
   return (
-    <AuthContext.Provider value={{ user: me.data ?? null, loading: me.isPending, login, logout }}>
+    <AuthContext.Provider value={{ user: me.data ?? null, loading: me.isPending && !IS_STATIC_SITE, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

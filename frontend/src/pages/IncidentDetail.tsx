@@ -6,6 +6,7 @@ import { useIncident, useReport, useSetStatus } from "../api/queries";
 import type { Incident, IncidentStatus } from "../api/types";
 import { PageHeader } from "../components/Layout";
 import { Card, ErrorState, SeverityBadge, Spinner, StatusBadge } from "../components/ui";
+import { useAuth } from "../lib/auth";
 import { formatDateTime, formatDuration, humanize, humanizeItem, timeAgo } from "../lib/format";
 
 function Evidence({ incident }: { incident: Incident }) {
@@ -111,6 +112,7 @@ const ACTIONS: { status: IncidentStatus; label: string; style: string }[] = [
 function StatusCard({ incident }: { incident: Incident }) {
   const [note, setNote] = useState("");
   const setStatus = useSetStatus(incident.event_id);
+  const canHandle = useAuth().user?.role !== "viewer";
   return (
     <Card title="Status">
       <div className="flex items-center justify-between">
@@ -122,29 +124,35 @@ function StatusCard({ incident }: { incident: Incident }) {
       {incident.status_note && (
         <p className="mt-3 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">{incident.status_note}</p>
       )}
-      <label className="mt-4 block text-xs font-medium text-slate-500">
-        Note (optional)
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          rows={2}
-          placeholder="e.g. Worker given a hard hat at 14:05"
-          className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm text-slate-900 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none"
-        />
-      </label>
-      <div className="mt-3 flex flex-wrap gap-2">
-        {ACTIONS.filter((a) => a.status !== incident.status).map((a) => (
-          <button
-            key={a.status}
-            disabled={setStatus.isPending}
-            onClick={() => setStatus.mutate({ status: a.status, note }, { onSuccess: () => setNote("") })}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-50 ${a.style}`}
-          >
-            {a.label}
-          </button>
-        ))}
-      </div>
-      {setStatus.isError && <p className="mt-2 text-sm text-red-700">Couldn't update: {setStatus.error.message}</p>}
+      {canHandle ? (
+        <>
+          <label className="mt-4 block text-xs font-medium text-slate-500">
+            Note (optional)
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={2}
+              placeholder="e.g. Worker given a hard hat at 14:05"
+              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm text-slate-900 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none"
+            />
+          </label>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {ACTIONS.filter((a) => a.status !== incident.status).map((a) => (
+              <button
+                key={a.status}
+                disabled={setStatus.isPending}
+                onClick={() => setStatus.mutate({ status: a.status, note }, { onSuccess: () => setNote("") })}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-50 ${a.style}`}
+              >
+                {a.label}
+              </button>
+            ))}
+          </div>
+          {setStatus.isError && <p className="mt-2 text-sm text-red-700">Couldn't update: {setStatus.error.message}</p>}
+        </>
+      ) : (
+        <p className="mt-4 text-xs text-slate-500">You have view-only access. A supervisor or admin handles incidents.</p>
+      )}
     </Card>
   );
 }

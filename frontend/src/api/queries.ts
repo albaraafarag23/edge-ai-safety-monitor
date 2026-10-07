@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, api } from "./client";
-import type { IncidentQuery, IncidentStatus } from "./types";
+import type { IncidentQuery, IncidentStatus, Role } from "./types";
 
 // Query keys in one place so live events can invalidate exactly what changed.
 export const keys = {
@@ -11,6 +11,8 @@ export const keys = {
   stats: (hours: number) => ["stats", hours] as const,
   filters: ["filters"] as const,
   cameras: ["cameras"] as const,
+  users: ["users"] as const,
+  analytics: (days: number) => ["analytics", days] as const,
 };
 
 export const useIncidents = (q: IncidentQuery) =>
@@ -45,4 +47,26 @@ export function useSetStatus(id: string) {
       qc.invalidateQueries({ queryKey: ["stats"] });
     },
   });
+}
+
+export const useAnalytics = (days: number) =>
+  useQuery({
+    queryKey: keys.analytics(days),
+    queryFn: () => api.analytics(days, Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"),
+    placeholderData: keepPreviousData,
+  });
+
+export const useUsers = () => useQuery({ queryKey: keys.users, queryFn: api.users });
+
+export function useUserMutations() {
+  const qc = useQueryClient();
+  const onSuccess = () => qc.invalidateQueries({ queryKey: keys.users });
+  return {
+    add: useMutation({ mutationFn: api.addUser, onSuccess }),
+    update: useMutation({
+      mutationFn: ({ id, ...change }: { id: number; name?: string; role?: Role; active?: boolean }) => api.updateUser(id, change),
+      onSuccess,
+    }),
+    resetPassword: useMutation({ mutationFn: ({ id, password }: { id: number; password: string }) => api.resetPassword(id, password) }),
+  };
 }

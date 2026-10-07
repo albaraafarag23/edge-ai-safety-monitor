@@ -1,4 +1,4 @@
-import type { Camera, FilterOptions, Incident, IncidentQuery, IncidentStatus, Report, Stats, User } from "./types";
+import type { Analytics, Camera, FilterOptions, Incident, IncidentQuery, IncidentStatus, Report, Role, Stats, User } from "./types";
 
 // All backend calls go through /api (proxied by Vite in dev and nginx in Docker).
 export const API_BASE = "/api";
@@ -64,6 +64,17 @@ export const api = {
     await request<void>("/auth/logout", { method: "POST" });
   },
   cameras: async () => (await request<Camera[]>("/cameras")).data,
+  changePassword: async (current_password: string, new_password: string) =>
+    (await request<User>("/auth/password", { method: "POST", body: JSON.stringify({ current_password, new_password }) })).data,
+  users: async () => (await request<User[]>("/users")).data,
+  addUser: async (user: { email: string; name: string; role: Role; password: string }) =>
+    (await request<User>("/users", { method: "POST", body: JSON.stringify(user) })).data,
+  updateUser: async (id: number, change: { name?: string; role?: Role; active?: boolean }) =>
+    (await request<User>(`/users/${id}`, { method: "PATCH", body: JSON.stringify(change) })).data,
+  resetPassword: async (id: number, password: string) => {
+    await request<void>(`/users/${id}/password`, { method: "POST", body: JSON.stringify({ password }) });
+  },
+  analytics: async (days: number, tz: string) => (await request<Analytics>(`/analytics${toQuery({ days, tz })}`)).data,
   async incidents(query: IncidentQuery): Promise<{ items: Incident[]; total: number }> {
     const { data, headers } = await request<Incident[]>(`/incidents${toQuery(query)}`);
     return { items: data, total: Number(headers.get("X-Total-Count") ?? data.length) };

@@ -86,15 +86,15 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)  # stored lower-case
     name: Mapped[str] = mapped_column(String)
-    role: Mapped[str] = mapped_column(String, default="supervisor")    # "admin" or "supervisor"
+    role: Mapped[str] = mapped_column(String, default="supervisor")    # "admin", "supervisor" or "viewer"
     password_hash: Mapped[str] = mapped_column(String)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime)
 
     def to_dict(self) -> dict:
-        return {"id": self.id, "email": self.email, "name": self.name, "role": self.role,
-                "last_login_at": iso(self.last_login_at)}
+        return {"id": self.id, "email": self.email, "name": self.name, "role": self.role, "active": self.active,
+                "created_at": iso(self.created_at), "last_login_at": iso(self.last_login_at)}
 
 
 def iso(dt: datetime | None) -> str | None:

@@ -13,8 +13,10 @@ from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import func, select
 
+import analytics
 import auth
 import cameras
+import users
 from live import broadcaster
 from models import STATUSES, Base, Incident, Report, SessionLocal, User, engine
 
@@ -127,11 +129,18 @@ async def health():
 # ---------- sign-in ----------
 
 @app.post("/auth/login")
-async def login(body: LoginIn, response: Response):
+async def login(body: LoginIn, request: Request, response: Response):
+    keys = [f"email:{body.email.strip().lower()}", f"ip:{auth.client_address(request)}"]
+    wait = auth.login_limiter.retry_after(keys)
+    if wait:
+        raise HTTPException(status_code=429, detail=f"Too many failed attempts. Try again in {(wait + 59) // 60} min.",
+                            headers={"Retry-After": str(wait)})
     user = await auth.authenticate(body.email, body.password)
     if not user:
+        auth.login_limiter.failed(keys)
         raise HTTPException(status_code=401, detail="Incorrect email or password")
-    auth.set_session_cookie(response, user.id)
+    auth.login_limiter.succeeded(keys)
+    auth.set_session_cookie(response, user)
     return user.to_dict()
 
 
@@ -203,7 +212,7 @@ async def get_incident(event_id: str):
         return incident.to_dict(await session.get(Report, event_id))
 
 
-@protected.patch("/incidents/{event_id}/status")
+@protected.patch("/incidents/{event_id}/status", dependencies=[Depends(auth.can_handle_incidents)])
 async def set_status(event_id: str, body: StatusIn):
     async with SessionLocal() as session:
         incident = await session.get(Incident, event_id)
@@ -299,4 +308,7 @@ async def events(request: Request):
 
 
 protected.include_router(cameras.router)
+protected.include_router(analytics.router)
+protected.include_router(users.router)
+app.include_router(users.account)
 app.include_router(protected)
