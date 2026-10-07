@@ -11,6 +11,8 @@ COPY requirements.txt .
 # Install redis first (always needed); ultralytics only needed for live mode
 RUN pip install --no-cache-dir redis>=5.0.0
 RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements-media.txt .
+RUN pip install --no-cache-dir -r requirements-media.txt
 
 COPY main.py plugin_config.py media.py .
 

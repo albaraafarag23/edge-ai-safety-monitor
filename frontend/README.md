@@ -36,4 +36,3 @@ nginx also proxies `/api` to the backend, so the browser only ever talks to one 
 - Analytics page (trends, compliance rate, worst zones and hours)
 - Zone editor: draw zones on a camera frame and save them to the plugin
 - Settings: supervisor emails, cooldown
-- Browser-playable clips (H.264 via ffmpeg in `cv_pipeline`)

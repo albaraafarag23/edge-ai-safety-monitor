@@ -10,6 +10,7 @@ Files are written under a temporary name and renamed, so readers never see half 
 import collections
 import json
 import os
+import subprocess
 import threading
 import time
 from pathlib import Path
@@ -24,6 +25,14 @@ MAX_WIDTH = 960        # buffered frames are downscaled to this width
 PRE_SECONDS = 5
 POST_SECONDS = 3
 INCIDENT_STREAM = "incidents"
+
+# ffmpeg with the libx264 encoder, bundled by the imageio-ffmpeg package. H.264 plays in every
+# browser and email app; OpenCV's own pip build can only write MPEG-4, which browsers won't play.
+try:
+    import imageio_ffmpeg
+    FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
+except Exception:
+    FFMPEG = None
 
 COLORS = {"Person": (255, 160, 0), "Hardhat": (0, 200, 0), "Safety Vest": (0, 200, 0),
           "NO-Hardhat": (0, 0, 255), "NO-Safety Vest": (0, 0, 255)}
@@ -61,7 +70,6 @@ class MediaRecorder:
         self._frames = collections.deque()   # (frame_id, time, jpeg bytes)
         self._lock = threading.Lock()
         self._last_add = 0.0
-        self._fourcc = None  # chosen on the first clip
 
     # ---------- called by the detector for every frame ----------
     def add(self, frame_id: int, image, detections: list[dict]):
@@ -140,29 +148,52 @@ class MediaRecorder:
         if not frames:
             return
         images = [cv2.imdecode(np.frombuffer(f[2], np.uint8), cv2.IMREAD_COLOR) for f in frames]
-        h, w = images[0].shape[:2]
         # play back at the rate frames were actually captured (the detector may run below BUFFER_FPS)
         span = frames[-1][1] - frames[0][1]
         fps = (len(frames) - 1) / span if len(frames) > 1 and span > 0 else 1.0
 
-        def write(tmp: Path):
-            # H.264 plays in browsers and email clients; fall back to MPEG-4 if this OpenCV lacks it
-            for fourcc in [self._fourcc] if self._fourcc else ["avc1", "mp4v"]:
-                out = cv2.VideoWriter(str(tmp), cv2.VideoWriter_fourcc(*fourcc), fps, (w, h))
-                if out.isOpened():
-                    if self._fourcc is None:
-                        print(f"[CV] Media: writing clips with codec {fourcc}", flush=True)
-                    self._fourcc = fourcc
-                    for img in images:
-                        out.write(cv2.resize(img, (w, h)) if img.shape[:2] != (h, w) else img)
-                    out.release()
-                    return True
-            return False
-
-        if _atomic_write(path, write):
-            print(f"[CV] Saved clip {path.name} ({len(images)} frames, {span:.1f} s at {fps:.1f} fps)", flush=True)
+        if FFMPEG and _atomic_write(path, lambda tmp: _write_h264(tmp, images, fps)):
+            codec = "H.264"
+        elif _atomic_write(path, lambda tmp: _write_mpeg4(tmp, images, fps)):
+            codec = "MPEG-4 (won't play in browsers)"
         else:
-            print(f"[CV] Media: no working video codec, clip {path.name} not saved", flush=True)
+            print(f"[CV] Media: could not write clip {path.name}", flush=True)
+            return
+        print(f"[CV] Saved clip {path.name} ({len(images)} frames, {span:.1f} s at {fps:.1f} fps, {codec})", flush=True)
 
 
-MEDIA_SUMMARY = f"buffer {BUFFER_SECONDS}s @ {BUFFER_FPS} fps, clips {PRE_SECONDS}s before + {POST_SECONDS}s after"
+def _write_h264(tmp: Path, images: list, fps: float) -> bool:
+    h, w = images[0].shape[:2]
+    cmd = [FFMPEG, "-y", "-loglevel", "error",
+           "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{w}x{h}", "-r", f"{fps:.3f}", "-i", "-",
+           "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",  # H.264 with yuv420p needs even dimensions
+           "-c:v", "libx264", "-preset", "veryfast", "-crf", "26",
+           "-pix_fmt", "yuv420p",        # the colour format browsers can decode
+           "-movflags", "+faststart",    # index at the start, so playback begins before the download ends
+           str(tmp)]
+    try:
+        data = b"".join((img if img.shape[:2] == (h, w) else cv2.resize(img, (w, h))).tobytes() for img in images)
+        result = subprocess.run(cmd, input=data, capture_output=True, timeout=60)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        print(f"[CV] Media: ffmpeg failed ({e}), falling back to MPEG-4", flush=True)
+        return False
+    if result.returncode != 0:
+        print(f"[CV] Media: ffmpeg failed ({result.stderr.decode(errors='replace').strip()[:200]}), "
+              f"falling back to MPEG-4", flush=True)
+        return False
+    return True
+
+
+def _write_mpeg4(tmp: Path, images: list, fps: float) -> bool:
+    h, w = images[0].shape[:2]
+    out = cv2.VideoWriter(str(tmp), cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
+    if not out.isOpened():
+        return False
+    for img in images:
+        out.write(img if img.shape[:2] == (h, w) else cv2.resize(img, (w, h)))
+    out.release()
+    return True
+
+
+MEDIA_SUMMARY = (f"buffer {BUFFER_SECONDS}s @ {BUFFER_FPS} fps, clips {PRE_SECONDS}s before + {POST_SECONDS}s after, "
+                 f"{'H.264 via ffmpeg' if FFMPEG else 'MPEG-4 (ffmpeg not found)'}")

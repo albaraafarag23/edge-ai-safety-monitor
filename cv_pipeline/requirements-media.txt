@@ -1,0 +1,3 @@
+# ffmpeg with the H.264 encoder (libx264), for incident clips that play in browsers and email apps.
+# Separate from requirements.txt so adding it doesn't re-download PyTorch on the next build.
+imageio-ffmpeg>=0.5
