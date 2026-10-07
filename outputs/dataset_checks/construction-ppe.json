@@ -1,0 +1,134 @@
+{
+  "data_yaml": "/home/albaraa/edge-ai-safety-monitor/data/construction-ppe/data_local.yaml",
+  "root": "/home/albaraa/edge-ai-safety-monitor/data/construction-ppe",
+  "classes": {
+    "0": "helmet",
+    "1": "gloves",
+    "2": "vest",
+    "3": "boots",
+    "4": "goggles",
+    "5": "none",
+    "6": "Person",
+    "7": "no_helmet",
+    "8": "no_goggle",
+    "9": "no_gloves",
+    "10": "no_boots"
+  },
+  "splits": {
+    "train": {
+      "images": 1132,
+      "missing_label_file": [],
+      "empty_label_file": 0,
+      "bad_lines": [],
+      "unreadable_images": [],
+      "instances": {
+        "helmet": 1341,
+        "gloves": 1146,
+        "vest": 1269,
+        "boots": 1235,
+        "goggles": 419,
+        "none": 651,
+        "Person": 1770,
+        "no_helmet": 400,
+        "no_goggle": 337,
+        "no_gloves": 442,
+        "no_boots": 88
+      },
+      "images_per_class": {
+        "helmet": 830,
+        "gloves": 562,
+        "vest": 828,
+        "boots": 530,
+        "goggles": 385,
+        "none": 347,
+        "Person": 1067,
+        "no_helmet": 232,
+        "no_goggle": 216,
+        "no_gloves": 190,
+        "no_boots": 28
+      }
+    },
+    "val": {
+      "images": 143,
+      "missing_label_file": [],
+      "empty_label_file": 0,
+      "bad_lines": [],
+      "unreadable_images": [],
+      "instances": {
+        "helmet": 201,
+        "gloves": 136,
+        "vest": 171,
+        "boots": 151,
+        "goggles": 47,
+        "none": 81,
+        "Person": 239,
+        "no_helmet": 45,
+        "no_goggle": 41,
+        "no_gloves": 56,
+        "no_boots": 4
+      },
+      "images_per_class": {
+        "helmet": 107,
+        "gloves": 68,
+        "vest": 109,
+        "boots": 64,
+        "goggles": 44,
+        "none": 43,
+        "Person": 139,
+        "no_helmet": 27,
+        "no_goggle": 25,
+        "no_gloves": 23,
+        "no_boots": 2
+      }
+    },
+    "test": {
+      "images": 141,
+      "missing_label_file": [],
+      "empty_label_file": 0,
+      "bad_lines": [],
+      "unreadable_images": [],
+      "instances": {
+        "helmet": 192,
+        "gloves": 163,
+        "vest": 178,
+        "boots": 211,
+        "goggles": 52,
+        "none": 65,
+        "Person": 236,
+        "no_helmet": 40,
+        "no_goggle": 33,
+        "no_gloves": 58,
+        "no_boots": 23
+      },
+      "images_per_class": {
+        "helmet": 110,
+        "gloves": 75,
+        "vest": 111,
+        "boots": 75,
+        "goggles": 51,
+        "none": 35,
+        "Person": 133,
+        "no_helmet": 24,
+        "no_goggle": 24,
+        "no_gloves": 23,
+        "no_boots": 6
+      }
+    }
+  },
+  "duplicates_across_splits": [],
+  "total_instances": {
+    "helmet": 1734,
+    "gloves": 1445,
+    "vest": 1618,
+    "boots": 1597,
+    "goggles": 518,
+    "none": 797,
+    "Person": 2245,
+    "no_helmet": 485,
+    "no_goggle": 411,
+    "no_gloves": 556,
+    "no_boots": 115
+  },
+  "imbalance_ratio": 19.5,
+  "classes_with_no_instances": []
+}

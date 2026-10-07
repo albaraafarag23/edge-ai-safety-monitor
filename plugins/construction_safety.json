@@ -1,0 +1,162 @@
+{
+  "plugin_id": "construction_safety",
+  "name": "Construction Site Safety Monitor",
+  "version": "0.1.0",
+  "report": {
+    "audience": "the site safety supervisor",
+    "tone": "formal and compliance-oriented, suitable for a construction site safety record"
+  },
+  "detection": {
+    "model": "construction_ppe.pt",
+    "imgsz": 640,
+    "default_confidence": 0.4,
+    "classes": {
+      "Person": {"confidence": 0.5},
+      "Hardhat": {},
+      "NO-Hardhat": {"confidence": 0.45},
+      "Safety Vest": {},
+      "NO-Safety Vest": {"confidence": 0.45},
+      "machinery": {},
+      "vehicle": {},
+      "bottle": {},
+      "cup": {}
+    }
+  },
+  "zones": {
+    "excavation_edge": {
+      "name": "Excavation Edge",
+      "camera_id": "cam_01",
+      "polygon": [
+        [0, 300],
+        [220, 300],
+        [220, 480],
+        [0, 480]
+      ]
+    },
+    "crane_swing_area": {
+      "name": "Tower Crane Swing Area",
+      "camera_id": "cam_01",
+      "polygon": [
+        [220, 250],
+        [420, 250],
+        [420, 480],
+        [220, 480]
+      ]
+    },
+    "scaffold_level_1": {
+      "name": "Scaffold Level 1",
+      "camera_id": "cam_01",
+      "polygon": [
+        [420, 200],
+        [640, 200],
+        [640, 480],
+        [420, 480]
+      ]
+    }
+  },
+  "rules": [
+    {
+      "rule_id": "RULE_PPE_01",
+      "type": "ppe",
+      "description": "Hard hat and safety vest required on site",
+      "subject_classes": ["Person"],
+      "required": [
+        {
+          "name": "hard_hat",
+          "present_classes": ["Hardhat"],
+          "absent_classes": ["NO-Hardhat"]
+        },
+        {
+          "name": "safety_vest",
+          "present_classes": ["Safety Vest"],
+          "absent_classes": ["NO-Safety Vest"]
+        }
+      ],
+      "min_duration_s": 3,
+      "event_type": "PPE_MISSING",
+      "severity": "HIGH",
+      "recommended_actions": [
+        "Stop the worker and require the missing PPE before they continue work.",
+        "Check that hard hats and high-visibility vests are available at the site entrance.",
+        "Record the violation and repeat the PPE briefing at the next toolbox talk."
+      ]
+    },
+    {
+      "rule_id": "RULE_ZONE_01",
+      "type": "zone",
+      "description": "Unauthorized entry into excavation edge",
+      "zone": "excavation_edge",
+      "subject_classes": ["Person"],
+      "min_duration_s": 0,
+      "event_type": "RESTRICTED_ZONE_ENTRY",
+      "severity": "HIGH",
+      "recommended_actions": [
+        "Remove the person from the excavation edge immediately.",
+        "Inspect the barriers and signage around the excavation for gaps.",
+        "Confirm the person is authorized and briefed for excavation work."
+      ]
+    },
+    {
+      "rule_id": "RULE_ZONE_02",
+      "type": "zone",
+      "description": "Person staying under the crane swing area",
+      "zone": "crane_swing_area",
+      "subject_classes": ["Person"],
+      "min_duration_s": 30,
+      "event_type": "LOITERING_HAZARD_ZONE",
+      "severity": "MEDIUM",
+      "recommended_actions": [
+        "Clear the crane swing area and confirm no load is being lifted over people.",
+        "Remind the crane operator and banksman to stop lifting while the area is occupied.",
+        "Review whether the swing area is clearly marked and fenced."
+      ]
+    },
+    {
+      "rule_id": "RULE_ZONE_03",
+      "type": "zone",
+      "description": "More than 3 workers on scaffold level 1",
+      "zone": "scaffold_level_1",
+      "subject_classes": ["Person"],
+      "max_count": 3,
+      "min_duration_s": 5,
+      "event_type": "ZONE_OVER_CAPACITY",
+      "severity": "MEDIUM",
+      "recommended_actions": [
+        "Reduce the number of workers on the scaffold to the permitted maximum.",
+        "Check the scaffold load tag and inspection record.",
+        "Plan the work so that tasks on the scaffold are staggered."
+      ]
+    },
+    {
+      "rule_id": "RULE_PROX_01",
+      "type": "proximity",
+      "description": "Worker too close to moving machinery",
+      "subject_classes": ["Person"],
+      "near_classes": ["machinery", "vehicle"],
+      "max_gap_ratio": 0.5,
+      "min_duration_s": 1,
+      "event_type": "PERSON_NEAR_MACHINERY",
+      "severity": "CRITICAL",
+      "recommended_actions": [
+        "Stop the machine and separate the worker from it immediately.",
+        "Re-establish the exclusion zone around operating machinery.",
+        "Brief the operator and nearby workers on safe distances and a banksman's role."
+      ]
+    },
+    {
+      "rule_id": "RULE_FOOD_01",
+      "type": "zone",
+      "description": "Food or drink inside the excavation edge zone",
+      "enabled": false,
+      "zone": "excavation_edge",
+      "subject_classes": ["bottle", "cup"],
+      "min_duration_s": 5,
+      "event_type": "FOOD_IN_RESTRICTED_ZONE",
+      "severity": "LOW",
+      "recommended_actions": [
+        "Remove the food or drink from the restricted zone.",
+        "Remind workers to eat and drink only in the designated welfare area."
+      ]
+    }
+  ]
+}

@@ -33,13 +33,16 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
       SOURCE: ${CV_SOURCE:-0}
-      MODEL_PATH: /models/yolo11n.pt
-      CONFIDENCE: ${CV_CONFIDENCE:-0.4}
+      MODELS_DIR: /models
+      PLUGINS_DIR: /app/plugins
+      MEDIA_DIR: /media
       CAMERA_ID: cam_01
-      PLUGIN_ID: factory_safety
+      PLUGIN_ID: ${PLUGIN_ID:-construction_safety}
       TEST_MODE: ${CV_TEST_MODE:-true}
     volumes:
       - ./yolo11n.pt:/models/yolo11n.pt:ro
+      - ./plugins:/app/plugins:ro
+      - ./media:/media
     devices:
       - /dev/video0:/dev/video0
     # For GPU inference (requires NVIDIA Container Toolkit):
@@ -61,7 +64,7 @@ services:
       REDIS_URL: redis://redis:6379
       PLUGINS_DIR: /app/plugins
     volumes:
-      - ./event_engine/plugins:/app/plugins:ro
+      - ./plugins:/app/plugins:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -74,6 +77,9 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-monitor}:${POSTGRES_PASSWORD:-monitor123}@postgres:5432/${POSTGRES_DB:-safety_monitor}
+      MEDIA_DIR: /media
+    volumes:
+      - ./media:/media:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,8 +92,20 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
       BACKEND_URL: http://backend:8000
+      PLUGINS_DIR: /app/plugins
+      MEDIA_DIR: /media
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_TLS: ${SMTP_TLS:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      SUPERVISOR_EMAILS: ${SUPERVISOR_EMAILS:-}
+      NOTIFY_COOLDOWN_S: ${NOTIFY_COOLDOWN_S:-300}
+    volumes:
+      - ./plugins:/app/plugins:ro
+      - ./media:/media:ro
     depends_on:
       - backend
     restart: unless-stopped

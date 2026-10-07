@@ -30,3 +30,6 @@ runs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Incident snapshots and clips (written by cv_pipeline)
+media/
