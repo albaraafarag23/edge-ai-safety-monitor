@@ -1,24 +1,22 @@
-import os
-import json
 import asyncio
+import json
+import os
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Literal
 
 import redis.asyncio as aioredis
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from sqlalchemy import String, DateTime, Float, Text, select
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy import func, select
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql+asyncpg://monitor:monitor123@localhost:5432/safety_monitor",
-)
+from live import broadcaster
+from models import STATUSES, Base, Incident, Report, SessionLocal, engine
+
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 INCIDENT_STREAM = "incidents"
 CONSUMER_GROUP = "backend"
@@ -26,54 +24,17 @@ CONSUMER_NAME = "backend_01"
 # snapshots and clips written by cv_pipeline, served at /media/...
 MEDIA_DIR = os.getenv("MEDIA_DIR", "/media")
 
-engine = create_async_engine(DATABASE_URL)
-SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-class Incident(Base):
-    """One incident payload (docs/contracts.md). Contract fields map 1:1 to columns."""
-    __tablename__ = "incidents"
-
-    event_id: Mapped[str] = mapped_column(String, primary_key=True)
-    timestamp: Mapped[str] = mapped_column(String)
-    plugin_id: Mapped[str] = mapped_column(String, index=True)
-    camera_id: Mapped[str] = mapped_column(String, index=True)
-    severity: Mapped[str] = mapped_column(String, index=True)
-    event_type: Mapped[str] = mapped_column(String, index=True)
-    location: Mapped[str] = mapped_column(String)
-    duration_seconds: Mapped[float] = mapped_column(Float)
-    rules_violated: Mapped[list] = mapped_column(JSONB)
-    snapshot_url: Mapped[str | None] = mapped_column(String)
-    clip_url: Mapped[str | None] = mapped_column(String)
-    # "metadata" is reserved by SQLAlchemy, so the attribute is meta but the column is "metadata"
-    meta: Mapped[dict] = mapped_column("metadata", JSONB)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
-
-CONTRACT_FIELDS = ["event_id", "timestamp", "plugin_id", "camera_id", "severity", "event_type",
-                   "location", "duration_seconds", "rules_violated", "snapshot_url", "clip_url", "metadata"]
-
-
-class Report(Base):
-    """The AI-generated report for one incident, posted by ai_reporting."""
-    __tablename__ = "reports"
-
-    event_id: Mapped[str] = mapped_column(String, primary_key=True)
-    markdown: Mapped[str] = mapped_column(Text)
-    generated_by: Mapped[str] = mapped_column(String)   # model id, or "template" if the LLM was unavailable
-    delivery: Mapped[dict] = mapped_column(JSONB)       # {"status", "recipients", "attachments", "error"}
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
-
 
 class ReportIn(BaseModel):
     event_id: str
     markdown: str
     generated_by: str
     delivery: dict = {}
+
+
+class StatusIn(BaseModel):
+    status: Literal["open", "acknowledged", "resolved"]
+    note: str | None = None
 
 
 async def consume_incidents(r: aioredis.Redis):
@@ -87,13 +48,8 @@ async def consume_incidents(r: aioredis.Redis):
 
     while True:
         try:
-            messages = await r.xreadgroup(
-                CONSUMER_GROUP,
-                CONSUMER_NAME,
-                {INCIDENT_STREAM: ">"},
-                count=10,
-                block=1000,
-            )
+            messages = await r.xreadgroup(CONSUMER_GROUP, CONSUMER_NAME, {INCIDENT_STREAM: ">"},
+                                          count=10, block=1000)
             if not messages:
                 continue
 
@@ -103,17 +59,17 @@ async def consume_incidents(r: aioredis.Redis):
                     for msg_id, data in events:
                         handled.append(msg_id)
                         try:
-                            incident = json.loads(data["data"])
-                            session.add(Incident(**{("meta" if k == "metadata" else k): incident.get(k)
-                                                    for k in CONTRACT_FIELDS}))
-                            stored.append(incident["event_id"])
+                            row = Incident.from_contract(json.loads(data["data"]))
+                            session.add(row)
+                            stored.append(row)
                         except (KeyError, json.JSONDecodeError) as e:
                             print(f"[Backend] Skipping message {msg_id}: not in the contract format ({e})", flush=True)
                 # acknowledge only after the commit succeeds, so a failed save is redelivered
                 await session.commit()
             await r.xack(INCIDENT_STREAM, CONSUMER_GROUP, *handled)
-            for event_id in stored:
-                print(f"[Backend] Stored incident {event_id}", flush=True)
+            for row in stored:
+                print(f"[Backend] Stored incident {row.event_id}", flush=True)
+                broadcaster.publish("incident", row.to_dict())
 
         except asyncio.CancelledError:
             break
@@ -136,16 +92,17 @@ async def lifespan(app: FastAPI):
     await r.aclose()
 
 
-app = FastAPI(title="Safety Monitor API", version="1.0.0", lifespan=lifespan)
-Path(MEDIA_DIR).mkdir(parents=True, exist_ok=True)
-app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
+app = FastAPI(title="Safety Monitor API", version="1.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Total-Count"],
 )
+Path(MEDIA_DIR).mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=MEDIA_DIR), name="media")
 
 
 @app.get("/health")
@@ -153,39 +110,69 @@ async def health():
     return {"status": "ok"}
 
 
+# ---------- incidents ----------
+
 @app.get("/incidents")
-async def list_incidents(limit: int = 50, severity: str | None = None, camera_id: str | None = None,
-                         event_type: str | None = None):
+async def list_incidents(
+    response: Response,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    severity: str | None = None,
+    camera_id: str | None = None,
+    event_type: str | None = None,
+    status: str | None = None,
+    hours: float | None = Query(None, gt=0, description="only incidents received in the last N hours"),
+):
+    filters = []
+    if severity:
+        filters.append(Incident.severity == severity.upper())
+    if camera_id:
+        filters.append(Incident.camera_id == camera_id)
+    if event_type:
+        filters.append(Incident.event_type == event_type)
+    if status:
+        filters.append(Incident.status == status)
+    if hours:
+        filters.append(Incident.created_at >= datetime.utcnow() - timedelta(hours=hours))
+
     async with SessionLocal() as session:
-        q = select(Incident).order_by(Incident.created_at.desc()).limit(limit)
-        if severity:
-            q = q.where(Incident.severity == severity.upper())
-        if camera_id:
-            q = q.where(Incident.camera_id == camera_id)
-        if event_type:
-            q = q.where(Incident.event_type == event_type)
-        rows = (await session.execute(q)).scalars().all()
-        return [_incident_to_dict(r) for r in rows]
+        total = await session.scalar(select(func.count()).select_from(Incident).where(*filters))
+        rows = (await session.execute(
+            select(Incident, Report)
+            .outerjoin(Report, Report.event_id == Incident.event_id)
+            .where(*filters)
+            .order_by(Incident.created_at.desc())
+            .limit(limit).offset(offset)
+        )).all()
+    response.headers["X-Total-Count"] = str(total)
+    return [incident.to_dict(report) for incident, report in rows]
 
 
 @app.get("/incidents/{event_id}")
 async def get_incident(event_id: str):
     async with SessionLocal() as session:
-        row = (
-            await session.execute(
-                select(Incident).where(Incident.event_id == event_id)
-            )
-        ).scalar_one_or_none()
-        if not row:
+        incident = await session.get(Incident, event_id)
+        if not incident:
             raise HTTPException(status_code=404, detail="Incident not found")
-        return _incident_to_dict(row)
+        return incident.to_dict(await session.get(Report, event_id))
 
 
-def _incident_to_dict(row: Incident) -> dict:
-    d = {k: getattr(row, "meta" if k == "metadata" else k) for k in CONTRACT_FIELDS}
-    d["received_at"] = row.created_at.isoformat(timespec="seconds") + "Z"
-    return d
+@app.patch("/incidents/{event_id}/status")
+async def set_status(event_id: str, body: StatusIn):
+    async with SessionLocal() as session:
+        incident = await session.get(Incident, event_id)
+        if not incident:
+            raise HTTPException(status_code=404, detail="Incident not found")
+        incident.status = body.status
+        incident.status_note = body.note
+        incident.status_updated_at = datetime.utcnow()
+        await session.commit()
+        result = incident.to_dict(await session.get(Report, event_id))
+    broadcaster.publish("status", {"event_id": event_id, "status": body.status})
+    return result
 
+
+# ---------- reports ----------
 
 @app.post("/reports", status_code=201)
 async def save_report(report: ReportIn):
@@ -194,6 +181,8 @@ async def save_report(report: ReportIn):
             raise HTTPException(status_code=404, detail="Incident not found")
         await session.merge(Report(**report.model_dump()))
         await session.commit()
+    broadcaster.publish("report", {"event_id": report.event_id, "generated_by": report.generated_by,
+                                   "delivery_status": report.delivery.get("status")})
     return {"event_id": report.event_id}
 
 
@@ -203,16 +192,61 @@ async def get_report(event_id: str):
         row = await session.get(Report, event_id)
         if not row:
             raise HTTPException(status_code=404, detail="No report for this incident yet")
-        return _report_to_dict(row)
+        return row.to_dict()
 
 
 @app.get("/reports")
-async def list_reports(limit: int = 50):
+async def list_reports(limit: int = Query(50, ge=1, le=200)):
     async with SessionLocal() as session:
         rows = (await session.execute(select(Report).order_by(Report.created_at.desc()).limit(limit))).scalars().all()
-        return [_report_to_dict(r) for r in rows]
+        return [r.to_dict() for r in rows]
 
 
-def _report_to_dict(row: Report) -> dict:
-    return {"event_id": row.event_id, "markdown": row.markdown, "generated_by": row.generated_by,
-            "delivery": row.delivery, "created_at": row.created_at.isoformat(timespec="seconds") + "Z"}
+# ---------- dashboard ----------
+
+@app.get("/stats")
+async def stats(hours: float = Query(24, gt=0, le=24 * 90)):
+    """Counts for the overview page, over the last `hours`."""
+    since = datetime.utcnow() - timedelta(hours=hours)
+    recent = Incident.created_at >= since
+
+    async def counts(column):
+        rows = (await session.execute(select(column, func.count()).where(recent).group_by(column))).all()
+        return {k: v for k, v in rows}
+
+    async with SessionLocal() as session:
+        by_severity = await counts(Incident.severity)
+        by_event_type = await counts(Incident.event_type)
+        by_status = await counts(Incident.status)
+        by_camera = await counts(Incident.camera_id)
+        bucket = func.date_trunc("hour", Incident.created_at)
+        timeline = (await session.execute(
+            select(bucket, func.count()).where(recent).group_by(bucket).order_by(bucket))).all()
+
+    return {
+        "hours": hours,
+        "total": sum(by_severity.values()),
+        "open": by_status.get("open", 0),
+        "by_severity": by_severity,
+        "by_event_type": by_event_type,
+        "by_status": {s: by_status.get(s, 0) for s in STATUSES},
+        "by_camera": by_camera,
+        "timeline": [{"hour": t.isoformat() + "Z", "count": c} for t, c in timeline],
+    }
+
+
+@app.get("/filters")
+async def filter_options():
+    """Values that exist in the data, for the dashboard's filter dropdowns."""
+    async with SessionLocal() as session:
+        cameras = (await session.execute(select(Incident.camera_id).distinct().order_by(Incident.camera_id))).scalars().all()
+        types = (await session.execute(select(Incident.event_type).distinct().order_by(Incident.event_type))).scalars().all()
+    return {"camera_ids": cameras, "event_types": types, "severities": ["CRITICAL", "HIGH", "MEDIUM", "LOW"],
+            "statuses": list(STATUSES)}
+
+
+@app.get("/events")
+async def events(request: Request):
+    """Server-Sent Events: `incident`, `report` and `status` events as they happen."""
+    return StreamingResponse(broadcaster.stream(request.is_disconnected), media_type="text/event-stream",
+                             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

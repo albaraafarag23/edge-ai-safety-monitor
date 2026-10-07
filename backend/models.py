@@ -1,0 +1,83 @@
+"""Database tables. Contract fields (docs/contracts.md) map 1:1 to Incident columns."""
+import os
+from datetime import datetime
+
+from sqlalchemy import DateTime, Float, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+asyncpg://monitor:monitor123@localhost:5432/safety_monitor",
+)
+
+engine = create_async_engine(DATABASE_URL)
+SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
+
+CONTRACT_FIELDS = ["event_id", "timestamp", "plugin_id", "camera_id", "severity", "event_type",
+                   "location", "duration_seconds", "rules_violated", "snapshot_url", "clip_url", "metadata"]
+STATUSES = ("open", "acknowledged", "resolved")
+
+
+class Base(DeclarativeBase):
+    pass
+
+
+class Incident(Base):
+    __tablename__ = "incidents"
+
+    event_id: Mapped[str] = mapped_column(String, primary_key=True)
+    timestamp: Mapped[str] = mapped_column(String)
+    plugin_id: Mapped[str] = mapped_column(String, index=True)
+    camera_id: Mapped[str] = mapped_column(String, index=True)
+    severity: Mapped[str] = mapped_column(String, index=True)
+    event_type: Mapped[str] = mapped_column(String, index=True)
+    location: Mapped[str] = mapped_column(String)
+    duration_seconds: Mapped[float] = mapped_column(Float)
+    rules_violated: Mapped[list] = mapped_column(JSONB)
+    snapshot_url: Mapped[str | None] = mapped_column(String)
+    clip_url: Mapped[str | None] = mapped_column(String)
+    # "metadata" is reserved by SQLAlchemy, so the attribute is meta but the column is "metadata"
+    meta: Mapped[dict] = mapped_column("metadata", JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    # supervisor workflow (not part of the incident contract)
+    status: Mapped[str] = mapped_column(String, default="open", index=True)
+    status_note: Mapped[str | None] = mapped_column(Text)
+    status_updated_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    @classmethod
+    def from_contract(cls, payload: dict) -> "Incident":
+        return cls(**{("meta" if k == "metadata" else k): payload.get(k) for k in CONTRACT_FIELDS})
+
+    def to_dict(self, report: "Report | None" = None) -> dict:
+        d = {k: getattr(self, "meta" if k == "metadata" else k) for k in CONTRACT_FIELDS}
+        d["received_at"] = iso(self.created_at)
+        d["status"] = self.status
+        d["status_note"] = self.status_note
+        d["status_updated_at"] = iso(self.status_updated_at)
+        d["report"] = report.summary() if report else None
+        return d
+
+
+class Report(Base):
+    """The AI-generated report for one incident, posted by ai_reporting."""
+    __tablename__ = "reports"
+
+    event_id: Mapped[str] = mapped_column(String, primary_key=True)
+    markdown: Mapped[str] = mapped_column(Text)
+    generated_by: Mapped[str] = mapped_column(String)   # model id, "template", or "duplicate"
+    delivery: Mapped[dict] = mapped_column(JSONB)       # {"status", "recipients", "attachments", "error"}
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    def summary(self) -> dict:
+        return {"generated_by": self.generated_by, "delivery_status": (self.delivery or {}).get("status")}
+
+    def to_dict(self) -> dict:
+        return {"event_id": self.event_id, "markdown": self.markdown, "generated_by": self.generated_by,
+                "delivery": self.delivery, "created_at": iso(self.created_at)}
+
+
+def iso(dt: datetime | None) -> str | None:
+    return dt.isoformat(timespec="seconds") + "Z" if dt else None

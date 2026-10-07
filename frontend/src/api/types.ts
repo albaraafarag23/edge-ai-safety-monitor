@@ -1,0 +1,87 @@
+// Mirrors the backend responses. Incident fields follow docs/contracts.md.
+
+export type Severity = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW";
+export type IncidentStatus = "open" | "acknowledged" | "resolved";
+
+export interface Detection {
+  detection_id: string;
+  class_name: string;
+  confidence: number;
+  bbox: [number, number, number, number];
+  attributes: Record<string, unknown>;
+  missing_equipment?: string[];
+}
+
+export interface Incident {
+  event_id: string;
+  timestamp: string;
+  plugin_id: string;
+  camera_id: string;
+  severity: Severity;
+  event_type: string;
+  location: string;
+  duration_seconds: number;
+  rules_violated: string[];
+  snapshot_url: string | null;
+  clip_url: string | null;
+  metadata: {
+    rule_id?: string;
+    zone_id?: string | null;
+    zone_name?: string | null;
+    detected_entities?: string[];
+    missing_equipment?: string[];
+    objects_involved?: Detection[];
+    frame_id?: number;
+    model?: string;
+  };
+  // added by the backend
+  received_at: string;
+  status: IncidentStatus;
+  status_note: string | null;
+  status_updated_at: string | null;
+  report: { generated_by: string; delivery_status: DeliveryStatus | null } | null;
+}
+
+export type DeliveryStatus = "sent" | "failed" | "not_configured" | "suppressed_duplicate";
+
+export interface Report {
+  event_id: string;
+  markdown: string;
+  generated_by: string;
+  delivery: {
+    status?: DeliveryStatus;
+    recipients?: string[];
+    attachments?: string[];
+    error?: string | null;
+    duplicate_of?: string;
+  };
+  created_at: string;
+}
+
+export interface Stats {
+  hours: number;
+  total: number;
+  open: number;
+  by_severity: Partial<Record<Severity, number>>;
+  by_event_type: Record<string, number>;
+  by_status: Record<IncidentStatus, number>;
+  by_camera: Record<string, number>;
+  timeline: { hour: string; count: number }[];
+}
+
+export interface FilterOptions {
+  camera_ids: string[];
+  event_types: string[];
+  severities: Severity[];
+  statuses: IncidentStatus[];
+}
+
+export interface IncidentQuery {
+  limit?: number;
+  offset?: number;
+  severity?: string;
+  status?: string;
+  event_type?: string;
+  camera_id?: string;
+  hours?: number;
+}
