@@ -37,6 +37,7 @@ services:
       PLUGINS_DIR: /app/plugins
       MEDIA_DIR: /media
       CAMERA_ID: cam_01
+      CAMERA_LOCATION: ${CAMERA_LOCATION:-Main site}
       PLUGIN_ID: ${PLUGIN_ID:-construction_safety}
       TEST_MODE: ${CV_TEST_MODE:-true}
     volumes:
@@ -78,6 +79,12 @@ services:
       REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-monitor}:${POSTGRES_PASSWORD:-monitor123}@postgres:5432/${POSTGRES_DB:-safety_monitor}
       MEDIA_DIR: /media
+      # dashboard sign-in (see backend/auth.py). The first start creates ADMIN_EMAIL with ADMIN_PASSWORD.
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-dev-internal-token}
     volumes:
       - ./media:/media:ro
     depends_on:
@@ -92,6 +99,7 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
       BACKEND_URL: http://backend:8000
+      INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-dev-internal-token}
       PLUGINS_DIR: /app/plugins
       MEDIA_DIR: /media
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}

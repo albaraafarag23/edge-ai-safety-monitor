@@ -1,8 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import { API_BASE } from "../api/client";
 import { keys } from "../api/queries";
 import type { Incident } from "../api/types";
+import { alertIncident } from "./notifications";
 
 type ConnectionState = "connecting" | "live" | "offline";
 
@@ -28,12 +30,16 @@ const TOAST_MS = 8000;
  * Subscribes to the backend's Server-Sent Events and keeps cached data fresh:
  * a new incident, report or status change invalidates the affected queries.
  * EventSource reconnects on its own after a dropped connection.
+ * Mounted only for signed-in users (the stream needs the session cookie).
  */
 export function LiveProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const [connection, setConnection] = useState<ConnectionState>("connecting");
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(0);
+  const navigate = useNavigate();
+  const navigateRef = useRef(navigate);
+  navigateRef.current = navigate;
 
   const dismiss = useCallback((id: number) => setToasts((t) => t.filter((x) => x.id !== id)), []);
 
@@ -51,6 +57,7 @@ export function LiveProvider({ children }: { children: ReactNode }) {
         const id = nextId.current++;
         setToasts((t) => [...t.slice(-3), { id, incident }]);
         window.setTimeout(() => dismiss(id), TOAST_MS);
+        alertIncident(incident, () => navigateRef.current(`/app/incidents/${incident.event_id}`));
       }
     });
     source.addEventListener("report", (e) => {

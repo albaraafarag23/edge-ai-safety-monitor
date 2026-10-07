@@ -15,3 +15,37 @@ body {
 .report ul { @apply mb-2 list-disc space-y-1 pl-5; }
 .report ol { @apply mb-2 list-decimal space-y-1 pl-5; }
 .report strong { @apply font-semibold text-slate-900; }
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Landing page */
+.hero-grid {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at top, black 30%, transparent 75%);
+}
+.hero-grid-dark {
+  background-image:
+    linear-gradient(to right, rgb(0 0 0 / 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(0 0 0 / 0.08) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+@keyframes scan {
+  from { transform: translateY(0); }
+  to { transform: translateY(378px); }
+}
+.scan-line { animation: scan 4s linear infinite; }
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.float-slow { animation: float 6s ease-in-out infinite; }
+.float-slower { animation: float 8s ease-in-out infinite 1s; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .scan-line, .float-slow, .float-slower { animation: none; }
+}

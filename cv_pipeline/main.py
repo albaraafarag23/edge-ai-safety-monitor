@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import redis
 
+from live_view import LiveView
 from media import MediaRecorder
 from plugin_config import DetectionConfig, PluginError, build_config, load_plugin, model_path_for
 
@@ -17,6 +18,7 @@ MODELS_DIR = os.getenv("MODELS_DIR", "..")
 MODEL_OVERRIDE = os.getenv("MODEL_PATH") or None
 SOURCE = os.getenv("SOURCE", "0")
 CAMERA_ID = os.getenv("CAMERA_ID", "cam_01")
+CAMERA_LOCATION = os.getenv("CAMERA_LOCATION") or None  # shown in the dashboard, e.g. "North gate"
 PLUGIN_ID = os.getenv("PLUGIN_ID", "construction_safety")
 STREAM_KEY = "detections"
 MEDIA_DIR = os.getenv("MEDIA_DIR", "../media")
@@ -73,8 +75,9 @@ def synthetic_frame(frame_id: int):
     """Plain test image so test mode also produces snapshots and clips."""
     w, h = SYNTHETIC_FRAME_SIZE
     img = np.full((h, w, 3), 60, np.uint8)
-    cv2.putText(img, "SYNTHETIC TEST FRAME", (20, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 200), 2)
-    cv2.putText(img, f"{CAMERA_ID}  frame {frame_id}  {utc_now()}", (20, 60), cv2.FONT_HERSHEY_SIMPLEX,
+    # bottom-left, so it doesn't sit under the dashboard's live-view overlay at the top
+    cv2.putText(img, "SYNTHETIC TEST FRAME", (20, h - 45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 200), 2)
+    cv2.putText(img, f"{CAMERA_ID}  frame {frame_id}  {utc_now()}", (20, h - 18), cv2.FONT_HERSHEY_SIMPLEX,
                 0.5, (200, 200, 200), 1)
     return img
 
@@ -85,10 +88,11 @@ def log_config(cfg: DetectionConfig):
     print(f"[CV] Plugin '{cfg.plugin_id}': detecting {cfg.thresholds}", flush=True)
 
 
-def run_test_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder):
+def run_test_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder, live: LiveView):
     # No model in test mode: treat the plugin's own classes as the model's classes
     cfg = build_config(plugin, dict(enumerate(plugin["detection"]["classes"])))
     log_config(cfg)
+    live.set_model("synthetic")
     print(f"[CV] TEST MODE — synthetic detections at {SYNTHETIC_FPS} fps, "
           f"each scene held for {SCENARIO_SECONDS} s", flush=True)
     frame_id = 0
@@ -102,6 +106,7 @@ def run_test_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder):
         message = detection_message(frame_id, detections, "synthetic", SYNTHETIC_FRAME_SIZE)
         recorder.add(frame_id, synthetic_frame(frame_id), message["detections"])
         publish(r, message)
+        live.frame_processed()
 
         if new_scene:
             print(f"[CV] Synthetic scene: {[d['class_name'] for d in detections] or 'no detections'}", flush=True)
@@ -109,7 +114,7 @@ def run_test_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder):
         time.sleep(1 / SYNTHETIC_FPS)
 
 
-def run_live_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder):
+def run_live_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder, live: LiveView):
     from ultralytics import YOLO
 
     model = YOLO(model_path_for(plugin, MODELS_DIR, MODEL_OVERRIDE))
@@ -119,6 +124,7 @@ def run_live_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder):
     print(f"[CV] LIVE MODE — source={source}  model={cfg.model_path}", flush=True)
 
     model_name = os.path.basename(cfg.model_path)
+    live.set_model(model_name)
     for frame_id, result in enumerate(model.predict(
         source=source,
         conf=cfg.min_confidence,
@@ -143,6 +149,7 @@ def run_live_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder):
         message = detection_message(frame_id, detections, model_name, (w, h))
         recorder.add(frame_id, result.orig_img, message["detections"])
         publish(r, message)
+        live.frame_processed()
 
         if detections:
             print(f"[CV] Detected: {[d['class_name'] for d in detections]}", flush=True)
@@ -155,14 +162,15 @@ def main():
         raise SystemExit(f"[CV] {e}")
 
     r = redis.from_url(REDIS_URL, decode_responses=True)
-    recorder = MediaRecorder(MEDIA_DIR, REDIS_URL, CAMERA_ID)
+    live = LiveView(REDIS_URL, CAMERA_ID, PLUGIN_ID, "test" if TEST_MODE else "live", CAMERA_LOCATION)
+    recorder = MediaRecorder(MEDIA_DIR, REDIS_URL, CAMERA_ID, live_view=live)
     recorder.start()
 
     try:
         if TEST_MODE:
-            run_test_mode(r, plugin, recorder)
+            run_test_mode(r, plugin, recorder, live)
         else:
-            run_live_mode(r, plugin, recorder)
+            run_live_mode(r, plugin, recorder, live)
     except PluginError as e:
         raise SystemExit(f"[CV] Invalid plugin: {e}")
 

@@ -1,11 +1,11 @@
-import { Link } from "react-router-dom";
-import { useIncidents, useStats } from "../api/queries";
+import { Link, useSearchParams } from "react-router-dom";
+import { useCameras, useIncidents, useStats } from "../api/queries";
 import type { Stats } from "../api/types";
+import { CameraFeed } from "../components/CameraFeed";
 import { IncidentTable } from "../components/IncidentTable";
 import { PageHeader } from "../components/Layout";
 import { BarList, Card, EmptyState, ErrorState, Spinner, StatCard } from "../components/ui";
 import { SEVERITY_ORDER, SEVERITY_STYLES, humanize } from "../lib/format";
-import { useSearchParams } from "react-router-dom";
 
 const PERIODS = [
   { hours: 24, label: "24 hours" },
@@ -53,6 +53,29 @@ function Timeline({ stats }: { stats: Stats }) {
   );
 }
 
+function LiveCameraCard() {
+  const cameras = useCameras();
+  const camera = cameras.data?.find((c) => c.online) ?? cameras.data?.[0];
+  return (
+    <Card
+      title="Live view"
+      action={<Link to="/app/cameras" className="text-sm font-medium text-sky-700 hover:underline">All cameras</Link>}
+    >
+      {cameras.isPending ? (
+        <Spinner />
+      ) : cameras.isError ? (
+        <ErrorState error={cameras.error} />
+      ) : camera ? (
+        <Link to={`/app/cameras?camera=${encodeURIComponent(camera.camera_id)}`} className="block">
+          <CameraFeed camera={camera} showFullscreen={false} />
+        </Link>
+      ) : (
+        <EmptyState title="No cameras connected">Start the detector to see the live view here.</EmptyState>
+      )}
+    </Card>
+  );
+}
+
 export function Overview() {
   const [params, setParams] = useSearchParams();
   const hours = Number(params.get("hours")) || 24;
@@ -76,7 +99,7 @@ export function Overview() {
 
   return (
     <>
-      <PageHeader title="Overview" subtitle="Safety incidents detected across all cameras" actions={periodPicker} />
+      <PageHeader title="Overview" subtitle="Safety status across all cameras on site" actions={periodPicker} />
 
       {stats.isPending ? (
         <Spinner />
@@ -92,9 +115,9 @@ export function Overview() {
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-3">
-            <Card title={`Incidents over time`} className="lg:col-span-2">
-              <Timeline stats={stats.data} />
-            </Card>
+            <div className="lg:col-span-2">
+              <LiveCameraCard />
+            </div>
             <Card title="By severity">
               {stats.data.total ? (
                 <BarList
@@ -107,11 +130,15 @@ export function Overview() {
             </Card>
           </div>
 
+          <Card title="Incidents over time" className="mt-6">
+            <Timeline stats={stats.data} />
+          </Card>
+
           <div className="mt-6 grid gap-6 lg:grid-cols-3">
             <Card
               title="Latest incidents"
               className="lg:col-span-2"
-              action={<Link to="/incidents" className="text-sm font-medium text-sky-700 hover:underline">View all</Link>}
+              action={<Link to="/app/incidents" className="text-sm font-medium text-sky-700 hover:underline">View all</Link>}
             >
               {latest.isPending ? (
                 <Spinner />

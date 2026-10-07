@@ -1,4 +1,4 @@
-import type { FilterOptions, Incident, IncidentQuery, IncidentStatus, Report, Stats } from "./types";
+import type { Camera, FilterOptions, Incident, IncidentQuery, IncidentStatus, Report, Stats, User } from "./types";
 
 // All backend calls go through /api (proxied by Vite in dev and nginx in Docker).
 export const API_BASE = "/api";
@@ -12,11 +12,19 @@ export class ApiError extends Error {
   }
 }
 
+// Called when a signed-in request comes back 401 (session expired); the auth provider signs the user out.
+let onUnauthorized: () => void = () => {};
+export function setUnauthorizedHandler(handler: () => void) {
+  onUnauthorized = handler;
+}
+
+// The session is an HttpOnly cookie (same origin), so fetch sends it without any extra code.
 async function request<T>(path: string, init?: RequestInit): Promise<{ data: T; headers: Headers }> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
+  if (res.status === 401 && !path.startsWith("/auth/")) onUnauthorized();
   if (!res.ok) {
     let detail = res.statusText;
     try {
@@ -26,7 +34,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<{ data: T; 
     }
     throw new ApiError(res.status, typeof detail === "string" ? detail : JSON.stringify(detail));
   }
-  return { data: (await res.json()) as T, headers: res.headers };
+  const data = res.status === 204 ? undefined : await res.json();
+  return { data: data as T, headers: res.headers };
 }
 
 function toQuery(params: object): string {
@@ -43,7 +52,18 @@ export function mediaUrl(path: string | null | undefined): string | null {
   return path ? `${API_BASE}${path}` : null;
 }
 
+/** Live Motion-JPEG stream and latest still frame of a camera. */
+export const cameraStreamUrl = (id: string) => `${API_BASE}/cameras/${encodeURIComponent(id)}/stream`;
+export const cameraFrameUrl = (id: string) => `${API_BASE}/cameras/${encodeURIComponent(id)}/frame`;
+
 export const api = {
+  me: async () => (await request<User>("/auth/me")).data,
+  login: async (email: string, password: string) =>
+    (await request<User>("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) })).data,
+  logout: async () => {
+    await request<void>("/auth/logout", { method: "POST" });
+  },
+  cameras: async () => (await request<Camera[]>("/cameras")).data,
   async incidents(query: IncidentQuery): Promise<{ items: Incident[]; total: number }> {
     const { data, headers } = await request<Incident[]>(`/incidents${toQuery(query)}`);
     return { items: data, total: Number(headers.get("X-Total-Count") ?? data.length) };

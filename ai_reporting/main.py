@@ -17,6 +17,8 @@ from report import MODEL, generate_from_template, generate_with_claude, missing_
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+# shared with the backend; POST /reports is only open to services that send it
+INTERNAL_API_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
 PLUGINS_DIR = os.getenv("PLUGINS_DIR", "../plugins")
 MEDIA_DIR = Path(os.getenv("MEDIA_DIR", "../media"))
 MEDIA_WAIT_S = float(os.getenv("MEDIA_WAIT_S", "12"))  # detector writes the clip ~3 s after the incident
@@ -57,7 +59,8 @@ def save_report(event_id: str, markdown: str, generated_by: str, delivery: dict)
     body = {"event_id": event_id, "markdown": markdown, "generated_by": generated_by, "delivery": delivery}
     for attempt in range(3):  # the backend may not have stored the incident yet
         try:
-            r = httpx.post(f"{BACKEND_URL}/reports", json=body, timeout=10)
+            r = httpx.post(f"{BACKEND_URL}/reports", json=body, timeout=10,
+                           headers={"X-Internal-Token": INTERNAL_API_TOKEN})
             if r.status_code != 404:
                 r.raise_for_status()
                 return

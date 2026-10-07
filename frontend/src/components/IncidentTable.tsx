@@ -30,8 +30,8 @@ export function IncidentTable({ incidents, compact = false }: { incidents: Incid
           {incidents.map((i) => (
             <tr
               key={i.event_id}
-              onClick={() => navigate(`/incidents/${i.event_id}`)}
-              onKeyDown={(e) => e.key === "Enter" && navigate(`/incidents/${i.event_id}`)}
+              onClick={() => navigate(`/app/incidents/${i.event_id}`)}
+              onKeyDown={(e) => e.key === "Enter" && navigate(`/app/incidents/${i.event_id}`)}
               tabIndex={0}
               className="cursor-pointer hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
             >

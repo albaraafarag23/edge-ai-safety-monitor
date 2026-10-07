@@ -2,7 +2,7 @@
 import os
 from datetime import datetime
 
-from sqlalchemy import DateTime, Float, String, Text
+from sqlalchemy import Boolean, DateTime, Float, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -77,6 +77,24 @@ class Report(Base):
     def to_dict(self) -> dict:
         return {"event_id": self.event_id, "markdown": self.markdown, "generated_by": self.generated_by,
                 "delivery": self.delivery, "created_at": iso(self.created_at)}
+
+
+class User(Base):
+    """Someone who can sign in to the dashboard. Passwords are stored as scrypt hashes (auth.py)."""
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    email: Mapped[str] = mapped_column(String, unique=True, index=True)  # stored lower-case
+    name: Mapped[str] = mapped_column(String)
+    role: Mapped[str] = mapped_column(String, default="supervisor")    # "admin" or "supervisor"
+    password_hash: Mapped[str] = mapped_column(String)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+    def to_dict(self) -> dict:
+        return {"id": self.id, "email": self.email, "name": self.name, "role": self.role,
+                "last_login_at": iso(self.last_login_at)}
 
 
 def iso(dt: datetime | None) -> str | None:

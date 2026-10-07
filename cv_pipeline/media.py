@@ -63,8 +63,9 @@ def _atomic_write(path: Path, write):
 
 
 class MediaRecorder:
-    def __init__(self, media_dir: str, redis_url: str, camera_id: str):
+    def __init__(self, media_dir: str, redis_url: str, camera_id: str, live_view=None):
         self.media_dir = Path(media_dir)
+        self.live_view = live_view  # optional LiveView: gets every buffered frame for the dashboard
         self.redis_url = redis_url
         self.camera_id = camera_id
         self._frames = collections.deque()   # (frame_id, time, jpeg bytes)
@@ -80,9 +81,12 @@ class MediaRecorder:
         h, w = image.shape[:2]
         scale = min(1.0, MAX_WIDTH / w)
         small = cv2.resize(image, (int(w * scale), int(h * scale))) if scale < 1 else image.copy()
-        ok, jpg = cv2.imencode(".jpg", annotate(small, detections, scale), [cv2.IMWRITE_JPEG_QUALITY, 85])
+        annotated = annotate(small, detections, scale)
+        ok, jpg = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 85])
         if not ok:
             return
+        if self.live_view:
+            self.live_view.publish(jpg.tobytes(), annotated.shape[1], annotated.shape[0])
         with self._lock:
             self._frames.append((frame_id, now, jpg.tobytes()))
             while self._frames and self._frames[0][1] < now - BUFFER_SECONDS:

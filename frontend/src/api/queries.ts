@@ -10,6 +10,7 @@ export const keys = {
   report: (id: string) => ["reports", id] as const,
   stats: (hours: number) => ["stats", hours] as const,
   filters: ["filters"] as const,
+  cameras: ["cameras"] as const,
 };
 
 export const useIncidents = (q: IncidentQuery) =>
@@ -29,6 +30,10 @@ export const useStats = (hours: number) => useQuery({ queryKey: keys.stats(hours
 
 export const useFilterOptions = () =>
   useQuery({ queryKey: keys.filters, queryFn: api.filters, staleTime: 60_000 });
+
+// camera status (online, fps) changes by itself, so this one polls
+export const useCameras = () =>
+  useQuery({ queryKey: keys.cameras, queryFn: api.cameras, refetchInterval: 5_000, staleTime: 2_000 });
 
 export function useSetStatus(id: string) {
   const qc = useQueryClient();

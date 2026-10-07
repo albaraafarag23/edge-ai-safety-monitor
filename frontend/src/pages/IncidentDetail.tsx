@@ -89,7 +89,7 @@ function ReportCard({ id }: { id: string }) {
         {d.recipients?.length ? <span>To {d.recipients.join(", ")}</span> : null}
         {d.attachments?.length ? <span>Attached: {d.attachments.join(", ")}</span> : null}
         {d.duplicate_of && (
-          <Link to={`/incidents/${d.duplicate_of}`} className="text-sky-700 hover:underline">
+          <Link to={`/app/incidents/${d.duplicate_of}`} className="text-sky-700 hover:underline">
             Original: {d.duplicate_of}
           </Link>
         )}
@@ -166,7 +166,7 @@ export function IncidentDetail() {
   if (incident.isError) {
     return (
       <>
-        <Link to="/incidents" className="text-sm text-sky-700 hover:underline">← Incidents</Link>
+        <Link to="/app/incidents" className="text-sm text-sky-700 hover:underline">← Incidents</Link>
         <div className="mt-4">
           {incident.error instanceof ApiError && incident.error.status === 404 ? (
             <p className="text-slate-600">Incident {id} doesn't exist.</p>
@@ -182,7 +182,7 @@ export function IncidentDetail() {
   const m = i.metadata ?? {};
   return (
     <>
-      <Link to="/incidents" className="text-sm text-sky-700 hover:underline">← Incidents</Link>
+      <Link to="/app/incidents" className="text-sm text-sky-700 hover:underline">← Incidents</Link>
       <div className="mt-3">
         <PageHeader
           title={humanize(i.event_type)}

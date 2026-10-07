@@ -85,3 +85,24 @@ export interface IncidentQuery {
   camera_id?: string;
   hours?: number;
 }
+
+export interface User {
+  id: number;
+  email: string;
+  name: string;
+  role: "admin" | "supervisor";
+  last_login_at: string | null;
+}
+
+export interface Camera {
+  camera_id: string;
+  online: boolean;
+  plugin_id: string | null;
+  model: string | null;
+  mode: "test" | "live" | null;
+  location: string | null;
+  fps: number | null;
+  width: number | null;
+  height: number | null;
+  updated_at: string | null;
+}
