@@ -263,7 +263,7 @@
       "name": "Vaping",
       "type": "presence",
       "enabled": false,
-      "requires": "A model trained to detect vapes (the public vape datasets need a free Roboflow API key)",
+      "requires": "A detection model trained to recognise vapes",
       "description": "Vaping on site (vape visible)",
       "subject_classes": [
         "vape"
@@ -294,14 +294,14 @@
         "Remind workers to eat and drink only in the designated welfare area."
       ],
       "enabled": false,
-      "requires": "A model that detects bottles and cups"
+      "requires": "A detection model trained to recognise bottles and cups"
     },
     {
       "rule_id": "RULE_POSE_01",
       "name": "Person down",
       "type": "pose",
       "planned": true,
-      "requires": "A pose model running next to the detector (planned)",
+      "requires": "A pose model that tracks body position",
       "description": "A worker has fallen or is lying on the ground",
       "subject_classes": [
         "Person"
@@ -320,7 +320,7 @@
       "name": "Sleeping on site",
       "type": "pose",
       "planned": true,
-      "requires": "A pose model running next to the detector (planned)",
+      "requires": "A pose model that tracks body position",
       "description": "A worker lying still on site for a long time",
       "subject_classes": [
         "Person"

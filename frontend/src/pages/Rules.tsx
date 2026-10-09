@@ -8,7 +8,8 @@ import { useAuth } from "../lib/auth";
 import { SEVERITY_ORDER, formatDuration, timeAgo } from "../lib/format";
 import { DAY_NAMES, describeHours, settingsChange } from "../lib/rules";
 
-const WEEKDAYS: ActiveHours = { start: "07:00", end: "19:00", days: [0, 1, 2, 3, 4] };
+// Sunday–Thursday: the usual site week in Egypt
+const WORK_WEEK: ActiveHours = { start: "07:00", end: "17:00", days: [0, 1, 2, 3, 6] };
 
 function Toggle({ checked, disabled, label, onChange }: {
   checked: boolean;
@@ -132,7 +133,7 @@ function SettingsDialog({ rule, timezone, onClose }: { rule: SafetyRule; timezon
               <input type="radio" checked={!hours} onChange={() => set({ active_hours: null })} /> Always
             </label>
             <label className="flex items-center gap-2">
-              <input type="radio" checked={!!hours} onChange={() => set({ active_hours: hours ?? WEEKDAYS })} /> Only during
+              <input type="radio" checked={!!hours} onChange={() => set({ active_hours: hours ?? WORK_WEEK })} /> Only during
             </label>
           </div>
           {hours && (
@@ -227,7 +228,7 @@ function RuleRow({ rule, canEdit, onSettings }: { rule: SafetyRule; canEdit: boo
         <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-400">
           <span>{rule.rule_id}</span>
           {rule.zone_name && <span>· {rule.zone_name}</span>}
-          <span>· alerts after {rule.min_duration_s > 0 ? formatDuration(rule.min_duration_s) : "at once"}</span>
+          <span>· {rule.min_duration_s > 0 ? `alerts after ${formatDuration(rule.min_duration_s)}` : "alerts at once"}</span>
           {rule.max_count !== null && <span>· more than {rule.max_count} people</span>}
           {rule.active_hours && (
             <span className="inline-flex items-center gap-1 text-sky-700">

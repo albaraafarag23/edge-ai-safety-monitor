@@ -6,10 +6,11 @@ export const DAY_NAMES = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export function describeHours(hours: ActiveHours | null): string {
   if (!hours) return "Always";
   const days = [...hours.days].sort((a, b) => a - b);
+  // a run of 3+ days, possibly across the weekend (Sun–Thu)
+  const first = days.find((d) => days.every((_, i) => days.includes((d + i) % 7)));
   let dayText: string;
   if (days.length === 7) dayText = "Every day";
-  else if (days.length > 2 && days.every((d, i) => i === 0 || d === days[i - 1] + 1))
-    dayText = `${DAY_NAMES[days[0]]}–${DAY_NAMES[days[days.length - 1]]}`;
+  else if (days.length > 2 && first !== undefined) dayText = `${DAY_NAMES[first]}–${DAY_NAMES[(first + days.length - 1) % 7]}`;
   else dayText = days.map((d) => DAY_NAMES[d]).join(", ");
   const overnight = hours.end < hours.start ? " (overnight)" : "";
   return `${dayText}, ${hours.start}–${hours.end}${overnight}`;

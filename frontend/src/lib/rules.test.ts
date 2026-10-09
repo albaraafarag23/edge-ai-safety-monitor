@@ -9,6 +9,9 @@ describe("describeHours", () => {
   it("shows a run of weekdays as a range", () => {
     expect(describeHours({ start: "07:00", end: "19:00", days: [4, 0, 1, 2, 3] })).toBe("Mon–Fri, 07:00–19:00");
   });
+  it("shows a work week across the weekend as a range", () => {
+    expect(describeHours({ start: "07:00", end: "17:00", days: [6, 0, 1, 2, 3] })).toBe("Sun–Thu, 07:00–17:00");
+  });
   it("lists separate days and marks a night shift", () => {
     expect(describeHours({ start: "22:00", end: "06:00", days: [0, 2] })).toBe("Mon, Wed, 22:00–06:00 (overnight)");
   });

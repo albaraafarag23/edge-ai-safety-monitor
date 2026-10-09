@@ -3,6 +3,8 @@ import {
   BellRing,
   Camera,
   Check,
+  Cigarette,
+  Clock,
   Cpu,
   FileText,
   HardHat,
@@ -12,6 +14,7 @@ import {
   Mail,
   Puzzle,
   ShieldAlert,
+  SlidersHorizontal,
   Truck,
   Workflow,
 } from "lucide-react";
@@ -245,7 +248,7 @@ function Hero() {
           </h1>
           <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">
             {PRODUCT_NAME} turns your site cameras into a safety officer that never looks away. It spots missing PPE, people in
-            restricted zones and workers too close to machinery, alerts your supervisor in seconds and writes the incident report for you.
+            restricted zones, workers too close to machinery and smoking on site, alerts your supervisor in seconds and writes the incident report for you.
           </p>
           <div className="mt-10 flex flex-wrap items-center gap-4">
             <ConsoleButton className="bg-amber-400 px-5 py-3 text-sm text-slate-950 shadow-lg shadow-amber-500/20 hover:bg-amber-300">
@@ -316,6 +319,11 @@ const FEATURES = [
     text: "Detects workers without a hard hat or high-visibility vest, and only alerts once it's been missing long enough to matter.",
   },
   {
+    icon: Cigarette,
+    title: "Smoking detection",
+    text: "Spots a cigarette near the camera, for no-smoking areas such as fuel stores and site entrances. A second model runs alongside the PPE detector.",
+  },
+  {
     icon: ShieldAlert,
     title: "Restricted zones",
     text: "Draw zones around excavations, crane swing areas or scaffolds. Get alerted on entry, loitering or too many people at once.",
@@ -339,6 +347,16 @@ const FEATURES = [
     icon: Camera,
     title: "Evidence attached",
     text: "A snapshot of the moment the rule fired and a short video clip around it, saved with every incident.",
+  },
+  {
+    icon: SlidersHorizontal,
+    title: "Your rules, your site",
+    text: "Switch any rule off if it doesn't apply to your site, or change how long a violation lasts before it alerts and how serious it is.",
+  },
+  {
+    icon: Clock,
+    title: "Working hours",
+    text: "Limit a rule to your shifts, for example Sunday to Thursday, 07:00 to 17:00. Night shifts that run past midnight work too.",
   },
 ];
 
@@ -504,7 +522,10 @@ function Technology() {
                 Available
               </span>
             </div>
-            <p className="mt-3 text-sm text-slate-400">PPE, restricted zones, scaffold capacity, crane swing areas and machinery proximity.</p>
+            <p className="mt-3 text-sm text-slate-400">
+              Hard hats, vests, restricted zones, scaffold capacity, crane swing areas, machinery proximity and smoking. Fall
+              detection is next.
+            </p>
           </div>
           <div className="rounded-2xl bg-white/5 p-6 ring-1 ring-white/10">
             <div className="flex items-center justify-between">
@@ -534,6 +555,7 @@ const TOUR = [
   { key: "cameras", label: "Live cameras", text: "Watch every camera live, with what the detector sees drawn on the video." },
   { key: "incident", label: "Incident", text: "Evidence, the AI report and the acknowledge-and-resolve workflow for each incident." },
   { key: "analytics", label: "Analytics", text: "Spot patterns: the busiest hours, the riskiest zones and the PPE most often missing." },
+  { key: "rules", label: "Safety rules", text: "Switch rules on and off, and set when each one applies and how serious it is." },
 ] as const;
 
 /** Real screenshots of the console (public/screenshots, captured from the running system in test mode). */
@@ -603,6 +625,14 @@ const FAQS = [
   {
     q: "How do you avoid false alarms?",
     a: "Rules have minimum durations and grace periods: a hard hat has to be missing for several seconds, not one frame, before an alert fires. Repeats of the same rule on the same camera are held back for a few minutes.",
+  },
+  {
+    q: "Can we turn off rules we don't need?",
+    a: "Yes. Admins and supervisors can switch any rule off or back on from the console, with no restart, for example if smoking is allowed on your site. Each rule can also be limited to working hours, given a different severity, or set to wait longer before alerting. The console shows who changed what and when.",
+  },
+  {
+    q: "How far away can it spot smoking?",
+    a: "A cigarette is much smaller than a hard hat, so smoking detection works at close range, within a few metres of the camera. It's best on a camera covering a no-smoking area, such as a fuel store or a site entrance. Vaping detection is in development.",
   },
   {
     q: "Can the AI report make things up?",
