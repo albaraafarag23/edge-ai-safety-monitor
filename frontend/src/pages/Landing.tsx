@@ -282,7 +282,7 @@ function AlertsChapter() {
           title="Live, with no refresh"
           link={["How alerts work", "#faq"]}
         >
-          New incidents pop up as they're detected, and the counters and severity bars update by themselves.
+          The control room tells you the site's state in one sentence; new incidents slide into the live feed and the numbers count up.
         </Card>
         <figure className="reveal">
           <article className="rounded-md bg-white p-6 shadow-sm ring-1 ring-ink/10">
@@ -349,7 +349,7 @@ function RulesChapter() {
           title="Safety rules page"
           link={["Can we turn off rules?", "#faq"]}
         >
-          Switching smoking off and back on, then limiting it to Sunday to Thursday, 07:00 to 17:00.
+          Switching smoking off and back on, then limiting it to Sunday to Thursday, 07:00 to 17:00. Changes apply within seconds.
         </Card>
         <div className="grid gap-10 sm:grid-cols-2 xl:grid-cols-1">
           <Stat value="6 controls" label="On or off, severity, alert delay, repeat interval, capacity for crowded zones and working hours." />
@@ -369,9 +369,10 @@ function RulesChapter() {
 }
 
 const TOUR = [
-  { key: "overview", label: "Overview", text: "Today's incidents, what's still open and a live view of the site, on one screen." },
+  { key: "signin", label: "Sign in", text: "Each person signs in with their own account; roles decide what they can change." },
+  { key: "overview", label: "Overview", text: "A control room: the site's state in one sentence, the live camera, and new incidents as they arrive." },
   { key: "cameras", label: "Live cameras", text: "Watch every camera live, with what the detector sees drawn on the video." },
-  { key: "incident", label: "Incident", text: "Evidence, the AI report and the acknowledge-and-resolve workflow for each incident." },
+  { key: "incident", label: "Incident", text: "Each incident opens on its own snapshot, with the clip, the emailed AI report and the acknowledge-and-resolve workflow." },
   { key: "analytics", label: "Analytics", text: "Spot patterns: the busiest hours, the riskiest zones and the PPE most often missing." },
   { key: "rules", label: "Safety rules", text: "Switch rules on and off, and set when each one applies and how serious it is." },
 ] as const;
