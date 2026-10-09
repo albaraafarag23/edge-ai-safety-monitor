@@ -20,7 +20,8 @@ SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM = os.getenv("SMTP_FROM", "") or SMTP_USER
-SMTP_TLS = os.getenv("SMTP_TLS", "ssl" if SMTP_PORT == 465 else "starttls").lower()
+# docker-compose passes SMTP_TLS as "" when it isn't set, so an empty value means the default too
+SMTP_TLS = (os.getenv("SMTP_TLS") or ("ssl" if SMTP_PORT == 465 else "starttls")).lower()
 RECIPIENTS = [a.strip() for a in os.getenv("SUPERVISOR_EMAILS", "").split(",") if a.strip()]
 MAX_ATTACHMENT_BYTES = float(os.getenv("MAX_ATTACHMENT_MB", "15")) * 1024 * 1024
 
