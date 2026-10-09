@@ -1,7 +1,15 @@
 @import "tailwindcss";
+@import "@fontsource-variable/inter-tight";
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* product page */
+  --font-display: "Inter Tight Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --color-paper: #ece8df;
+  --color-ink: #15130f;
 }
 
 body {
@@ -28,12 +36,6 @@ html {
   background-size: 48px 48px;
   mask-image: radial-gradient(ellipse at top, black 30%, transparent 75%);
 }
-.hero-grid-dark {
-  background-image:
-    linear-gradient(to right, rgb(0 0 0 / 0.08) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(0 0 0 / 0.08) 1px, transparent 1px);
-  background-size: 32px 32px;
-}
 @keyframes scan {
   from { transform: translateY(0); }
   to { transform: translateY(378px); }
@@ -48,4 +50,45 @@ html {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .scan-line, .float-slow, .float-slower { animation: none; }
+}
+
+/* Product page ("edition" layout): the paper has a faint grain */
+.paper-grain {
+  background-image: radial-gradient(rgb(21 19 15 / 0.05) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+/* Scroll-driven motion, only where the browser supports it and the visitor hasn't asked for less motion */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) and (timeline-scope: none) {
+    /* each chapter's empty spacer drives its opener: the photo drifts while the chapter is on screen,
+       and the giant title lifts away as the content slides up over it */
+    .chapter { timeline-scope: --opener; }
+    .chapter-spacer { view-timeline: --opener block; }
+    .opener-photo {
+      animation: opener-zoom linear both;
+      animation-timeline: --opener;
+      animation-range: cover 0% cover 100%;
+    }
+    .opener-title {
+      animation: opener-lift linear both;
+      animation-timeline: --opener;
+      animation-range: cover 52% cover 92%;
+    }
+    .reveal {
+      animation: reveal-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 22%;
+    }
+  }
+}
+@keyframes opener-zoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
+}
+@keyframes opener-lift {
+  to { transform: translateY(-12vh); opacity: 0; }
+}
+@keyframes reveal-up {
+  from { transform: translateY(48px); opacity: 0; }
+  to { transform: none; opacity: 1; }
 }
