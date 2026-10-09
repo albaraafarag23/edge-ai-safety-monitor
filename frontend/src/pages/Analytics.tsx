@@ -20,9 +20,15 @@ function StatTile({ label, value, hint, delta }: {
   delta?: { text: string; good: boolean; up: boolean };
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tracking-tight text-slate-900">{value}</p>
+    <div className="border-t-[3px] border-ink pt-5">
+      <p className="font-serif text-xl text-ink/60 italic">{label}</p>
+      <p
+        className={`mt-1 font-display leading-none font-semibold tracking-[-0.04em] text-ink tabular-nums ${
+          typeof value === "number" ? "text-6xl sm:text-7xl" : "text-4xl sm:text-5xl"
+        }`}
+      >
+        {value}
+      </p>
       <div className="mt-1 flex items-center gap-2 text-xs">
         {delta && (
           <span className={`inline-flex items-center gap-0.5 font-medium ${delta.good ? "text-emerald-700" : "text-red-700"}`}>
@@ -30,7 +36,7 @@ function StatTile({ label, value, hint, delta }: {
             {delta.text}
           </span>
         )}
-        {hint && <span className="text-slate-400">{hint}</span>}
+        {hint && <span className="text-ink/40">{hint}</span>}
       </div>
     </div>
   );
@@ -267,7 +273,7 @@ function AnalyticsBody({ data, dim }: { data: Data; dim: boolean }) {
 
   return (
     <div className={dim ? "opacity-60 transition" : "transition"}>
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-x-8 gap-y-8 lg:grid-cols-4">
         <StatTile
           label="Incidents"
           value={data.total.toLocaleString()}

@@ -27,8 +27,8 @@ export function Card({ title, action, children, className = "" }: {
   return (
     <section className={`rounded-lg bg-white shadow-[0_1px_2px_rgb(21_19_15/0.04)] ring-1 ring-ink/10 ${className}`}>
       {title && (
-        <header className="flex items-center justify-between border-b border-ink/[0.07] px-5 py-3">
-          <h2 className="font-display text-sm font-semibold text-ink">{title}</h2>
+        <header className="flex items-center justify-between border-b border-ink/[0.07] px-5 py-3.5">
+          <h2 className="font-serif text-[1.4rem] leading-none text-ink">{title}</h2>
           {action}
         </header>
       )}
@@ -72,10 +72,14 @@ export function StatCard({ label, value, hint, accent = "bg-ink" }: {
   accent?: string;
 }) {
   return (
-    <div className="relative rounded-lg bg-white p-5 pt-6 shadow-[0_1px_2px_rgb(21_19_15/0.04)] ring-1 ring-ink/10">
-      <span className={`absolute inset-x-5 top-0 h-[3px] rounded-b ${accent}`} aria-hidden />
-      <p className="text-sm font-medium text-ink/55">{label}</p>
-      <p className="mt-1 font-display text-5xl leading-none font-semibold tracking-tight text-ink tabular-nums">
+    <div className="relative pt-5">
+      <span className={`absolute inset-x-0 top-0 h-[3px] ${accent}`} aria-hidden />
+      <p className="font-serif text-xl text-ink/60 italic">{label}</p>
+      <p
+        className={`mt-1 font-display leading-none font-semibold tracking-[-0.04em] text-ink tabular-nums ${
+          typeof value === "number" ? "text-6xl sm:text-7xl" : "text-4xl sm:text-5xl"
+        }`}
+      >
         {typeof value === "number" ? <CountUp value={value} /> : value}
       </p>
       {hint && <p className="mt-2 text-xs text-ink/40">{hint}</p>}

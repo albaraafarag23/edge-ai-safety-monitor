@@ -1,6 +1,6 @@
 import { BarChart3, Bell, Camera, ChevronDown, LayoutDashboard, ListChecks, LogOut, ShieldCheck, UserCog, Users } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useIncidents } from "../api/queries";
 import { useAuth } from "../lib/auth";
 import { SEVERITY_STYLES, humanize, timeAgo } from "../lib/format";
@@ -9,15 +9,18 @@ import { isUnread, useNotificationPrefs } from "../lib/notifications";
 import { Logo } from "./Brand";
 import { SeverityBadge } from "./ui";
 
+// Each console page is a numbered "chapter" with its own opener photo (public/edition), like the product page.
 const NAV = [
-  { to: "/app", label: "Overview", icon: LayoutDashboard, end: true },
-  { to: "/app/cameras", label: "Live cameras", icon: Camera, end: false },
-  { to: "/app/incidents", label: "Incidents", icon: ListChecks, end: false },
-  { to: "/app/analytics", label: "Analytics", icon: BarChart3, end: false },
-  { to: "/app/notifications", label: "Notifications", icon: Bell, end: false },
-  { to: "/app/rules", label: "Safety rules", icon: ShieldCheck, end: false },
+  { to: "/app", label: "Overview", icon: LayoutDashboard, end: true, photo: "console" },
+  { to: "/app/cameras", label: "Live cameras", icon: Camera, end: false, photo: "ppe" },
+  { to: "/app/incidents", label: "Incidents", icon: ListChecks, end: false, photo: "alerts" },
+  { to: "/app/analytics", label: "Analytics", icon: BarChart3, end: false, photo: "rules" },
+  { to: "/app/notifications", label: "Notifications", icon: Bell, end: false, photo: "closing" },
+  { to: "/app/rules", label: "Safety rules", icon: ShieldCheck, end: false, photo: "zones" },
 ];
-const ADMIN_NAV = [{ to: "/app/users", label: "Users", icon: Users, end: false }];
+const ADMIN_NAV = [{ to: "/app/users", label: "Users", icon: Users, end: false, photo: "how" }];
+const OTHER_PAGES: Record<string, string> = { "/app/account": "hero" };
+const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
 
 function useNav() {
   const { user } = useAuth();
@@ -223,25 +226,32 @@ function SideNav() {
       <div className="px-5 py-5">
         <Logo to="/app" dark subtitle="Site safety console" />
       </div>
-      <nav className="flex-1 space-y-1 px-3 py-2">
-        <p className="px-3 pb-2 font-serif text-base text-amber-400/80 italic">Monitoring</p>
-        {nav.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) =>
-              `relative flex items-center gap-3 rounded-md px-3 py-2 font-display text-[15px] font-medium transition ${
-                isActive
-                  ? "bg-white/[0.07] text-paper before:absolute before:inset-y-2 before:-left-3 before:w-[3px] before:rounded-r before:bg-amber-400"
-                  : "text-paper/55 hover:bg-white/[0.04] hover:text-paper"
-              }`
-            }
-          >
-            <Icon className="h-[18px] w-[18px]" aria-hidden />
-            {label}
-          </NavLink>
-        ))}
+      {/* the product page's chapter index: name, a dotted leader on the current page, Roman numeral */}
+      <nav className="flex flex-1 flex-col justify-end px-5 pb-8">
+        <p className="pb-3 font-serif text-lg text-amber-400/90 italic">Monitoring</p>
+        <ol className="space-y-1">
+          {nav.map(({ to, label, end }, i) => (
+            <li key={to}>
+              <NavLink
+                to={to}
+                end={end}
+                className={({ isActive }) =>
+                  `group flex items-baseline gap-2 py-0.5 font-display text-[19px] leading-tight font-semibold tracking-tight transition ${
+                    isActive ? "text-paper" : "text-paper/40 hover:text-paper/80"
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <span className="whitespace-nowrap">{label}</span>
+                    <span className={`mb-1 h-px flex-1 border-b border-dotted ${isActive ? "border-amber-400" : "border-transparent"}`} />
+                    <span className={`font-serif text-sm font-normal ${isActive ? "text-amber-400" : ""}`}>{ROMAN[i]}</span>
+                  </>
+                )}
+              </NavLink>
+            </li>
+          ))}
+        </ol>
       </nav>
       <div className="space-y-1 border-t border-white/10 px-5 py-4">
         <p className="font-serif text-base text-paper/80 italic">Construction safety</p>
@@ -295,7 +305,7 @@ export function AppShell() {
         <SideNav />
         <div className="lg:pl-64">
           <TopBar />
-          <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <main className="px-4 py-8 sm:px-6 lg:px-10">
             <Outlet />
           </main>
         </div>
@@ -305,17 +315,52 @@ export function AppShell() {
   );
 }
 
-export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
+/**
+ * A page opens like a chapter of the product page: a full-width photo with the page's Roman numeral and a
+ * huge title, then a rounded sheet of paper that overlaps it, carrying the subtitle and the page's actions.
+ * `image` replaces the photo (e.g. an incident's own snapshot); `back` is a link shown above the title.
+ */
+export function PageHeader({ title, subtitle, actions, image, back }: {
+  title: string;
+  subtitle?: ReactNode;
+  actions?: ReactNode;
+  image?: string | null;
+  back?: ReactNode;
+}) {
+  const { pathname } = useLocation();
+  const nav = useNav();
+  const index = nav.findIndex((n) => n.to === pathname);
+  const photo = index >= 0 ? nav[index].photo : (OTHER_PAGES[pathname] ?? "alerts");
+  const [imageFailed, setImageFailed] = useState(false);
+  const useImage = image && !imageFailed;
+
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="font-serif text-4xl leading-none tracking-tight text-ink sm:text-5xl">
-          <span className="mr-[0.03em] inline-block text-[1.3em] leading-[0.7] text-amber-600 italic">{title[0]}</span>
-          {title.slice(1)}
-        </h1>
-        {subtitle && <p className="mt-3 text-[15px] text-ink/55">{subtitle}</p>}
+    <>
+      <div className="relative -mx-4 -mt-8 h-[clamp(260px,40vh,440px)] overflow-hidden bg-ink sm:-mx-6 lg:-mx-10">
+        {useImage ? (
+          <img src={image} alt="" onError={() => setImageFailed(true)} className="page-photo absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <img
+            src={`/edition/${photo}-1200.webp`}
+            srcSet={`/edition/${photo}-1200.webp 1200w, /edition/${photo}-2400.webp 2400w`}
+            sizes="(min-width: 1024px) calc(100vw - 16rem), 100vw"
+            alt=""
+            className="page-photo absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/20 to-black/70" aria-hidden />
+        <div className="relative flex h-full flex-col justify-end px-4 pb-16 sm:px-6 lg:px-10">
+          {back && <div className="mb-auto pt-6 text-sm text-paper/75 [&_a:hover]:text-paper">{back}</div>}
+          {index >= 0 && <p className="font-serif text-xl text-amber-300 italic">{ROMAN[index]}</p>}
+          <h1 className="font-display text-[clamp(2.8rem,7.5vw,7rem)] leading-[0.9] font-semibold tracking-[-0.045em] text-balance text-paper">
+            {title}
+          </h1>
+        </div>
       </div>
-      {actions}
-    </div>
+      <div className="paper-grain relative z-10 -mx-4 -mt-10 mb-8 flex flex-wrap items-end justify-between gap-4 rounded-t-[2rem] bg-paper px-4 pt-8 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
+        {subtitle ? <p className="max-w-3xl font-serif text-2xl leading-snug text-ink/70 sm:text-[1.7rem]">{subtitle}</p> : <span />}
+        {actions}
+      </div>
+    </>
   );
 }

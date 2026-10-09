@@ -67,6 +67,12 @@ html {
       animation-timeline: --opener;
       animation-range: cover 52% cover 92%;
     }
+    /* console page openers: the photo drifts as the page scrolls */
+    .page-photo {
+      animation: opener-zoom linear both;
+      animation-timeline: view();
+      animation-range: exit 0% exit 100%;
+    }
     .reveal {
       animation: reveal-up linear both;
       animation-timeline: view();

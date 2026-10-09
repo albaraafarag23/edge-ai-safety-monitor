@@ -162,7 +162,7 @@ export function Notifications() {
         }
       />
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-lg bg-white ring-1 ring-ink/10 shadow-sm">
           <div className="flex gap-1 border-b border-slate-100 px-3 py-2" role="tablist">
             {VIEWS.map((v) => (
               <button

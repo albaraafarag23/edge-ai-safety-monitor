@@ -89,16 +89,19 @@ function ControlRoom({ stats, hoursLabel }: { stats: Stats | undefined; hoursLab
   const firstName = user?.name.split(" ")[0] ?? "";
 
   return (
-    <section className="relative -mx-4 -mt-8 mb-10 overflow-hidden bg-ink text-paper sm:-mx-6 lg:-mx-8">
+    <section className="relative -mx-4 -mt-8 overflow-hidden bg-ink text-paper sm:-mx-6 lg:-mx-10">
       <img
         src="/edition/console-1200.webp"
+        srcSet="/edition/console-1200.webp 1200w, /edition/console-2400.webp 2400w"
+        sizes="(min-width: 1024px) calc(100vw - 16rem), 100vw"
         alt=""
-        className="absolute inset-0 h-full w-full object-cover opacity-25"
+        className="page-photo absolute inset-0 h-full w-full object-cover"
         aria-hidden
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/85 to-ink/40" aria-hidden />
-      <div className="relative grid gap-10 px-4 py-10 sm:px-6 lg:px-8 xl:grid-cols-[1fr_1.15fr] xl:items-center xl:py-12">
+      <div className="absolute inset-0 bg-gradient-to-r from-ink/95 via-ink/65 to-ink/10" aria-hidden />
+      <div className="relative grid gap-10 px-4 pt-10 pb-24 sm:px-6 lg:px-10 xl:grid-cols-[1fr_1.1fr] xl:items-center xl:pt-14">
         <div>
+          <p className="mb-3 font-serif text-xl text-amber-300 italic">I</p>
           <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-paper/60">
             <span className="tabular-nums">
               {now.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" })} ·{" "}
@@ -116,7 +119,7 @@ function ControlRoom({ stats, hoursLabel }: { stats: Stats | undefined; hoursLab
             {greeting(now.getHours())}
             {firstName && <span className="text-amber-400 italic">, {firstName}</span>}.
           </h1>
-          <p className="mt-4 max-w-xl font-display text-3xl leading-tight font-semibold tracking-tight text-balance sm:text-[2.6rem]">
+          <p className="mt-4 max-w-2xl font-display text-[clamp(2.2rem,4.2vw,4.25rem)] leading-[0.95] font-semibold tracking-[-0.04em] text-balance">
             {open === 0 ? (
               <>All clear. Nothing waiting for you in the last {hoursLabel}.</>
             ) : (
@@ -155,19 +158,25 @@ function ControlRoom({ stats, hoursLabel }: { stats: Stats | undefined; hoursLab
             </Link>
           </div>
         </div>
-        <div>
+        <figure>
           {cameras.isPending ? (
             <Spinner />
           ) : camera ? (
             <Link to={`/app/cameras?camera=${encodeURIComponent(camera.camera_id)}`} className="block">
-              <CameraFeed camera={camera} showFullscreen={false} className="shadow-2xl shadow-black/50 ring-white/10" />
+              <CameraFeed camera={camera} showFullscreen={false} className="shadow-2xl shadow-black/60 ring-white/10" />
             </Link>
           ) : (
             <div className="flex aspect-video items-center justify-center rounded-xl bg-black/40 text-sm text-paper/60 ring-1 ring-white/10">
               No cameras connected yet
             </div>
           )}
-        </div>
+          {camera && (
+            <figcaption className="mt-3 font-serif text-lg text-paper/70 italic">
+              What {camera.camera_id}
+              {camera.location ? ` at ${camera.location}` : ""} sees right now, with every detection boxed.
+            </figcaption>
+          )}
+        </figure>
       </div>
     </section>
   );
@@ -209,8 +218,8 @@ export function Overview() {
     <>
       <ControlRoom stats={stats.data} hoursLabel={hoursLabel} />
 
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <h2 className="font-serif text-3xl tracking-tight">
+      <div className="paper-grain relative z-10 -mx-4 -mt-10 mb-8 flex flex-wrap items-end justify-between gap-4 rounded-t-[2rem] bg-paper px-4 pt-9 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
+        <h2 className="font-serif text-4xl tracking-tight sm:text-5xl">
           <span className="text-[1.3em] leading-none text-amber-600 italic">T</span>he last {hoursLabel}
         </h2>
         <div className="inline-flex rounded-full bg-white p-1 text-sm ring-1 ring-ink/10" role="group" aria-label="Time period">
@@ -233,14 +242,14 @@ export function Overview() {
         <ErrorState error={stats.error} onRetry={() => stats.refetch()} />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-8 gap-y-8 lg:grid-cols-4">
             <StatCard label="Incidents" value={stats.data.total} hint={`Last ${hoursLabel}`} />
             <StatCard label="Open" value={stats.data.open} hint="Not yet acknowledged" accent="bg-sky-500" />
             <StatCard label="Critical" value={stats.data.by_severity.CRITICAL ?? 0} accent={SEVERITY_STYLES.CRITICAL.bar} />
             <StatCard label="High" value={stats.data.by_severity.HIGH ?? 0} accent={SEVERITY_STYLES.HIGH.bar} />
           </div>
 
-          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-3">
             <Card
               title={
                 <span className="flex items-center gap-2">
@@ -289,7 +298,7 @@ export function Overview() {
             </div>
           </div>
 
-          <Card title="Incidents over time" className="mt-6">
+          <Card title="Incidents over time" className="mt-8">
             <Timeline stats={stats.data} />
           </Card>
         </>

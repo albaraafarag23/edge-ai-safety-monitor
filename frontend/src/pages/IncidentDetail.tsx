@@ -190,14 +190,13 @@ export function IncidentDetail() {
   const m = i.metadata ?? {};
   return (
     <>
-      <Link to="/app/incidents" className="text-sm text-sky-700 hover:underline">← Incidents</Link>
-      <div className="mt-3">
-        <PageHeader
-          title={humanize(i.event_type)}
-          subtitle={`${i.camera_id}${i.location !== "NOT SPECIFIED" ? ` · ${i.location}` : ""} · ${formatDateTime(i.timestamp)}`}
-          actions={<SeverityBadge severity={i.severity} />}
-        />
-      </div>
+      <PageHeader
+        title={humanize(i.event_type)}
+        image={mediaUrl(i.snapshot_url)}
+        back={<Link to="/app/incidents">← Incidents</Link>}
+        subtitle={`${i.camera_id}${i.location !== "NOT SPECIFIED" ? ` · ${i.location}` : ""} · ${formatDateTime(i.timestamp)}`}
+        actions={<SeverityBadge severity={i.severity} />}
+      />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -226,7 +225,7 @@ export function IncidentDetail() {
               {i.rules_violated.map((r) => <li key={r}>{r}</li>)}
             </ul>
           </Card>
-          <details className="rounded-xl border border-slate-200 bg-white p-4 text-sm shadow-sm">
+          <details className="rounded-lg bg-white ring-1 ring-ink/10 p-4 text-sm shadow-sm">
             <summary className="cursor-pointer font-medium text-slate-700">Raw incident JSON</summary>
             <pre className="mt-3 max-h-96 overflow-auto rounded bg-slate-900 p-3 text-xs text-slate-100">
               {JSON.stringify(i, null, 2)}

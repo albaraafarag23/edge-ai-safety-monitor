@@ -272,7 +272,7 @@ export function Users() {
       </Card>
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         {(Object.keys(ROLE_INFO) as Role[]).map((r) => (
-          <div key={r} className="rounded-xl border border-slate-200 bg-white p-4">
+          <div key={r} className="rounded-lg bg-white ring-1 ring-ink/10 p-4">
             <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${ROLE_INFO[r].style}`}>
               {ROLE_INFO[r].label}
             </span>
