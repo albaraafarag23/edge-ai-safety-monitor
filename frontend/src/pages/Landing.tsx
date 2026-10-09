@@ -559,7 +559,7 @@ function Team() {
             graduation project, built like a product
           </h2>
           <p className="mt-6 text-lg leading-8 text-paper/70">
-            {PRODUCT_NAME} is a year-4 computer engineering capstone at {UNIVERSITY}: real-time edge AI safety monitoring with
+            {PRODUCT_NAME} is a fifth-year computer engineering capstone at {UNIVERSITY}: real-time edge AI safety monitoring with
             configurable plugin rules and generative incident reporting, built over two semesters.
           </p>
         </div>
