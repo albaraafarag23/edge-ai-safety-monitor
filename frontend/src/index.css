@@ -29,13 +29,6 @@ html {
 }
 
 /* Landing page */
-.hero-grid {
-  background-image:
-    linear-gradient(to right, rgb(255 255 255 / 0.04) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(255 255 255 / 0.04) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(ellipse at top, black 30%, transparent 75%);
-}
 @keyframes scan {
   from { transform: translateY(0); }
   to { transform: translateY(378px); }
@@ -91,4 +84,20 @@ html {
 @keyframes reveal-up {
   from { transform: translateY(48px); opacity: 0; }
   to { transform: none; opacity: 1; }
+}
+
+/* Console: new incidents slide into the live feed with a brief amber glow */
+@keyframes feed-in {
+  from { transform: translateY(-10px); opacity: 0; background-color: rgb(251 191 36 / 0.25); }
+  60% { background-color: rgb(251 191 36 / 0.12); }
+  to { transform: none; opacity: 1; background-color: transparent; }
+}
+.feed-in { animation: feed-in 0.9s ease-out both; }
+@keyframes radar {
+  from { transform: scale(0.6); opacity: 0.55; }
+  to { transform: scale(2.4); opacity: 0; }
+}
+.radar { animation: radar 2.4s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .feed-in, .radar { animation: none; }
 }

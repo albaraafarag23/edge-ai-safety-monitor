@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { IncidentStatus, Severity } from "../api/types";
 import { SEVERITY_STYLES, STATUS_STYLES, humanize } from "../lib/format";
 
@@ -25,10 +25,10 @@ export function Card({ title, action, children, className = "" }: {
   className?: string;
 }) {
   return (
-    <section className={`rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}>
+    <section className={`rounded-lg bg-white shadow-[0_1px_2px_rgb(21_19_15/0.04)] ring-1 ring-ink/10 ${className}`}>
       {title && (
-        <header className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-          <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
+        <header className="flex items-center justify-between border-b border-ink/[0.07] px-5 py-3">
+          <h2 className="font-display text-sm font-semibold text-ink">{title}</h2>
           {action}
         </header>
       )}
@@ -37,18 +37,48 @@ export function Card({ title, action, children, className = "" }: {
   );
 }
 
-export function StatCard({ label, value, hint, accent = "bg-slate-400" }: {
+/** Counts up to a new value (e.g. when a new incident arrives); no animation with reduced motion. */
+export function CountUp({ value, ms = 700 }: { value: number; ms?: number }) {
+  const [shown, setShown] = useState(value);
+  const from = useRef(value);
+  useEffect(() => {
+    const start = from.current;
+    if (start === value || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      from.current = value;
+      setShown(value);
+      return;
+    }
+    const t0 = performance.now();
+    let frame = requestAnimationFrame(function step(now) {
+      const k = Math.min(1, (now - t0) / ms);
+      const eased = 1 - Math.pow(1 - k, 3);
+      setShown(Math.round(start + (value - start) * eased));
+      if (k < 1) frame = requestAnimationFrame(step);
+      else from.current = value;
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      from.current = value;
+    };
+  }, [value, ms]);
+  return <>{shown}</>;
+}
+
+/** A big editorial number with a coloured rule on top. */
+export function StatCard({ label, value, hint, accent = "bg-ink" }: {
   label: string;
   value: ReactNode;
   hint?: string;
   accent?: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <span className={`absolute inset-y-0 left-0 w-1 ${accent}`} aria-hidden />
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className="mt-1 text-3xl font-semibold tabular-nums text-slate-900">{value}</p>
-      {hint && <p className="mt-1 text-xs text-slate-400">{hint}</p>}
+    <div className="relative rounded-lg bg-white p-5 pt-6 shadow-[0_1px_2px_rgb(21_19_15/0.04)] ring-1 ring-ink/10">
+      <span className={`absolute inset-x-5 top-0 h-[3px] rounded-b ${accent}`} aria-hidden />
+      <p className="text-sm font-medium text-ink/55">{label}</p>
+      <p className="mt-1 font-display text-5xl leading-none font-semibold tracking-tight text-ink tabular-nums">
+        {typeof value === "number" ? <CountUp value={value} /> : value}
+      </p>
+      {hint && <p className="mt-2 text-xs text-ink/40">{hint}</p>}
     </div>
   );
 }
@@ -97,12 +127,12 @@ export function BarList({ items, colorFor }: {
       {items.map((item) => (
         <li key={item.key}>
           <div className="mb-1 flex justify-between text-sm">
-            <span className="text-slate-700">{item.label}</span>
-            <span className="font-medium tabular-nums text-slate-900">{item.value}</span>
+            <span className="text-ink/75">{item.label}</span>
+            <span className="font-semibold tabular-nums text-ink">{item.value}</span>
           </div>
-          <div className="h-2 rounded-full bg-slate-100">
+          <div className="h-1.5 rounded-full bg-ink/[0.06]">
             <div
-              className={`h-2 rounded-full ${colorFor?.(item.key) ?? "bg-slate-700"}`}
+              className={`h-1.5 rounded-full transition-[width] duration-700 ${colorFor?.(item.key) ?? "bg-ink"}`}
               style={{ width: `${(item.value / max) * 100}%` }}
             />
           </div>
@@ -114,7 +144,7 @@ export function BarList({ items, colorFor }: {
 
 export function FullPageSpinner() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
+    <div className="flex min-h-screen items-center justify-center bg-paper">
       <Spinner />
     </div>
   );

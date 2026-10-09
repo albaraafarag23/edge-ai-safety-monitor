@@ -50,22 +50,31 @@ export function Login() {
   };
 
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="paper-grain flex min-h-screen bg-paper font-display text-ink">
       {/* brand panel */}
-      <div className="relative hidden w-[46%] overflow-hidden bg-slate-950 p-12 text-white lg:flex lg:flex-col">
-        <div className="hero-grid absolute inset-0 opacity-40" aria-hidden />
-        <div className="absolute -top-40 -left-40 h-96 w-96 rounded-full bg-amber-400/20 blur-3xl" aria-hidden />
+      <div className="relative hidden w-[48%] overflow-hidden bg-ink p-12 text-paper lg:flex lg:flex-col">
+        <img
+          src="/edition/hero-1200.webp"
+          srcSet="/edition/hero-1200.webp 1200w, /edition/hero-2400.webp 2400w"
+          sizes="48vw"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          aria-hidden
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/40" aria-hidden />
         <Link to="/" className="relative flex items-center gap-2.5">
           <LogoMark />
           <span className="text-[15px] font-semibold">{PRODUCT_NAME}</span>
         </Link>
         <div className="relative mt-auto max-w-md">
-          <h2 className="text-3xl font-semibold tracking-tight">The safety console for your site.</h2>
-          <p className="mt-3 text-slate-400">Sign in to watch your cameras live and respond to alerts as they happen.</p>
+          <h2 className="font-serif text-5xl leading-[1.05] tracking-tight">
+            <span className="text-[1.3em] leading-none text-amber-400 italic">T</span>he safety console for your site.
+          </h2>
+          <p className="mt-4 text-paper/70">Sign in to watch your cameras live and respond to alerts as they happen.</p>
           <ul className="mt-8 space-y-4">
             {POINTS.map(({ icon: Icon, text }) => (
-              <li key={text} className="flex items-start gap-3 text-sm text-slate-300">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/5 ring-1 ring-white/10">
+              <li key={text} className="flex items-start gap-3 text-sm text-paper/80">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/30 ring-1 ring-white/15 backdrop-blur">
                   <Icon className="h-4 w-4 text-amber-400" />
                 </span>
                 <span className="pt-1.5">{text}</span>
@@ -73,24 +82,26 @@ export function Login() {
             ))}
           </ul>
         </div>
-        <p className="relative mt-12 text-xs text-slate-500">For authorized site personnel only.</p>
+        <p className="relative mt-12 text-xs text-paper/50">For authorized site personnel only.</p>
       </div>
 
       {/* form */}
       <div className="flex flex-1 flex-col px-6 py-8 sm:px-12">
-        <Link to="/" className="inline-flex items-center gap-1.5 self-start text-sm text-slate-500 hover:text-slate-900">
+        <Link to="/" className="inline-flex items-center gap-1.5 self-start text-sm text-ink/55 hover:text-ink">
           <ArrowLeft className="h-4 w-4" /> Back to site
         </Link>
         <div className="m-auto w-full max-w-sm py-12">
           <div className="lg:hidden">
             <LogoMark className="h-10 w-10" />
           </div>
-          <h1 className="mt-6 text-2xl font-semibold tracking-tight text-slate-900 lg:mt-0">Sign in</h1>
-          <p className="mt-1 text-sm text-slate-500">Use the account your site administrator gave you.</p>
+          <h1 className="mt-6 font-serif text-5xl tracking-tight lg:mt-0">
+            <span className="text-[1.3em] leading-none text-amber-600 italic">S</span>ign in
+          </h1>
+          <p className="mt-2 text-sm text-ink/55">Use the account your site administrator gave you.</p>
 
           <form onSubmit={submit} className="mt-8 space-y-5" noValidate>
             <label className="block">
-              <span className="text-sm font-medium text-slate-700">Email</span>
+              <span className="text-sm font-medium text-ink/75">Email</span>
               <input
                 type="email"
                 autoComplete="username"
@@ -98,12 +109,12 @@ export function Login() {
                 autoFocus
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1.5 block w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                className="mt-1.5 block w-full rounded-lg border border-ink/20 bg-white px-3 py-2.5 text-sm text-ink shadow-sm placeholder:text-ink/35 focus:border-ink focus:ring-1 focus:ring-ink focus:outline-none"
                 placeholder="you@company.com"
               />
             </label>
             <label className="block">
-              <span className="text-sm font-medium text-slate-700">Password</span>
+              <span className="text-sm font-medium text-ink/75">Password</span>
               <span className="relative mt-1.5 block">
                 <input
                   type={show ? "text" : "password"}
@@ -111,7 +122,7 @@ export function Login() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full rounded-lg border border-slate-300 px-3 py-2.5 pr-10 text-sm text-slate-900 shadow-sm focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+                  className="block w-full rounded-lg border border-ink/20 bg-white px-3 py-2.5 pr-10 text-sm text-ink shadow-sm focus:border-ink focus:ring-1 focus:ring-ink focus:outline-none"
                 />
                 <button
                   type="button"
@@ -133,7 +144,7 @@ export function Login() {
             <button
               type="submit"
               disabled={busy || !email || !password}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-paper shadow-sm hover:bg-black disabled:opacity-50"
             >
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
               Sign in

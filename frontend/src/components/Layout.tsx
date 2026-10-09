@@ -219,20 +219,22 @@ function UserMenu() {
 function SideNav() {
   const nav = useNav();
   return (
-    <aside className="hidden bg-slate-950 text-slate-300 lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
+    <aside className="hidden bg-ink text-paper/70 lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
       <div className="px-5 py-5">
         <Logo to="/app" dark subtitle="Site safety console" />
       </div>
       <nav className="flex-1 space-y-1 px-3 py-2">
-        <p className="px-3 pb-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">Monitoring</p>
+        <p className="px-3 pb-2 font-serif text-base text-amber-400/80 italic">Monitoring</p>
         {nav.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                isActive ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"
+              `relative flex items-center gap-3 rounded-md px-3 py-2 font-display text-[15px] font-medium transition ${
+                isActive
+                  ? "bg-white/[0.07] text-paper before:absolute before:inset-y-2 before:-left-3 before:w-[3px] before:rounded-r before:bg-amber-400"
+                  : "text-paper/55 hover:bg-white/[0.04] hover:text-paper"
               }`
             }
           >
@@ -242,7 +244,7 @@ function SideNav() {
         ))}
       </nav>
       <div className="space-y-1 border-t border-white/10 px-5 py-4">
-        <p className="text-xs font-medium text-slate-300">Construction safety</p>
+        <p className="font-serif text-base text-paper/80 italic">Construction safety</p>
         <LiveIndicator />
       </div>
     </aside>
@@ -252,14 +254,14 @@ function SideNav() {
 function TopBar() {
   const nav = useNav();
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/85 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-ink/10 bg-paper/80 backdrop-blur-md">
       <div className="flex h-16 items-center gap-4 px-4 sm:px-6 lg:px-8">
         <div className="lg:hidden">
           <Logo to="/app" />
         </div>
         <div className="ml-auto flex items-center gap-2">
           <NotificationBell />
-          <span className="mx-1 h-6 w-px bg-slate-200" aria-hidden />
+          <span className="mx-1 h-6 w-px bg-ink/15" aria-hidden />
           <UserMenu />
         </div>
       </div>
@@ -272,7 +274,7 @@ function TopBar() {
             end={end}
             className={({ isActive }) =>
               `flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${
-                isActive ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                isActive ? "bg-ink text-paper" : "text-ink/60 hover:bg-ink/5"
               }`
             }
           >
@@ -289,7 +291,7 @@ function TopBar() {
 export function AppShell() {
   return (
     <LiveProvider>
-      <div className="min-h-screen bg-slate-50">
+      <div className="paper-grain min-h-screen bg-paper font-display text-ink">
         <SideNav />
         <div className="lg:pl-64">
           <TopBar />
@@ -305,10 +307,13 @@ export function AppShell() {
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
-        {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+        <h1 className="font-serif text-4xl leading-none tracking-tight text-ink sm:text-5xl">
+          <span className="mr-[0.03em] inline-block text-[1.3em] leading-[0.7] text-amber-600 italic">{title[0]}</span>
+          {title.slice(1)}
+        </h1>
+        {subtitle && <p className="mt-3 text-[15px] text-ink/55">{subtitle}</p>}
       </div>
       {actions}
     </div>
