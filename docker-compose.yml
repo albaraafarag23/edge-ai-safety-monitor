@@ -122,6 +122,9 @@ services:
       SMTP_FROM: ${SMTP_FROM:-}
       SUPERVISOR_EMAILS: ${SUPERVISOR_EMAILS:-}
       NOTIFY_COOLDOWN_S: ${NOTIFY_COOLDOWN_S:-300}
+      # alert emails: times in site time, and an "Open this incident" button to the public console
+      SITE_TIMEZONE: ${SITE_TIMEZONE:-Africa/Cairo}
+      CONSOLE_URL: ${CONSOLE_URL:-}
     volumes:
       - ./plugins:/app/plugins:ro
       - ./media:/media:ro

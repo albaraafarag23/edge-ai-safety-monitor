@@ -107,7 +107,7 @@ def handle(incident: dict, plugins: dict, client, last_notified: dict):
     if markdown is None:
         markdown = generate_from_template(incident, actions, evidence)
 
-    delivery = notify.send(incident, markdown, snapshot, clip)
+    delivery = notify.send(incident, markdown, snapshot, clip, actions)
     save_report(event_id, markdown, generated_by, delivery)
     print(f"[AI] {event_id}: report by {generated_by}, email {delivery['status']}"
           f"{' to ' + ', '.join(delivery['recipients']) if delivery['recipients'] else ''}"
