@@ -1,0 +1,54 @@
+{
+  "data_yaml": "/home/albaraa/edge-ai-safety-monitor/data/cigdet/yolo/data.yaml",
+  "root": "/home/albaraa/edge-ai-safety-monitor/data/cigdet/yolo",
+  "classes": {
+    "0": "cigarette"
+  },
+  "splits": {
+    "train": {
+      "images": 379,
+      "missing_label_file": [],
+      "empty_label_file": 0,
+      "bad_lines": [],
+      "unreadable_images": [],
+      "instances": {
+        "cigarette": 379
+      },
+      "images_per_class": {
+        "cigarette": 379
+      }
+    },
+    "val": {
+      "images": 67,
+      "missing_label_file": [],
+      "empty_label_file": 0,
+      "bad_lines": [],
+      "unreadable_images": [],
+      "instances": {
+        "cigarette": 67
+      },
+      "images_per_class": {
+        "cigarette": 67
+      }
+    },
+    "test": {
+      "images": 111,
+      "missing_label_file": [],
+      "empty_label_file": 0,
+      "bad_lines": [],
+      "unreadable_images": [],
+      "instances": {
+        "cigarette": 111
+      },
+      "images_per_class": {
+        "cigarette": 111
+      }
+    }
+  },
+  "duplicates_across_splits": [],
+  "total_instances": {
+    "cigarette": 557
+  },
+  "imbalance_ratio": 1.0,
+  "classes_with_no_instances": []
+}
