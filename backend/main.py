@@ -16,6 +16,7 @@ from sqlalchemy import func, select
 import analytics
 import auth
 import cameras
+import rule_switches
 import users
 from live import broadcaster
 from models import STATUSES, Base, Incident, Report, SessionLocal, User, engine
@@ -95,12 +96,15 @@ async def lifespan(app: FastAPI):
     r = aioredis.from_url(REDIS_URL, decode_responses=True)
     cameras.init(REDIS_URL)
     task = asyncio.create_task(consume_incidents(r))
+    switches_task = asyncio.create_task(rule_switches.keep_synced(REDIS_URL))
 
     yield
 
     task.cancel()
+    switches_task.cancel()
     await r.aclose()
     await cameras.close()
+    await rule_switches.close()
 
 
 app = FastAPI(title="Safety Monitor API", version="1.2.0", lifespan=lifespan)
@@ -309,6 +313,7 @@ async def events(request: Request):
 
 protected.include_router(cameras.router)
 protected.include_router(analytics.router)
+protected.include_router(rule_switches.router)
 protected.include_router(users.router)
 app.include_router(users.account)
 app.include_router(protected)

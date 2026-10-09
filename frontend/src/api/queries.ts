@@ -12,6 +12,7 @@ export const keys = {
   filters: ["filters"] as const,
   cameras: ["cameras"] as const,
   users: ["users"] as const,
+  rules: ["rules"] as const,
   analytics: (days: number) => ["analytics", days] as const,
 };
 
@@ -69,4 +70,14 @@ export function useUserMutations() {
     }),
     resetPassword: useMutation({ mutationFn: ({ id, password }: { id: number; password: string }) => api.resetPassword(id, password) }),
   };
+}
+
+export const useRules = () => useQuery({ queryKey: keys.rules, queryFn: api.rules });
+
+export function useSwitchRule() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ ruleId, enabled }: { ruleId: string; enabled: boolean }) => api.switchRule(ruleId, enabled),
+    onSettled: () => qc.invalidateQueries({ queryKey: keys.rules }),
+  });
 }

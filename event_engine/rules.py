@@ -8,6 +8,9 @@ Rule types:
 
 Every rule can set min_duration_s: the condition must hold that long before an
 incident fires. Short detector dropouts (under grace_s) don't reset the timer.
+
+Rules can also be switched off at run time from the console (RuleEngine.switched_off), on top of
+"enabled": false in the plugin, which means the rule isn't usable yet.
 """
 import uuid
 from datetime import datetime, timezone
@@ -130,6 +133,7 @@ class RuleEngine:
         self.cooldown_s = cooldown_s
         self._active = {}       # (camera, rule_id) -> {"start": ts, "last": ts}
         self._last_fired = {}   # (camera, rule_id) -> ts
+        self.switched_off = {}  # plugin_id -> set of rule ids turned off in the console
         for plugin in plugins.values():
             for rule in plugin.get("rules", []):
                 if rule.get("type") not in CHECKS:
@@ -148,8 +152,13 @@ class RuleEngine:
         now = _ts(event.get("timestamp"))
 
         incidents = []
+        switched_off = self.switched_off.get(plugin["plugin_id"], set())
         for rule in plugin.get("rules", []):
             if not rule.get("enabled", True):
+                continue
+            if rule["rule_id"] in switched_off:
+                # forget any running timer, so switching the rule back on starts from zero
+                self._active.pop((camera, rule["rule_id"]), None)
                 continue
             zone = plugin.get("zones", {}).get(rule.get("zone")) if rule.get("zone") else None
             if zone and zone.get("camera_id") not in (None, camera):

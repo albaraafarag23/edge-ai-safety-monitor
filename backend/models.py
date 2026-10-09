@@ -97,5 +97,16 @@ class User(Base):
                 "created_at": iso(self.created_at), "last_login_at": iso(self.last_login_at)}
 
 
+class RuleSwitch(Base):
+    """A plugin rule switched on or off in the console (backend/rule_switches.py). No row = on."""
+    __tablename__ = "rule_switches"
+
+    plugin_id: Mapped[str] = mapped_column(String, primary_key=True)
+    rule_id: Mapped[str] = mapped_column(String, primary_key=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    changed_by: Mapped[str | None] = mapped_column(String)   # name of the user who last changed it
+    changed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 def iso(dt: datetime | None) -> str | None:
     return dt.isoformat(timespec="seconds") + "Z" if dt else None

@@ -1,5 +1,6 @@
 import os
 import json
+import time
 from pathlib import Path
 
 import redis
@@ -13,6 +14,9 @@ INCIDENT_STREAM = "incidents"
 CONSUMER_GROUP = "event_engine"
 CONSUMER_NAME = "engine_01"
 COOLDOWN_SECONDS = float(os.getenv("RULE_COOLDOWN_SECONDS", "10"))
+# rules switched off in the console: a Redis set per plugin, written by the backend (backend/rule_switches.py)
+SWITCHED_OFF_KEY = "rules:off:{plugin_id}"
+SWITCH_REFRESH_S = 2.0
 
 
 def load_plugins(plugins_dir: str) -> dict:
@@ -23,6 +27,14 @@ def load_plugins(plugins_dir: str) -> dict:
             plugins[plugin["plugin_id"]] = plugin
     print(f"[EE] Loaded plugins: {list(plugins.keys())}", flush=True)
     return plugins
+
+
+def refresh_switches(r, engine: RuleEngine):
+    for plugin_id in engine.plugins:
+        off = r.smembers(SWITCHED_OFF_KEY.format(plugin_id=plugin_id))
+        if off != engine.switched_off.get(plugin_id, set()):
+            print(f"[EE] {plugin_id}: rules switched off: {sorted(off) or 'none'}", flush=True)
+        engine.switched_off[plugin_id] = off
 
 
 def main():
@@ -37,7 +49,15 @@ def main():
 
     print(f"[EE] Listening on '{DETECTION_STREAM}'...", flush=True)
 
+    last_refresh = 0.0
     while True:
+        if time.monotonic() - last_refresh >= SWITCH_REFRESH_S:
+            try:
+                refresh_switches(r, engine)
+            except redis.exceptions.RedisError as e:
+                print(f"[EE] Couldn't read rule switches, keeping the last ones: {e}", flush=True)
+            last_refresh = time.monotonic()
+
         messages = r.xreadgroup(
             CONSUMER_GROUP,
             CONSUMER_NAME,

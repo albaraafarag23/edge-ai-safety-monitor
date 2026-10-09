@@ -27,6 +27,14 @@ Common fields: `rule_id`, `description`, `event_type`, `severity`, `min_duration
 this long; loitering = zone rule with a long duration), `grace_s` (detector dropouts shorter than this
 don't reset the timer, default 1), `cooldown_s` (default 10), `enabled` (false = skipped everywhere).
 
+## Switching rules on and off
+Admins and supervisors can switch any rule off (and back on) on the console's **Safety rules** page,
+e.g. for a site that doesn't care about smoking. No restart is needed: the backend stores the switches in
+Postgres (`rule_switches` table) and mirrors the rules that are off to the Redis set `rules:off:<plugin_id>`,
+which the event engine re-reads every 2 s. A rule that's off raises no incidents, reports or emails.
+`"enabled": false` in the JSON is different: it means the rule isn't usable yet, and the console shows it as
+"Not available yet" and won't switch it on.
+
 Test the rules with synthetic frames:
 
     cd event_engine && python test_rules.py

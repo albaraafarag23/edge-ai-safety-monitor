@@ -125,3 +125,23 @@ export interface Camera {
   height: number | null;
   updated_at: string | null;
 }
+
+export interface SafetyRule {
+  rule_id: string;
+  type: string;
+  description: string;
+  event_type: string;
+  severity: Severity;
+  zone_name: string | null;
+  min_duration_s: number;
+  available: boolean; // false: not usable yet (e.g. the model can't detect its classes)
+  enabled: boolean;
+  changed_by: string | null;
+  changed_at: string | null;
+}
+
+export interface SafetyRules {
+  plugin_id: string;
+  plugin_name: string;
+  rules: SafetyRule[];
+}

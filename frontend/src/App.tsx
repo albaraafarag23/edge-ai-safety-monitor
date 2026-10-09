@@ -13,6 +13,7 @@ import { Login } from "./pages/Login";
 import { NotFound } from "./pages/NotFound";
 import { Notifications } from "./pages/Notifications";
 import { Overview } from "./pages/Overview";
+import { Rules } from "./pages/Rules";
 import { Users } from "./pages/Users";
 
 // links from before the console moved under /app
@@ -58,6 +59,7 @@ export function App() {
         <Route path="incidents/:id" element={<IncidentDetail />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="notifications" element={<Notifications />} />
+        <Route path="rules" element={<Rules />} />
         <Route path="users" element={<Users />} />
         <Route path="account" element={<Account />} />
         <Route path="*" element={<NotFound />} />

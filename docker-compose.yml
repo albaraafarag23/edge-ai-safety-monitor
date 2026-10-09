@@ -88,8 +88,12 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-dev-internal-token}
+      # the rules page lists this plugin's rules (switches: backend/rule_switches.py)
+      PLUGINS_DIR: /app/plugins
+      PLUGIN_ID: ${PLUGIN_ID:-construction_safety}
     volumes:
       - ./media:/media:ro
+      - ./plugins:/app/plugins:ro
     depends_on:
       postgres:
         condition: service_healthy

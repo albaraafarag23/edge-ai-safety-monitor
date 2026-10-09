@@ -22,14 +22,17 @@ def person_at(x, y_feet, h=200):
     return {"class_name": "Person", "confidence": 0.9, "bbox": [x, y_feet - h, x + 60, y_feet]}
 
 
-def run(frames, camera="cam_01", rules=None, fps=2):
-    """frames: list of object lists, one per frame. Returns [(frame_index, incident), ...]."""
+def run(frames, camera="cam_01", rules=None, fps=2, switch=None):
+    """frames: list of object lists, one per frame. Returns [(frame_index, incident), ...].
+    switch(i) -> set of rule ids switched off from frame i (as the console would)."""
     plugin = dict(PLUGIN)
     if rules is not None:
         plugin["rules"] = [r for r in PLUGIN["rules"] if r["rule_id"] in rules]
     engine = RuleEngine({plugin["plugin_id"]: plugin})
     fired = []
     for i, objects in enumerate(frames):
+        if switch:
+            engine.switched_off[plugin["plugin_id"]] = switch(i)
         event = {"timestamp": (T0 + timedelta(seconds=i / fps)).isoformat(), "camera_id": camera,
                  "frame_id": i, "plugin_id": plugin["plugin_id"], "detections": objects}
         fired += [(i, inc) for inc in engine.process(event)]
@@ -118,6 +121,17 @@ results.append(check("Cooldown: continuous violation re-fires every 10 s, not ev
                      [i for i, _ in f] == [2, 22, 42], f"{[i for i, _ in f]}"))
 bottle = {"class_name": "bottle", "confidence": 0.9, "bbox": [50, 380, 70, 420]}
 results.append(check("Disabled rule (food) never fires", not run([[bottle]] * 20, rules=["RULE_FOOD_01"])))
+
+# --- switched off in the console ---
+bad = [WORKER, NO_HARDHAT, VEST]
+results.append(check("Switch: rule switched off never fires",
+                     not run([bad] * 20, rules=["RULE_PPE_01"], switch=lambda i: {"RULE_PPE_01"})))
+f = run([bad] * 20, rules=["RULE_PPE_01", "RULE_ZONE_02"], switch=lambda i: {"RULE_ZONE_02"})
+results.append(check("Switch: other rules keep working", len(f) == 1 and f[0][1]["metadata"]["rule_id"] == "RULE_PPE_01"))
+# off for frames 0-4 (2.5 s of violation), back on at frame 5: the timer starts again from frame 5
+f = run([bad] * 20, rules=["RULE_PPE_01"], switch=lambda i: {"RULE_PPE_01"} if i < 5 else set())
+results.append(check("Switch: back on, the duration counts from when it was switched on",
+                     len(f) == 1 and f[0][0] == 11, f"{[i for i, _ in f]}"))
 
 # --- plugin errors ---
 for name, broken in [("unknown rule type", {**PLUGIN, "rules": [{"rule_id": "X", "type": "magic"}]}),

@@ -1,4 +1,4 @@
-import { BarChart3, Bell, Camera, ChevronDown, LayoutDashboard, ListChecks, LogOut, UserCog, Users } from "lucide-react";
+import { BarChart3, Bell, Camera, ChevronDown, LayoutDashboard, ListChecks, LogOut, ShieldCheck, UserCog, Users } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useIncidents } from "../api/queries";
@@ -15,6 +15,7 @@ const NAV = [
   { to: "/app/incidents", label: "Incidents", icon: ListChecks, end: false },
   { to: "/app/analytics", label: "Analytics", icon: BarChart3, end: false },
   { to: "/app/notifications", label: "Notifications", icon: Bell, end: false },
+  { to: "/app/rules", label: "Safety rules", icon: ShieldCheck, end: false },
 ];
 const ADMIN_NAV = [{ to: "/app/users", label: "Users", icon: Users, end: false }];
 
