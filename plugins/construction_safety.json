@@ -1,7 +1,7 @@
 {
   "plugin_id": "construction_safety",
   "name": "Construction Site Safety Monitor",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "report": {
     "audience": "the site safety supervisor",
     "tone": "formal and compliance-oriented, suitable for a construction site safety record"
@@ -11,46 +11,99 @@
     "imgsz": 640,
     "default_confidence": 0.4,
     "classes": {
-      "Person": {"confidence": 0.5},
+      "Person": {
+        "confidence": 0.5
+      },
       "Hardhat": {},
-      "NO-Hardhat": {"confidence": 0.45},
+      "NO-Hardhat": {
+        "confidence": 0.45
+      },
       "Safety Vest": {},
-      "NO-Safety Vest": {"confidence": 0.45},
+      "NO-Safety Vest": {
+        "confidence": 0.45
+      },
       "machinery": {},
       "vehicle": {},
       "bottle": {},
       "cup": {}
-    }
+    },
+    "extra_models": [
+      {
+        "model": "smoking.pt",
+        "imgsz": 640,
+        "default_confidence": 0.5,
+        "classes": {
+          "cigarette": {},
+          "vape": {}
+        }
+      }
+    ]
   },
   "zones": {
     "excavation_edge": {
       "name": "Excavation Edge",
       "camera_id": "cam_01",
       "polygon": [
-        [0, 300],
-        [220, 300],
-        [220, 480],
-        [0, 480]
+        [
+          0,
+          300
+        ],
+        [
+          220,
+          300
+        ],
+        [
+          220,
+          480
+        ],
+        [
+          0,
+          480
+        ]
       ]
     },
     "crane_swing_area": {
       "name": "Tower Crane Swing Area",
       "camera_id": "cam_01",
       "polygon": [
-        [220, 250],
-        [420, 250],
-        [420, 480],
-        [220, 480]
+        [
+          220,
+          250
+        ],
+        [
+          420,
+          250
+        ],
+        [
+          420,
+          480
+        ],
+        [
+          220,
+          480
+        ]
       ]
     },
     "scaffold_level_1": {
       "name": "Scaffold Level 1",
       "camera_id": "cam_01",
       "polygon": [
-        [420, 200],
-        [640, 200],
-        [640, 480],
-        [420, 480]
+        [
+          420,
+          200
+        ],
+        [
+          640,
+          200
+        ],
+        [
+          640,
+          480
+        ],
+        [
+          420,
+          480
+        ]
       ]
     }
   },
@@ -58,35 +111,68 @@
     {
       "rule_id": "RULE_PPE_01",
       "type": "ppe",
-      "description": "Hard hat and safety vest required on site",
-      "subject_classes": ["Person"],
+      "description": "Hard hat required on site",
+      "subject_classes": [
+        "Person"
+      ],
       "required": [
         {
           "name": "hard_hat",
-          "present_classes": ["Hardhat"],
-          "absent_classes": ["NO-Hardhat"]
-        },
-        {
-          "name": "safety_vest",
-          "present_classes": ["Safety Vest"],
-          "absent_classes": ["NO-Safety Vest"]
+          "present_classes": [
+            "Hardhat"
+          ],
+          "absent_classes": [
+            "NO-Hardhat"
+          ]
         }
       ],
       "min_duration_s": 3,
       "event_type": "PPE_MISSING",
       "severity": "HIGH",
       "recommended_actions": [
-        "Stop the worker and require the missing PPE before they continue work.",
-        "Check that hard hats and high-visibility vests are available at the site entrance.",
+        "Stop the worker and require a hard hat before they continue work.",
+        "Check that hard hats are available at the site entrance.",
         "Record the violation and repeat the PPE briefing at the next toolbox talk."
-      ]
+      ],
+      "name": "Hard hat"
+    },
+    {
+      "rule_id": "RULE_PPE_02",
+      "type": "ppe",
+      "description": "High-visibility safety vest required on site",
+      "subject_classes": [
+        "Person"
+      ],
+      "required": [
+        {
+          "name": "safety_vest",
+          "present_classes": [
+            "Safety Vest"
+          ],
+          "absent_classes": [
+            "NO-Safety Vest"
+          ]
+        }
+      ],
+      "min_duration_s": 3,
+      "event_type": "PPE_MISSING",
+      "severity": "HIGH",
+      "recommended_actions": [
+        "Stop the worker and require a high-visibility vest before they continue work.",
+        "Check that high-visibility vests are available at the site entrance.",
+        "Record the violation and repeat the PPE briefing at the next toolbox talk."
+      ],
+      "name": "Safety vest"
     },
     {
       "rule_id": "RULE_ZONE_01",
+      "name": "Restricted zone entry",
       "type": "zone",
       "description": "Unauthorized entry into excavation edge",
       "zone": "excavation_edge",
-      "subject_classes": ["Person"],
+      "subject_classes": [
+        "Person"
+      ],
       "min_duration_s": 0,
       "event_type": "RESTRICTED_ZONE_ENTRY",
       "severity": "HIGH",
@@ -98,10 +184,13 @@
     },
     {
       "rule_id": "RULE_ZONE_02",
+      "name": "Loitering under the crane",
       "type": "zone",
       "description": "Person staying under the crane swing area",
       "zone": "crane_swing_area",
-      "subject_classes": ["Person"],
+      "subject_classes": [
+        "Person"
+      ],
       "min_duration_s": 30,
       "event_type": "LOITERING_HAZARD_ZONE",
       "severity": "MEDIUM",
@@ -113,10 +202,13 @@
     },
     {
       "rule_id": "RULE_ZONE_03",
+      "name": "Scaffold over capacity",
       "type": "zone",
       "description": "More than 3 workers on scaffold level 1",
       "zone": "scaffold_level_1",
-      "subject_classes": ["Person"],
+      "subject_classes": [
+        "Person"
+      ],
       "max_count": 3,
       "min_duration_s": 5,
       "event_type": "ZONE_OVER_CAPACITY",
@@ -129,10 +221,16 @@
     },
     {
       "rule_id": "RULE_PROX_01",
+      "name": "Too close to machinery",
       "type": "proximity",
       "description": "Worker too close to moving machinery",
-      "subject_classes": ["Person"],
-      "near_classes": ["machinery", "vehicle"],
+      "subject_classes": [
+        "Person"
+      ],
+      "near_classes": [
+        "machinery",
+        "vehicle"
+      ],
       "max_gap_ratio": 0.5,
       "min_duration_s": 1,
       "event_type": "PERSON_NEAR_MACHINERY",
@@ -144,18 +242,96 @@
       ]
     },
     {
+      "rule_id": "RULE_SMOKE_01",
+      "name": "Smoking",
+      "type": "presence",
+      "description": "Smoking on site (cigarette visible)",
+      "subject_classes": [
+        "cigarette"
+      ],
+      "min_duration_s": 2,
+      "event_type": "SMOKING",
+      "severity": "MEDIUM",
+      "recommended_actions": [
+        "Ask the worker to put out the cigarette and use the designated smoking area.",
+        "Check that no fuel, gas cylinders or flammable materials are near where they were smoking.",
+        "Remind workers of the site smoking policy at the next toolbox talk."
+      ]
+    },
+    {
+      "rule_id": "RULE_SMOKE_02",
+      "name": "Vaping",
+      "type": "presence",
+      "enabled": false,
+      "requires": "A model trained to detect vapes (the public vape datasets need a free Roboflow API key)",
+      "description": "Vaping on site (vape visible)",
+      "subject_classes": [
+        "vape"
+      ],
+      "min_duration_s": 2,
+      "event_type": "VAPING",
+      "severity": "LOW",
+      "recommended_actions": [
+        "Ask the worker to stop vaping and use the designated smoking area.",
+        "Remind workers that the site smoking policy also covers vapes."
+      ]
+    },
+    {
       "rule_id": "RULE_FOOD_01",
+      "name": "Food or drink in a restricted zone",
       "type": "zone",
       "description": "Food or drink inside the excavation edge zone",
-      "enabled": false,
       "zone": "excavation_edge",
-      "subject_classes": ["bottle", "cup"],
+      "subject_classes": [
+        "bottle",
+        "cup"
+      ],
       "min_duration_s": 5,
       "event_type": "FOOD_IN_RESTRICTED_ZONE",
       "severity": "LOW",
       "recommended_actions": [
         "Remove the food or drink from the restricted zone.",
         "Remind workers to eat and drink only in the designated welfare area."
+      ],
+      "enabled": false,
+      "requires": "A model that detects bottles and cups"
+    },
+    {
+      "rule_id": "RULE_POSE_01",
+      "name": "Person down",
+      "type": "pose",
+      "planned": true,
+      "requires": "A pose model running next to the detector (planned)",
+      "description": "A worker has fallen or is lying on the ground",
+      "subject_classes": [
+        "Person"
+      ],
+      "min_duration_s": 5,
+      "event_type": "PERSON_DOWN",
+      "severity": "CRITICAL",
+      "recommended_actions": [
+        "Send someone to the worker immediately and call the site first aider.",
+        "Do not move the worker if a fall from height or a head injury is possible; call emergency services.",
+        "Secure the area and record what happened for the accident report."
+      ]
+    },
+    {
+      "rule_id": "RULE_POSE_02",
+      "name": "Sleeping on site",
+      "type": "pose",
+      "planned": true,
+      "requires": "A pose model running next to the detector (planned)",
+      "description": "A worker lying still on site for a long time",
+      "subject_classes": [
+        "Person"
+      ],
+      "min_duration_s": 300,
+      "event_type": "SLEEPING_ON_SITE",
+      "severity": "MEDIUM",
+      "recommended_actions": [
+        "Check on the worker first: lying still can also be a medical emergency.",
+        "Remind the worker to rest only in the welfare area.",
+        "Review shift lengths and break times for the crew."
       ]
     }
   ]

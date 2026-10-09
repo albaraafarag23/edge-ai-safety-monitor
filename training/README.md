@@ -33,3 +33,27 @@ Results: `outputs/eval/<name>_staged/metrics.json` and `per_class.csv`.
     python training/extract_frames.py recordings/ --out data/staged_frames --every 2
 Each clip gets its own folder. Keep whole clips for testing, and never split one clip
 between train and test.
+
+## Models used by the detector
+Copy a trained model into `models/` under the name the plugin uses (`models/` is mounted into the
+`cv_pipeline` container at `/models`):
+
+    cp outputs/runs/<name>/weights/best.pt models/construction_ppe.pt
+
+## Smoking model (`models/smoking.pt`)
+A second, small model that only finds cigarettes. It runs next to the main model (`extra_models` in the plugin).
+Data: CigDet (Mendeley Data, CC BY 4.0, doi:10.17632/6hyrr8typ7.1), 557 images, one class. Copied into the YOLO
+layout in `data/cigdet/yolo/` (train 379 / val 67 / test 111, val split with seed 0):
+
+    python training/train.py data/cigdet/yolo/data.yaml --name smoking_cigdet_n --epochs 150
+    cp outputs/runs/smoking_cigdet_n/weights/best.pt models/smoking.pt
+
+Limits: the images are 250×250 close-ups where the cigarette fills ~1.5% of the picture, so expect it to work
+within a few metres of the camera only, and test it on staged footage before trusting it.
+
+Vapes: the public vape datasets are on Roboflow Universe (e.g. `stelar/vape-cigarette-detection-2`,
+`telai/cigarette-vape-detection-xvtxe`; check each licence). They need a free Roboflow API key:
+
+    ROBOFLOW_API_KEY=... python training/download_roboflow.py <workspace> <project> <version> --name vape
+
+Merge with CigDet (class mapping `cigarette`, `vape`), retrain, then set `"enabled": true` on `RULE_SMOKE_02`.

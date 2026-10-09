@@ -22,18 +22,18 @@ def person_at(x, y_feet, h=200):
     return {"class_name": "Person", "confidence": 0.9, "bbox": [x, y_feet - h, x + 60, y_feet]}
 
 
-def run(frames, camera="cam_01", rules=None, fps=2, switch=None):
+def run(frames, camera="cam_01", rules=None, fps=2, settings=None, start=T0, site_tz="UTC"):
     """frames: list of object lists, one per frame. Returns [(frame_index, incident), ...].
-    switch(i) -> set of rule ids switched off from frame i (as the console would)."""
+    settings: console rule settings {rule_id: {...}}, or a function i -> settings from frame i."""
     plugin = dict(PLUGIN)
     if rules is not None:
         plugin["rules"] = [r for r in PLUGIN["rules"] if r["rule_id"] in rules]
-    engine = RuleEngine({plugin["plugin_id"]: plugin})
+    engine = RuleEngine({plugin["plugin_id"]: plugin}, site_tz=site_tz)
     fired = []
     for i, objects in enumerate(frames):
-        if switch:
-            engine.switched_off[plugin["plugin_id"]] = switch(i)
-        event = {"timestamp": (T0 + timedelta(seconds=i / fps)).isoformat(), "camera_id": camera,
+        if settings:
+            engine.settings[plugin["plugin_id"]] = settings(i) if callable(settings) else settings
+        event = {"timestamp": (start + timedelta(seconds=i / fps)).isoformat(), "camera_id": camera,
                  "frame_id": i, "plugin_id": plugin["plugin_id"], "detections": objects}
         fired += [(i, inc) for inc in engine.process(event)]
     return fired
@@ -60,9 +60,12 @@ f = run([[WORKER, VEST]] * 10, rules=["RULE_PPE_01"])
 results.append(check("PPE: no helmet detected at all counts as missing",
                      f and f[0][1]["metadata"]["missing_equipment"] == ["hard_hat"]))
 
-f = run([[WORKER]] * 10, rules=["RULE_PPE_01"])
-results.append(check("PPE: both items missing are both reported",
-                     f and f[0][1]["metadata"]["missing_equipment"] == ["hard_hat", "safety_vest"]))
+f = run([[WORKER]] * 10, rules=["RULE_PPE_01", "RULE_PPE_02"])
+results.append(check("PPE: hard hat and vest are separate rules, both fire",
+                     sorted(m for _, i in f for m in i["metadata"]["missing_equipment"]) == ["hard_hat", "safety_vest"]))
+f = run([[WORKER, HARDHAT]] * 10, rules=["RULE_PPE_01", "RULE_PPE_02"])
+results.append(check("PPE: vest missing only fires the vest rule",
+                     [i["metadata"]["rule_id"] for _, i in f] == ["RULE_PPE_02"]))
 
 bad = [WORKER, NO_HARDHAT, VEST]
 f = run([bad] * 4 + [[]] + [bad] * 3, rules=["RULE_PPE_01"])  # 0.5 s dropout
@@ -122,16 +125,50 @@ results.append(check("Cooldown: continuous violation re-fires every 10 s, not ev
 bottle = {"class_name": "bottle", "confidence": 0.9, "bbox": [50, 380, 70, 420]}
 results.append(check("Disabled rule (food) never fires", not run([[bottle]] * 20, rules=["RULE_FOOD_01"])))
 
-# --- switched off in the console ---
+# --- presence (smoking) ---
+CIGARETTE = {"class_name": "cigarette", "confidence": 0.8, "bbox": [380, 200, 395, 206]}
+f = run([[WORKER, CIGARETTE]] * 8, rules=["RULE_SMOKE_01"])
+results.append(check("Smoking: cigarette visible for 2 s fires", len(f) == 1 and f[0][0] == 4
+                     and f[0][1]["event_type"] == "SMOKING", f"{[i for i, _ in f]}"))
+results.append(check("Smoking: no cigarette, no incident", not run([[WORKER]] * 8, rules=["RULE_SMOKE_01"])))
+results.append(check("Vaping: not available yet, never fires",
+                     not run([[{**CIGARETTE, "class_name": "vape"}]] * 8, rules=["RULE_SMOKE_02"])))
+lying = {**WORKER, "bbox": [200, 350, 400, 400]}
+results.append(check("Planned rules (pose) are skipped", not run([[lying]] * 700, rules=["RULE_POSE_01", "RULE_POSE_02"])))
+
+# --- console settings ---
 bad = [WORKER, NO_HARDHAT, VEST]
-results.append(check("Switch: rule switched off never fires",
-                     not run([bad] * 20, rules=["RULE_PPE_01"], switch=lambda i: {"RULE_PPE_01"})))
-f = run([bad] * 20, rules=["RULE_PPE_01", "RULE_ZONE_02"], switch=lambda i: {"RULE_ZONE_02"})
-results.append(check("Switch: other rules keep working", len(f) == 1 and f[0][1]["metadata"]["rule_id"] == "RULE_PPE_01"))
+off = {"RULE_PPE_01": {"enabled": False}}
+results.append(check("Settings: rule switched off never fires", not run([bad] * 20, rules=["RULE_PPE_01"], settings=off)))
+f = run([bad] * 20, rules=["RULE_PPE_01", "RULE_ZONE_02"], settings={"RULE_ZONE_02": {"enabled": False}})
+results.append(check("Settings: other rules keep working", len(f) == 1 and f[0][1]["metadata"]["rule_id"] == "RULE_PPE_01"))
 # off for frames 0-4 (2.5 s of violation), back on at frame 5: the timer starts again from frame 5
-f = run([bad] * 20, rules=["RULE_PPE_01"], switch=lambda i: {"RULE_PPE_01"} if i < 5 else set())
-results.append(check("Switch: back on, the duration counts from when it was switched on",
+f = run([bad] * 20, rules=["RULE_PPE_01"], settings=lambda i: off if i < 5 else {})
+results.append(check("Settings: back on, the duration counts from when it was switched on",
                      len(f) == 1 and f[0][0] == 11, f"{[i for i, _ in f]}"))
+f = run([bad] * 20, rules=["RULE_PPE_01"], settings={"RULE_PPE_01": {"min_duration_s": 6, "severity": "CRITICAL"}})
+results.append(check("Settings: changed duration and severity are used",
+                     len(f) == 1 and f[0][0] == 12 and f[0][1]["severity"] == "CRITICAL", f"{[i for i, _ in f]}"))
+f = run([[person_at(430 + i * 50, 450) for i in range(3)]] * 20, rules=["RULE_ZONE_03"],
+        settings={"RULE_ZONE_03": {"max_count": 2}})
+results.append(check("Settings: lower max_count makes 3 workers over capacity", len(f) == 1))
+f = run([bad] * 60, rules=["RULE_PPE_01"], settings={"RULE_PPE_01": {"cooldown_s": 20}})
+results.append(check("Settings: longer cooldown", [i for i, _ in f] == [6, 46], f"{[i for i, _ in f]}"))
+
+# active hours, in site time (Cairo is UTC+3 on 2026-10-07)
+day_shift = {"RULE_PPE_01": {"active_hours": {"start": "07:00", "end": "19:00", "days": [0, 1, 2, 3, 4]}}}
+wed_noon_cairo = datetime(2026, 10, 7, 9, 0, tzinfo=timezone.utc)
+wed_night_cairo = datetime(2026, 10, 7, 18, 0, tzinfo=timezone.utc)   # 21:00 in Cairo
+sat_noon_cairo = datetime(2026, 10, 10, 9, 0, tzinfo=timezone.utc)
+hours = lambda start: run([bad] * 10, rules=["RULE_PPE_01"], settings=day_shift, start=start, site_tz="Africa/Cairo")
+results.append(check("Hours: fires inside working hours", len(hours(wed_noon_cairo)) == 1))
+results.append(check("Hours: quiet after hours (site time, not UTC)", not hours(wed_night_cairo)))
+results.append(check("Hours: quiet on a day that isn't listed", not hours(sat_noon_cairo)))
+night = {"RULE_PPE_01": {"active_hours": {"start": "22:00", "end": "06:00", "days": [2]}}}   # Wednesday night shift
+thu_2am_cairo = datetime(2026, 10, 7, 23, 0, tzinfo=timezone.utc)
+results.append(check("Hours: night shift past midnight counts for the day it started",
+                     len(run([bad] * 10, rules=["RULE_PPE_01"], settings=night, start=thu_2am_cairo,
+                             site_tz="Africa/Cairo")) == 1))
 
 # --- plugin errors ---
 for name, broken in [("unknown rule type", {**PLUGIN, "rules": [{"rule_id": "X", "type": "magic"}]}),

@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, api } from "./client";
-import type { IncidentQuery, IncidentStatus, Role } from "./types";
+import type { IncidentQuery, IncidentStatus, Role, RuleChange } from "./types";
 
 // Query keys in one place so live events can invalidate exactly what changed.
 export const keys = {
@@ -74,10 +74,10 @@ export function useUserMutations() {
 
 export const useRules = () => useQuery({ queryKey: keys.rules, queryFn: api.rules });
 
-export function useSwitchRule() {
+export function useChangeRule() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ ruleId, enabled }: { ruleId: string; enabled: boolean }) => api.switchRule(ruleId, enabled),
+    mutationFn: ({ ruleId, change }: { ruleId: string; change: RuleChange }) => api.changeRule(ruleId, change),
     onSettled: () => qc.invalidateQueries({ queryKey: keys.rules }),
   });
 }

@@ -11,6 +11,10 @@ and `PLUGIN_ID` picks the plugin to use.
 | `imgsz` | Inference image size |
 | `default_confidence` | Threshold for classes that don't set their own |
 | `classes` | `{class_name: {"confidence": x}}`. Only these classes are detected and sent on |
+| `extra_models` | Optional list of more models run on the same frames, each with its own `model`, `imgsz`, `default_confidence` and `classes` (e.g. `smoking.pt` for `cigarette`). Their detections are merged into one message; `model` in the message becomes `construction_ppe.pt+smoking.pt` |
+
+Model files live in `models/` (mounted at `/models` in Docker; git-ignored). Each extra model costs
+another inference per frame, so check the FPS on the Jetson when adding one.
 
 ## `zones` section
 `{zone_id: {"name", "camera_id", "polygon": [[x, y], ...]}}` in pixels of that camera's image.
@@ -22,18 +26,30 @@ A person is "in" a zone when the bottom-centre of their box (their feet) is insi
 | `zone` | `subject_classes` inside `zone` | `max_count`: fire only when more than N are inside |
 | `proximity` | a subject is close to one of `near_classes` | `max_gap_ratio`: gap limit as a fraction of the subject's box height (default 0.5); optional `zone` |
 | `ppe` | a subject is missing an item in `required` | each item has `name`, `present_classes` (worn) and/or `absent_classes` (e.g. `NO-Hardhat`); optional `zone` |
+| `presence` | one of `subject_classes` is visible at all (e.g. a cigarette) | optional `zone` |
 
 Common fields: `rule_id`, `description`, `event_type`, `severity`, `min_duration_s` (condition must last
 this long; loitering = zone rule with a long duration), `grace_s` (detector dropouts shorter than this
-don't reset the timer, default 1), `cooldown_s` (default 10), `enabled` (false = skipped everywhere).
+don't reset the timer, default 1), `cooldown_s` (default 10), `active_hours` (see below), `name` (shown in the
+console), `enabled` (false = not usable yet, e.g. the model lacks its classes), `planned` (true = not built
+yet; its `type` may not exist yet and it isn't checked), `requires` (what an unusable rule still needs,
+shown in the console).
 
-## Switching rules on and off
-Admins and supervisors can switch any rule off (and back on) on the console's **Safety rules** page,
-e.g. for a site that doesn't care about smoking. No restart is needed: the backend stores the switches in
-Postgres (`rule_switches` table) and mirrors the rules that are off to the Redis set `rules:off:<plugin_id>`,
-which the event engine re-reads every 2 s. A rule that's off raises no incidents, reports or emails.
-`"enabled": false` in the JSON is different: it means the rule isn't usable yet, and the console shows it as
-"Not available yet" and won't switch it on.
+One rule per thing a site may want to switch off: hard hat and vest are separate `ppe` rules
+(`RULE_PPE_01`, `RULE_PPE_02`), smoking and vaping separate `presence` rules.
+
+## Changing rules in the console
+On the console's **Safety rules** page, admins and supervisors can switch any usable rule off and back on
+(e.g. a site that doesn't care about smoking) and change its `min_duration_s`, `severity`, `cooldown_s`,
+`max_count` (capacity rules) and `active_hours`. `active_hours` is
+`{"start": "07:00", "end": "19:00", "days": [0, 1, 2, 3, 4]}` (Monday = 0) in site time (`SITE_TIMEZONE`,
+default `Africa/Cairo`); an end before the start runs overnight and counts for the day the shift started.
+Outside those hours the rule is quiet.
+
+No restart is needed: the backend stores the changes in Postgres (`rule_settings` table, only the fields that
+differ from the plugin) and mirrors them to the Redis hash `rules:settings:<plugin_id>` (`rule_id` → JSON),
+which the event engine re-reads every 2 s. A rule that's off raises no incidents, reports or emails. Rules with
+`"enabled": false` or `"planned": true` show under **Coming soon** and can't be changed.
 
 Test the rules with synthetic frames:
 

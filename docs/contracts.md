@@ -1,6 +1,8 @@
 # Interface contracts
 
-Version 2.1 (2026-10-07): construction domain, plugin-driven detection, incident media.
+Version 2.2 (2026-10-09): construction domain, plugin-driven detection, incident media.
+2.2 adds more than one model per plugin (`model` can name several) and the event types `SMOKING`, `VAPING`
+(and, planned, `PERSON_DOWN`, `SLEEPING_ON_SITE`). The fields are unchanged.
 Don't change these without telling the team. Any change must update every service that
 reads or writes the message, plus `event_engine/test_rules.py`.
 
@@ -35,6 +37,7 @@ in pixels of the original camera frame.
 ```
 | Field | Notes |
 |---|---|
+| `model` | Model file name; with extra models, all of them joined by `+` (`construction_ppe.pt+smoking.pt`) |
 | `frame_id` | Counts up from 1 each time the detector starts |
 | `plugin_id` | Selects the plugin in `plugins/` (which classes, thresholds and rules apply) |
 | `detections` | Only the plugin's classes, above that class's confidence threshold. Empty list if none |

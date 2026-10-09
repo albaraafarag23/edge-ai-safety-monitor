@@ -44,7 +44,8 @@ services:
       PLUGIN_ID: ${PLUGIN_ID:-construction_safety}
       TEST_MODE: ${CV_TEST_MODE:-true}
     volumes:
-      - ./yolo11n.pt:/models/yolo11n.pt:ro
+      # trained models (construction_ppe.pt, smoking.pt, ...), see training/README.md
+      - ./models:/models:ro
       - ./plugins:/app/plugins:ro
       - ./media:/media
     devices:
@@ -67,6 +68,8 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
       PLUGINS_DIR: /app/plugins
+      # rule working hours (set in the console) are in this time zone
+      SITE_TIMEZONE: ${SITE_TIMEZONE:-Africa/Cairo}
     volumes:
       - ./plugins:/app/plugins:ro
     depends_on:
@@ -88,9 +91,10 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-dev-internal-token}
-      # the rules page lists this plugin's rules (switches: backend/rule_switches.py)
+      # the rules page lists this plugin's rules (settings: backend/rule_settings.py)
       PLUGINS_DIR: /app/plugins
       PLUGIN_ID: ${PLUGIN_ID:-construction_safety}
+      SITE_TIMEZONE: ${SITE_TIMEZONE:-Africa/Cairo}
     volumes:
       - ./media:/media:ro
       - ./plugins:/app/plugins:ro

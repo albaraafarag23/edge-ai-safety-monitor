@@ -1,4 +1,4 @@
-import type { Analytics, Camera, FilterOptions, Incident, IncidentQuery, IncidentStatus, Report, Role, SafetyRule, SafetyRules, Stats, User } from "./types";
+import type { Analytics, Camera, FilterOptions, Incident, IncidentQuery, IncidentStatus, Report, Role, RuleChange, SafetyRule, SafetyRules, Stats, User } from "./types";
 
 // All backend calls go through /api (proxied by Vite in dev and nginx in Docker).
 export const API_BASE = "/api";
@@ -83,8 +83,8 @@ export const api = {
   report: async (id: string) => (await request<Report>(`/incidents/${encodeURIComponent(id)}/report`)).data,
   stats: async (hours: number) => (await request<Stats>(`/stats${toQuery({ hours })}`)).data,
   rules: async () => (await request<SafetyRules>("/rules")).data,
-  switchRule: async (ruleId: string, enabled: boolean) =>
-    (await request<SafetyRule>(`/rules/${encodeURIComponent(ruleId)}`, { method: "PUT", body: JSON.stringify({ enabled }) }))
+  changeRule: async (ruleId: string, change: RuleChange) =>
+    (await request<SafetyRule>(`/rules/${encodeURIComponent(ruleId)}`, { method: "PATCH", body: JSON.stringify(change) }))
       .data,
   filters: async () => (await request<FilterOptions>("/filters")).data,
   setStatus: async (id: string, status: IncidentStatus, note?: string) =>

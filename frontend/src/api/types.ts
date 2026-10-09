@@ -126,16 +126,34 @@ export interface Camera {
   updated_at: string | null;
 }
 
-export interface SafetyRule {
+export interface ActiveHours {
+  start: string; // "07:00", site time
+  end: string; // before start = spans midnight
+  days: number[]; // 0 = Monday
+}
+
+/** Rule fields the console can change. */
+export interface RuleSettings {
+  min_duration_s: number;
+  severity: Severity;
+  cooldown_s: number;
+  max_count: number | null; // only rules with a capacity limit
+  active_hours: ActiveHours | null; // null = always
+}
+
+export interface SafetyRule extends RuleSettings {
   rule_id: string;
+  name: string;
   type: string;
   description: string;
   event_type: string;
-  severity: Severity;
   zone_name: string | null;
-  min_duration_s: number;
-  available: boolean; // false: not usable yet (e.g. the model can't detect its classes)
+  available: boolean; // false: not usable yet, see requires
+  planned: boolean;
+  requires: string | null;
   enabled: boolean;
+  defaults: RuleSettings; // the plugin's values
+  changed: (keyof RuleSettings)[];
   changed_by: string | null;
   changed_at: string | null;
 }
@@ -143,5 +161,9 @@ export interface SafetyRule {
 export interface SafetyRules {
   plugin_id: string;
   plugin_name: string;
+  timezone: string;
   rules: SafetyRule[];
 }
+
+/** PATCH /rules/{id}: only the fields sent change; null resets a field to the plugin's value. */
+export type RuleChange = { enabled?: boolean } & { [K in keyof RuleSettings]?: RuleSettings[K] | null };

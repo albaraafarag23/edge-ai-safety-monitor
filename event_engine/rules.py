@@ -5,18 +5,23 @@ Rule types:
                over capacity via max_count)
   proximity  - a subject too close to another class (person near machinery)
   ppe        - a person missing required equipment, optionally only inside a zone
+  presence   - one of subject_classes is visible at all (e.g. a cigarette), optionally inside a zone
 
 Every rule can set min_duration_s: the condition must hold that long before an
 incident fires. Short detector dropouts (under grace_s) don't reset the timer.
 
-Rules can also be switched off at run time from the console (RuleEngine.switched_off), on top of
-"enabled": false in the plugin, which means the rule isn't usable yet.
+"enabled": false or "planned": true in the plugin means the rule isn't usable yet (planned rules may
+use a type that doesn't exist yet). On top of that, the console can switch rules off and change some of
+their settings at run time (RuleEngine.settings, see RULE_SETTINGS below).
 """
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
+from zoneinfo import ZoneInfo
 
 DEFAULT_GRACE_S = 1.0
 DEFAULT_COOLDOWN_S = 10.0
+# rule fields the console may change (backend/rule_settings.py validates the values)
+RULE_SETTINGS = {"min_duration_s", "severity", "cooldown_s", "max_count", "active_hours"}
 
 
 # ---------- geometry (boxes are [x1, y1, x2, y2] in pixels) ----------
@@ -107,7 +112,36 @@ def check_ppe(rule, objects, zone):
     return involved
 
 
-CHECKS = {"zone": check_zone, "proximity": check_proximity, "ppe": check_ppe}
+def check_presence(rule, objects, zone):
+    subjects = set(rule["subject_classes"])
+    found = [o for o in objects if o["class_name"] in subjects]
+    if zone:
+        found = [o for o in found if point_in_polygon(foot_point(o["bbox"]), zone["polygon"])]
+    return found
+
+
+CHECKS = {"zone": check_zone, "proximity": check_proximity, "ppe": check_ppe, "presence": check_presence}
+
+
+def usable(rule) -> bool:
+    """False for rules the plugin marks as not usable yet ("enabled": false or "planned": true)."""
+    return rule.get("enabled", True) and not rule.get("planned", False)
+
+
+def in_active_hours(active_hours, when: datetime) -> bool:
+    """active_hours = {"start": "07:00", "end": "19:00", "days": [0..6] (Monday = 0)}, in site time.
+    end before start spans midnight (a night shift). No active_hours = always active."""
+    if not active_hours:
+        return True
+    start = time.fromisoformat(active_hours["start"])
+    end = time.fromisoformat(active_hours["end"])
+    now = when.time()
+    if start <= end:
+        in_window, day = start <= now < end, when.weekday()
+    else:  # after midnight belongs to the shift that started the day before
+        in_window = now >= start or now < end
+        day = when.weekday() if now >= start else (when.weekday() - 1) % 7
+    return in_window and day in active_hours.get("days", range(7))
 
 
 def rule_classes(rule) -> set[str]:
@@ -128,14 +162,17 @@ def _ts(value) -> float:
 
 
 class RuleEngine:
-    def __init__(self, plugins: dict, cooldown_s: float = DEFAULT_COOLDOWN_S):
+    def __init__(self, plugins: dict, cooldown_s: float = DEFAULT_COOLDOWN_S, site_tz: str = "UTC"):
         self.plugins = plugins
         self.cooldown_s = cooldown_s
+        self.site_tz = ZoneInfo(site_tz)   # active_hours are in site time
         self._active = {}       # (camera, rule_id) -> {"start": ts, "last": ts}
         self._last_fired = {}   # (camera, rule_id) -> ts
-        self.switched_off = {}  # plugin_id -> set of rule ids turned off in the console
+        self.settings = {}      # plugin_id -> {rule_id: {"enabled": bool, <RULE_SETTINGS>...}} from the console
         for plugin in plugins.values():
             for rule in plugin.get("rules", []):
+                if rule.get("planned"):
+                    continue
                 if rule.get("type") not in CHECKS:
                     raise ValueError(f"[{plugin['plugin_id']}] rule '{rule.get('rule_id')}' "
                                      f"has unknown type '{rule.get('type')}'")
@@ -152,12 +189,15 @@ class RuleEngine:
         now = _ts(event.get("timestamp"))
 
         incidents = []
-        switched_off = self.switched_off.get(plugin["plugin_id"], set())
+        settings = self.settings.get(plugin["plugin_id"], {})
+        site_now = datetime.fromtimestamp(now, self.site_tz)
         for rule in plugin.get("rules", []):
-            if not rule.get("enabled", True):
+            if not usable(rule):
                 continue
-            if rule["rule_id"] in switched_off:
-                # forget any running timer, so switching the rule back on starts from zero
+            changes = settings.get(rule["rule_id"], {})
+            rule = {**rule, **{k: v for k, v in changes.items() if k in RULE_SETTINGS}}
+            if changes.get("enabled") is False or not in_active_hours(rule.get("active_hours"), site_now):
+                # forget any running timer, so the rule starts from zero when it's active again
                 self._active.pop((camera, rule["rule_id"]), None)
                 continue
             zone = plugin.get("zones", {}).get(rule.get("zone")) if rule.get("zone") else None

@@ -9,11 +9,12 @@ import redis
 
 from live_view import LiveView
 from media import MediaRecorder
-from plugin_config import DetectionConfig, PluginError, build_config, load_plugin, model_path_for
+from plugin_config import (DetectionConfig, PluginError, build_config, check_main_model, load_plugin,
+                           model_paths, model_specs)
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 PLUGINS_DIR = os.getenv("PLUGINS_DIR", "../plugins")
-MODELS_DIR = os.getenv("MODELS_DIR", "..")
+MODELS_DIR = os.getenv("MODELS_DIR", "../models")
 # Optional: use a different model file than the plugin names (e.g. a TensorRT .engine on the Jetson)
 MODEL_OVERRIDE = os.getenv("MODEL_PATH") or None
 SOURCE = os.getenv("SOURCE", "0")
@@ -36,6 +37,9 @@ SYNTHETIC_SCENARIOS = [
     [_WORKER,
      {"class_name": "machinery", "confidence": 0.86, "bbox": [420.0, 150.0, 620.0, 400.0]}],
     [{"class_name": "Person", "confidence": 0.89, "bbox": [60.0, 200.0, 140.0, 420.0]}],  # in excavation zone
+    [_WORKER, {"class_name": "Hardhat", "confidence": 0.88, "bbox": [325.0, 120.0, 375.0, 160.0]},
+     {"class_name": "Safety Vest", "confidence": 0.84, "bbox": [310.0, 180.0, 390.0, 280.0]},
+     {"class_name": "cigarette", "confidence": 0.77, "bbox": [382.0, 196.0, 398.0, 203.0]}],  # smoking
     [],  # empty frame — no detections
 ]
 
@@ -85,12 +89,13 @@ def synthetic_frame(frame_id: int):
 def log_config(cfg: DetectionConfig):
     for w in cfg.warnings:
         print(f"[CV] WARNING: {w}", flush=True)
-    print(f"[CV] Plugin '{cfg.plugin_id}': detecting {cfg.thresholds}", flush=True)
+    for m in cfg.models:
+        print(f"[CV] Plugin '{cfg.plugin_id}': {os.path.basename(m.model_path)} detects {m.thresholds}", flush=True)
 
 
 def run_test_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder, live: LiveView):
-    # No model in test mode: treat the plugin's own classes as the model's classes
-    cfg = build_config(plugin, dict(enumerate(plugin["detection"]["classes"])))
+    # No model in test mode: treat the plugin's own classes as the models' classes
+    cfg = build_config(plugin, [dict(enumerate(spec.get("classes", {}))) for spec in model_specs(plugin)])
     log_config(cfg)
     live.set_model("synthetic")
     print(f"[CV] TEST MODE — synthetic detections at {SYNTHETIC_FPS} fps, "
@@ -114,36 +119,50 @@ def run_test_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder, live: L
         time.sleep(1 / SYNTHETIC_FPS)
 
 
+def detect(model, cfg_model, boxes) -> list[dict]:
+    return [
+        {
+            "class_name": model.names[int(b.cls[0])],
+            "confidence": round(float(b.conf[0]), 3),
+            "bbox": [round(v, 1) for v in b.xyxy[0].tolist()],
+        }
+        for b in boxes
+        if cfg_model.keep(model.names[int(b.cls[0])], float(b.conf[0]))
+    ]
+
+
 def run_live_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder, live: LiveView):
     from ultralytics import YOLO
 
-    model = YOLO(model_path_for(plugin, MODELS_DIR, MODEL_OVERRIDE))
-    cfg = build_config(plugin, model.names, MODELS_DIR, MODEL_OVERRIDE)
+    check_main_model(plugin, MODELS_DIR, MODEL_OVERRIDE)
+    paths = model_paths(plugin, MODELS_DIR, MODEL_OVERRIDE)
+    loaded = {p: YOLO(p) for p in paths if os.path.exists(p)}   # extra models are optional
+    cfg = build_config(plugin, [loaded[p].names if p in loaded else None for p in paths], MODELS_DIR, MODEL_OVERRIDE)
     log_config(cfg)
+    main_cfg, extras = cfg.models[0], cfg.models[1:]
+    model = loaded[main_cfg.model_path]
     source = int(SOURCE) if SOURCE.isdigit() else SOURCE
-    print(f"[CV] LIVE MODE — source={source}  model={cfg.model_path}", flush=True)
+    print(f"[CV] LIVE MODE — source={source}  models={[m.model_path for m in cfg.models]}", flush=True)
 
-    model_name = os.path.basename(cfg.model_path)
+    # e.g. "construction_ppe.pt+smoking.pt" when an extra model runs too
+    model_name = "+".join(os.path.basename(m.model_path) for m in cfg.models)
     live.set_model(model_name)
     for frame_id, result in enumerate(model.predict(
         source=source,
-        conf=cfg.min_confidence,
-        classes=cfg.class_ids,
-        imgsz=cfg.imgsz,
+        conf=main_cfg.min_confidence,
+        classes=main_cfg.class_ids,
+        imgsz=main_cfg.imgsz,
         stream=True,
         show=False,
         save=False,
         verbose=False,
     ), start=1):
-        detections = [
-            {
-                "class_name": model.names[int(b.cls[0])],
-                "confidence": round(float(b.conf[0]), 3),
-                "bbox": [round(v, 1) for v in b.xyxy[0].tolist()],
-            }
-            for b in result.boxes
-            if cfg.keep(model.names[int(b.cls[0])], float(b.conf[0]))
-        ]
+        detections = detect(model, main_cfg, result.boxes)
+        for extra in extras:   # same frame through each extra model (e.g. smoking)
+            extra_model = loaded[extra.model_path]
+            boxes = extra_model.predict(result.orig_img, conf=extra.min_confidence, classes=extra.class_ids,
+                                        imgsz=extra.imgsz, verbose=False)[0].boxes
+            detections += detect(extra_model, extra, boxes)
 
         h, w = result.orig_shape
         message = detection_message(frame_id, detections, model_name, (w, h))

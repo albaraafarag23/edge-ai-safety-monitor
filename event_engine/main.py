@@ -14,9 +14,12 @@ INCIDENT_STREAM = "incidents"
 CONSUMER_GROUP = "event_engine"
 CONSUMER_NAME = "engine_01"
 COOLDOWN_SECONDS = float(os.getenv("RULE_COOLDOWN_SECONDS", "10"))
-# rules switched off in the console: a Redis set per plugin, written by the backend (backend/rule_switches.py)
-SWITCHED_OFF_KEY = "rules:off:{plugin_id}"
-SWITCH_REFRESH_S = 2.0
+# active_hours in rule settings are in this time zone
+SITE_TIMEZONE = os.getenv("SITE_TIMEZONE", "Africa/Cairo")
+# rule settings from the console: a Redis hash per plugin, rule_id -> JSON, written by the backend
+# (backend/rule_settings.py)
+SETTINGS_KEY = "rules:settings:{plugin_id}"
+SETTINGS_REFRESH_S = 2.0
 
 
 def load_plugins(plugins_dir: str) -> dict:
@@ -29,17 +32,22 @@ def load_plugins(plugins_dir: str) -> dict:
     return plugins
 
 
-def refresh_switches(r, engine: RuleEngine):
+def refresh_settings(r, engine: RuleEngine):
     for plugin_id in engine.plugins:
-        off = r.smembers(SWITCHED_OFF_KEY.format(plugin_id=plugin_id))
-        if off != engine.switched_off.get(plugin_id, set()):
-            print(f"[EE] {plugin_id}: rules switched off: {sorted(off) or 'none'}", flush=True)
-        engine.switched_off[plugin_id] = off
+        settings = {}
+        for rule_id, raw in r.hgetall(SETTINGS_KEY.format(plugin_id=plugin_id)).items():
+            try:
+                settings[rule_id] = json.loads(raw)
+            except json.JSONDecodeError:
+                print(f"[EE] Ignoring unreadable settings for {rule_id}", flush=True)
+        if settings != engine.settings.get(plugin_id, {}):
+            print(f"[EE] {plugin_id}: rule settings changed: {settings or 'none'}", flush=True)
+        engine.settings[plugin_id] = settings
 
 
 def main():
     r = redis.from_url(REDIS_URL, decode_responses=True)
-    engine = RuleEngine(load_plugins(PLUGINS_DIR), cooldown_s=COOLDOWN_SECONDS)
+    engine = RuleEngine(load_plugins(PLUGINS_DIR), cooldown_s=COOLDOWN_SECONDS, site_tz=SITE_TIMEZONE)
 
     try:
         r.xgroup_create(DETECTION_STREAM, CONSUMER_GROUP, id="0", mkstream=True)
@@ -51,11 +59,11 @@ def main():
 
     last_refresh = 0.0
     while True:
-        if time.monotonic() - last_refresh >= SWITCH_REFRESH_S:
+        if time.monotonic() - last_refresh >= SETTINGS_REFRESH_S:
             try:
-                refresh_switches(r, engine)
+                refresh_settings(r, engine)
             except redis.exceptions.RedisError as e:
-                print(f"[EE] Couldn't read rule switches, keeping the last ones: {e}", flush=True)
+                print(f"[EE] Couldn't read rule settings, keeping the last ones: {e}", flush=True)
             last_refresh = time.monotonic()
 
         messages = r.xreadgroup(
