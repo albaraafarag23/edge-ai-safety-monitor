@@ -1,5 +1,7 @@
 # Interface contracts
 
+Version 2.4 (2026-10-10): adds the optional report field `markdown_ar` (the report in Arabic).
+Additive only: detections, incidents and the other report fields are unchanged.
 Version 2.3 (2026-10-10): adds the report delivery status `retrying` (with `attempts`, `next_attempt_at`).
 Additive only: detections and incidents are unchanged.
 Version 2.2 (2026-10-09): construction domain, plugin-driven detection, incident media.
@@ -107,12 +109,17 @@ The backend's `GET /incidents` and `GET /incidents/{event_id}` return this paylo
 {
   "event_id": "evt_3f9a1c2b7d4e",
   "markdown": "# Safety Incident Report: ...",
+  "markdown_ar": "# تقرير حادثة سلامة: ...",
   "generated_by": "claude-opus-5-5",
   "delivery": {"status": "sent", "recipients": ["supervisor@example.com"],
                "attachments": ["evt_3f9a1c2b7d4e.jpg", "evt_3f9a1c2b7d4e.mp4"], "error": null}
 }
 ```
-`generated_by` is a model id, `"template"` (Claude unavailable), or `"duplicate"`. A repeat of the
+`markdown` is always English. `markdown_ar` is the same report in Arabic, written from the same incident
+facts (not translated from `markdown`) with Arabic headings (`## الملخص`, `## المخالفات`, `## النتائج`,
+`## الإجراءات الموصى بها`) and «غير محدد» for missing fields; it is `null` when Arabic is switched off
+(`REPORT_LANGUAGES=en`) and for reports written before v2.4. The console shows it when the reader uses Arabic.
+`generated_by` is a model id, `"template"` (Claude unavailable), or `"duplicate"`; it describes the English report. A repeat of the
 same rule on the same camera within the cooldown isn't re-sent: `delivery.status` is
 `"suppressed_duplicate"`. Other statuses: `sent`, `failed`, `not_configured`, and `retrying` (the email
 couldn't be sent, e.g. no network; it is retried with growing waits and the report is updated when it

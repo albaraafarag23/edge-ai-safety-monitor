@@ -1,30 +1,57 @@
 import { useNavigate } from "react-router-dom";
 import type { Incident } from "../api/types";
-import { formatDateTime, formatDuration, humanize, humanizeItem, timeAgo } from "../lib/format";
+import { formatDateTime, formatDuration, timeAgo } from "../lib/format";
+import { bilingual, useText } from "../lib/i18n";
+import { eventTypeLabel, itemLabel, joinList, usePluginText } from "../lib/terms";
 import { SeverityBadge, StatusBadge } from "./ui";
 
-const DELIVERY_LABEL: Record<string, string> = {
-  sent: "Emailed",
-  retrying: "Email retrying",
-  failed: "Email failed",
-  not_configured: "Email off",
-  suppressed_duplicate: "Repeat",
-};
+const TEXT = bilingual(
+  {
+    head: { severity: "Severity", incident: "Incident", camera: "Camera", duration: "Duration", status: "Status", report: "Report", when: "When" },
+    delivery: {
+      sent: "Emailed",
+      retrying: "Email retrying",
+      failed: "Email failed",
+      not_configured: "Email off",
+      suppressed_duplicate: "Repeat",
+    } as Record<string, string>,
+    written: "Written",
+    pending: "Pending",
+    noZone: "No zone",
+    missing: (items: string) => ` · missing ${items.toLowerCase()}`,
+  },
+  {
+    head: { severity: "الخطورة", incident: "الحادثة", camera: "الكاميرا", duration: "المدة", status: "الحالة", report: "التقرير", when: "الوقت" },
+    delivery: {
+      sent: "أُرسل بالبريد",
+      retrying: "إعادة محاولة الإرسال",
+      failed: "فشل الإرسال",
+      not_configured: "البريد متوقف",
+      suppressed_duplicate: "تكرار",
+    },
+    written: "مكتوب",
+    pending: "قيد الكتابة",
+    noZone: "بلا منطقة",
+    missing: (items: string) => ` · ينقصه: ${items}`,
+  },
+);
 
 export function IncidentTable({ incidents, compact = false }: { incidents: Incident[]; compact?: boolean }) {
   const navigate = useNavigate();
+  const t = useText(TEXT);
+  const plugin = usePluginText();
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-sm">
         <thead>
-          <tr className="border-b border-slate-200 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
-            <th className="py-2 pr-4">Severity</th>
-            <th className="py-2 pr-4">Incident</th>
-            <th className="py-2 pr-4">Camera</th>
-            {!compact && <th className="py-2 pr-4">Duration</th>}
-            <th className="py-2 pr-4">Status</th>
-            {!compact && <th className="py-2 pr-4">Report</th>}
-            <th className="py-2 text-right">When</th>
+          <tr className="border-b border-slate-200 text-start text-xs font-medium uppercase tracking-wide text-slate-500">
+            <th className="py-2 pe-4">{t.head.severity}</th>
+            <th className="py-2 pe-4">{t.head.incident}</th>
+            <th className="py-2 pe-4">{t.head.camera}</th>
+            {!compact && <th className="py-2 pe-4">{t.head.duration}</th>}
+            <th className="py-2 pe-4">{t.head.status}</th>
+            {!compact && <th className="py-2 pe-4">{t.head.report}</th>}
+            <th className="py-2 text-end">{t.head.when}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -36,29 +63,27 @@ export function IncidentTable({ incidents, compact = false }: { incidents: Incid
               tabIndex={0}
               className="cursor-pointer hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
             >
-              <td className="py-3 pr-4">
+              <td className="py-3 pe-4">
                 <SeverityBadge severity={i.severity} />
               </td>
-              <td className="py-3 pr-4">
-                <p className="font-medium text-slate-900">{humanize(i.event_type)}</p>
+              <td className="py-3 pe-4">
+                <p className="font-medium text-slate-900">{eventTypeLabel(i.event_type)}</p>
                 <p className="text-xs text-slate-500">
-                  {i.location !== "NOT SPECIFIED" ? i.location : "No zone"}
-                  {i.metadata.missing_equipment?.length
-                    ? ` · missing ${i.metadata.missing_equipment.map(humanizeItem).join(", ").toLowerCase()}`
-                    : ""}
+                  {plugin.location(i.location, i.metadata.zone_id) ?? t.noZone}
+                  {i.metadata.missing_equipment?.length ? t.missing(joinList(i.metadata.missing_equipment.map(itemLabel))) : ""}
                 </p>
               </td>
-              <td className="py-3 pr-4 text-slate-600">{i.camera_id}</td>
-              {!compact && <td className="py-3 pr-4 tabular-nums text-slate-600">{formatDuration(i.duration_seconds)}</td>}
-              <td className="py-3 pr-4">
+              <td className="py-3 pe-4 text-slate-600">{i.camera_id}</td>
+              {!compact && <td className="py-3 pe-4 tabular-nums text-slate-600">{formatDuration(i.duration_seconds)}</td>}
+              <td className="py-3 pe-4">
                 <StatusBadge status={i.status} />
               </td>
               {!compact && (
-                <td className="py-3 pr-4 text-xs text-slate-500">
-                  {i.report ? DELIVERY_LABEL[i.report.delivery_status ?? ""] ?? "Written" : "Pending"}
+                <td className="py-3 pe-4 text-xs text-slate-500">
+                  {i.report ? (t.delivery[i.report.delivery_status ?? ""] ?? t.written) : t.pending}
                 </td>
               )}
-              <td className="py-3 text-right text-slate-500" title={formatDateTime(i.received_at)}>
+              <td className="py-3 text-end text-slate-500" title={formatDateTime(i.received_at)}>
                 {timeAgo(i.received_at)}
               </td>
             </tr>

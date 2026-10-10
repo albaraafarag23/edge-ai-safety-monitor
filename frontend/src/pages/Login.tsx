@@ -3,13 +3,69 @@ import { useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { LogoMark, PRODUCT_NAME } from "../components/Brand";
+import { splitInitial } from "../components/edition";
 import { useAuth } from "../lib/auth";
+import { bilingual, LanguageSwitch, useLang, useText } from "../lib/i18n";
 
-const POINTS = [
-  { icon: Camera, text: "Live view of every camera, with detections drawn in real time" },
-  { icon: BellRing, text: "Instant alerts for missing PPE, restricted zones and machinery" },
-  { icon: FileText, text: "An AI-written incident report with evidence for every alert" },
-];
+const TEXT = bilingual(
+  {
+    points: [
+      "Live view of every camera, with detections drawn in real time",
+      "Instant alerts for missing PPE, restricted zones and machinery",
+      "An AI-written incident report with evidence for every alert",
+    ],
+    panelTitle: "The safety console for your site.",
+    panelLead: "Sign in to watch your cameras live and respond to alerts as they happen.",
+    authorizedOnly: "For authorized site personnel only.",
+    back: "Back to site",
+    title: "Sign in",
+    lead: "Use the account your site administrator gave you.",
+    email: "Email",
+    password: "Password",
+    showPassword: "Show password",
+    hidePassword: "Hide password",
+    submit: "Sign in",
+    forgot: "Forgot your password? Ask your site administrator to reset it.",
+    wrong: "Incorrect email or password.",
+    tooMany: null as string | null, // the server's own message
+    unreachable: "Can't reach the server. Check that the backend is running.",
+  },
+  {
+    points: [
+      "بث مباشر من كل كاميرا، مع ما يُرصد مرسومًا لحظيًا",
+      "تنبيهات فورية لنقص معدات الوقاية والمناطق المحظورة والآليات",
+      "تقرير حادثة يكتبه الذكاء الاصطناعي مع الأدلة لكل تنبيه",
+    ],
+    panelTitle: "لوحة تحكم السلامة لموقعك.",
+    panelLead: "سجّل الدخول لمشاهدة كاميراتك مباشرةً والاستجابة للتنبيهات لحظة حدوثها.",
+    authorizedOnly: "للعاملين المصرح لهم في الموقع فقط.",
+    back: "العودة إلى الموقع",
+    title: "تسجيل الدخول",
+    lead: "استخدم الحساب الذي أعطاك إياه مسؤول الموقع.",
+    email: "البريد الإلكتروني",
+    password: "كلمة المرور",
+    showPassword: "إظهار كلمة المرور",
+    hidePassword: "إخفاء كلمة المرور",
+    submit: "دخول",
+    forgot: "نسيت كلمة المرور؟ اطلب من مسؤول الموقع إعادة تعيينها.",
+    wrong: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+    tooMany: "محاولات كثيرة لتسجيل الدخول. انتظر بضع دقائق ثم حاول مرة أخرى.",
+    unreachable: "تعذّر الوصول إلى الخادم. تأكد من أن الخادم يعمل.",
+  },
+);
+const POINT_ICONS = [Camera, BellRing, FileText];
+
+/** Serif heading with a large amber initial (a whole first word in Arabic, see splitInitial). */
+function InitialHeading({ text, color, className }: { text: string; color: string; className: string }) {
+  const { lang } = useLang();
+  const [initial, rest] = splitInitial(text, lang);
+  return (
+    <h1 className={className}>
+      <span className={`leading-none italic ${color} ${lang === "ar" ? "text-[1.1em]" : "text-[1.3em]"}`}>{initial}</span>
+      {rest}
+    </h1>
+  );
+}
 
 /** Only allow redirects within the console after sign-in (no open redirects). */
 function safeNext(next: string | null) {
@@ -26,6 +82,7 @@ export function Login() {
   const [show, setShow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const t = useText(TEXT);
 
   if (user) return <Navigate to={next} replace />;
 
@@ -39,10 +96,10 @@ export function Login() {
     } catch (err) {
       setError(
         err instanceof ApiError && err.status === 401
-          ? "Incorrect email or password."
+          ? t.wrong
           : err instanceof ApiError && err.status === 429
-            ? err.message
-            : "Can't reach the server. Check that the backend is running.",
+            ? (t.tooMany ?? err.message)
+            : t.unreachable,
       );
     } finally {
       setBusy(false);
@@ -67,12 +124,10 @@ export function Login() {
           <span className="text-[15px] font-semibold">{PRODUCT_NAME}</span>
         </Link>
         <div className="relative mt-auto max-w-md">
-          <h2 className="font-serif text-5xl leading-[1.05] tracking-tight">
-            <span className="text-[1.3em] leading-none text-amber-400 italic">T</span>he safety console for your site.
-          </h2>
-          <p className="mt-4 text-paper/70">Sign in to watch your cameras live and respond to alerts as they happen.</p>
+          <InitialHeading text={t.panelTitle} color="text-amber-400" className="font-serif text-5xl leading-[1.05] tracking-tight" />
+          <p className="mt-4 text-paper/70">{t.panelLead}</p>
           <ul className="mt-8 space-y-4">
-            {POINTS.map(({ icon: Icon, text }) => (
+            {t.points.map((text, i) => ({ text, Icon: POINT_ICONS[i] })).map(({ Icon, text }) => (
               <li key={text} className="flex items-start gap-3 text-sm text-paper/80">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/30 ring-1 ring-white/15 backdrop-blur">
                   <Icon className="h-4 w-4 text-amber-400" />
@@ -82,26 +137,27 @@ export function Login() {
             ))}
           </ul>
         </div>
-        <p className="relative mt-12 text-xs text-paper/50">For authorized site personnel only.</p>
+        <p className="relative mt-12 text-xs text-paper/50">{t.authorizedOnly}</p>
       </div>
 
       {/* form */}
       <div className="flex flex-1 flex-col px-6 py-8 sm:px-12">
-        <Link to="/" className="inline-flex items-center gap-1.5 self-start text-sm text-ink/55 hover:text-ink">
-          <ArrowLeft className="h-4 w-4" /> Back to site
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-ink/55 hover:text-ink">
+            <ArrowLeft className="flip-rtl h-4 w-4" /> {t.back}
+          </Link>
+          <LanguageSwitch className="text-ink/70 ring-1 ring-ink/15 hover:bg-ink/5" />
+        </div>
         <div className="m-auto w-full max-w-sm py-12">
           <div className="lg:hidden">
             <LogoMark className="h-10 w-10" />
           </div>
-          <h1 className="mt-6 font-serif text-5xl tracking-tight lg:mt-0">
-            <span className="text-[1.3em] leading-none text-amber-600 italic">S</span>ign in
-          </h1>
-          <p className="mt-2 text-sm text-ink/55">Use the account your site administrator gave you.</p>
+          <InitialHeading text={t.title} color="text-amber-600" className="mt-6 font-serif text-5xl tracking-tight lg:mt-0" />
+          <p className="mt-2 text-sm text-ink/55">{t.lead}</p>
 
           <form onSubmit={submit} className="mt-8 space-y-5" noValidate>
             <label className="block">
-              <span className="text-sm font-medium text-ink/75">Email</span>
+              <span className="text-sm font-medium text-ink/75">{t.email}</span>
               <input
                 type="email"
                 autoComplete="username"
@@ -111,10 +167,11 @@ export function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1.5 block w-full rounded-lg border border-ink/20 bg-white px-3 py-2.5 text-sm text-ink shadow-sm placeholder:text-ink/35 focus:border-ink focus:ring-1 focus:ring-ink focus:outline-none"
                 placeholder="you@company.com"
+                dir="ltr"
               />
             </label>
             <label className="block">
-              <span className="text-sm font-medium text-ink/75">Password</span>
+              <span className="text-sm font-medium text-ink/75">{t.password}</span>
               <span className="relative mt-1.5 block">
                 <input
                   type={show ? "text" : "password"}
@@ -122,13 +179,13 @@ export function Login() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full rounded-lg border border-ink/20 bg-white px-3 py-2.5 pr-10 text-sm text-ink shadow-sm focus:border-ink focus:ring-1 focus:ring-ink focus:outline-none"
+                  className="block w-full rounded-lg border border-ink/20 bg-white px-3 py-2.5 pe-10 text-sm text-ink shadow-sm focus:border-ink focus:ring-1 focus:ring-ink focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={() => setShow(!show)}
-                  className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-700"
-                  aria-label={show ? "Hide password" : "Show password"}
+                  className="absolute inset-y-0 end-0 flex items-center px-3 text-slate-400 hover:text-slate-700"
+                  aria-label={show ? t.hidePassword : t.showPassword}
                 >
                   {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -147,11 +204,11 @@ export function Login() {
               className="flex w-full items-center justify-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-semibold text-paper shadow-sm hover:bg-black disabled:opacity-50"
             >
               {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-              Sign in
+              {t.submit}
             </button>
           </form>
           <p className="mt-6 text-center text-xs text-slate-400">
-            Forgot your password? Ask your site administrator to reset it.
+            {t.forgot}
           </p>
         </div>
       </div>

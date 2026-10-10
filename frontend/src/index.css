@@ -2,12 +2,20 @@
 @import "@fontsource-variable/inter-tight";
 @import "@fontsource/instrument-serif/400.css";
 @import "@fontsource/instrument-serif/400-italic.css";
+/* Arabic: only the Arabic letters are downloaded, and only when a page shows them */
+@import "@fontsource/ibm-plex-sans-arabic/arabic-400.css";
+@import "@fontsource/ibm-plex-sans-arabic/arabic-500.css";
+@import "@fontsource/ibm-plex-sans-arabic/arabic-600.css";
+@import "@fontsource/ibm-plex-sans-arabic/arabic-700.css";
+@import "@fontsource/amiri/arabic-400.css";
+@import "@fontsource/amiri/arabic-700.css";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Latin faces first; Arabic letters fall through to IBM Plex Sans Arabic / Amiri */
+  --font-sans: "Inter", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   /* product page */
-  --font-display: "Inter Tight Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-display: "Inter Tight Variable", "Inter", "IBM Plex Sans Arabic", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Instrument Serif", "Amiri", ui-serif, Georgia, serif;
   --color-paper: #ece8df;
   --color-ink: #15130f;
 }
@@ -20,12 +28,37 @@ body {
 .report h1 { @apply mb-3 text-base font-semibold text-slate-900; }
 .report h2 { @apply mt-5 mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500; }
 .report p { @apply mb-2; }
-.report ul { @apply mb-2 list-disc space-y-1 pl-5; }
-.report ol { @apply mb-2 list-decimal space-y-1 pl-5; }
+.report ul { @apply mb-2 list-disc space-y-1 ps-5; }
+.report ol { @apply mb-2 list-decimal space-y-1 ps-5; }
 .report strong { @apply font-semibold text-slate-900; }
 
 html {
   scroll-behavior: smooth;
+}
+
+/* Arabic (dir="rtl"): letter-spacing breaks the joins between letters, and Arabic has no italic (a slanted
+   Arabic face looks broken), so both are switched off. Arabic also needs a little more line height. */
+[dir="rtl"] body,
+[dir="rtl"] body * {
+  letter-spacing: normal !important;
+}
+[dir="rtl"] .italic {
+  font-style: normal;
+}
+[dir="rtl"] body {
+  line-height: 1.6;
+}
+/* the big display headings are set very tight for Latin; Arabic dots and marks above and below the letters
+   need more room between lines */
+[dir="rtl"] :is(.leading-\[0\.86\], .leading-\[0\.88\], .leading-\[0\.9\], .leading-\[0\.95\]) {
+  line-height: 1.2;
+}
+[dir="rtl"] .leading-\[1\.05\] {
+  line-height: 1.4;
+}
+/* arrows that point "forward" */
+[dir="rtl"] .flip-rtl {
+  transform: scaleX(-1);
 }
 
 /* Landing page */

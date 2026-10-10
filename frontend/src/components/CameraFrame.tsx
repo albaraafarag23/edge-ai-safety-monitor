@@ -1,7 +1,35 @@
 import { Check, FileText, HardHat } from "lucide-react";
+import { bilingual, useText } from "../lib/i18n";
 
-/** A stylised camera frame: what the detector sees and flags. Pure SVG, no real footage. */
+const TEXT = bilingual(
+  {
+    camera: "North gate · cam_01",
+    live: "LIVE",
+    frameLabel: "Example camera frame with detections",
+    alertTitle: "PPE missing",
+    alertWhere: "North gate · just now",
+    high: "HIGH",
+    alertText: "Worker without a hard hat for 3.4 s. Supervisor emailed with snapshot and clip.",
+    report: "AI incident report",
+    ready: "Ready for review",
+  },
+  {
+    camera: "البوابة الشمالية · cam_01",
+    live: "مباشر",
+    frameLabel: "مثال لإطار كاميرا مع ما رُصد فيه",
+    alertTitle: "معدات وقاية ناقصة",
+    alertWhere: "البوابة الشمالية · الآن",
+    high: "مرتفع",
+    alertText: "عامل بلا خوذة لمدة 3.4 ثانية. أُرسل بريد إلى المشرف مع اللقطة والمقطع.",
+    report: "تقرير الحادثة بالذكاء الاصطناعي",
+    ready: "جاهز للمراجعة",
+  },
+);
+
+/** A stylised camera frame: what the detector sees and flags. Pure SVG, no real footage.
+ * The boxes keep the model's English class names, as the real detector draws them. */
 export function CameraFrame() {
+  const t = useText(TEXT);
   return (
     <div className="relative">
       <div className="absolute -inset-8 rounded-[2rem] bg-amber-400/10 blur-3xl" aria-hidden />
@@ -11,13 +39,13 @@ export function CameraFrame() {
           <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
           <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
           <span className="h-2.5 w-2.5 rounded-full bg-white/15" />
-          <span className="ml-3 text-xs text-slate-400">North gate · cam_01</span>
-          <span className="ml-auto inline-flex items-center gap-1.5 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" /> LIVE
+          <span className="ms-3 text-xs text-slate-400">{t.camera}</span>
+          <span className="ms-auto inline-flex items-center gap-1.5 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" /> {t.live}
           </span>
         </div>
 
-        <svg viewBox="0 0 640 380" className="block w-full" role="img" aria-label="Example camera frame with detections">
+        <svg viewBox="0 0 640 380" className="block w-full" style={{ direction: "ltr" }} role="img" aria-label={t.frameLabel}>
           <defs>
             <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0" stopColor="#1e293b" />
@@ -79,24 +107,24 @@ export function CameraFrame() {
       </div>
 
       {/* alert card */}
-      <div className="float-slow absolute -bottom-8 -left-4 w-64 rounded-xl bg-white p-4 shadow-2xl ring-1 ring-slate-900/5 sm:-left-10">
+      <div className="float-slow absolute -bottom-8 -start-4 w-64 rounded-xl bg-white p-4 shadow-2xl ring-1 ring-slate-900/5 sm:-start-10">
         <div className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100">
             <HardHat className="h-4 w-4 text-orange-600" />
           </span>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-slate-900">PPE missing</p>
-            <p className="text-xs text-slate-500">North gate · just now</p>
+            <p className="text-sm font-semibold text-slate-900">{t.alertTitle}</p>
+            <p className="text-xs text-slate-500">{t.alertWhere}</p>
           </div>
-          <span className="ml-auto rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-700">HIGH</span>
+          <span className="ms-auto rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-bold text-orange-700">{t.high}</span>
         </div>
-        <p className="mt-3 text-xs leading-5 text-slate-600">Worker without a hard hat for 3.4 s. Supervisor emailed with snapshot and clip.</p>
+        <p className="mt-3 text-xs leading-5 text-slate-600">{t.alertText}</p>
       </div>
 
       {/* report card */}
-      <div className="float-slower absolute -top-6 -right-3 hidden w-56 rounded-xl bg-white/95 p-3.5 shadow-2xl ring-1 ring-slate-900/5 backdrop-blur sm:block lg:-right-8">
+      <div className="float-slower absolute -top-6 -end-3 hidden w-56 rounded-xl bg-white/95 p-3.5 shadow-2xl ring-1 ring-slate-900/5 backdrop-blur sm:block lg:-end-8">
         <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-slate-500 uppercase">
-          <FileText className="h-3.5 w-3.5" /> AI incident report
+          <FileText className="h-3.5 w-3.5" /> {t.report}
         </p>
         <div className="mt-2 space-y-1.5">
           <div className="h-1.5 w-full rounded bg-slate-200" />
@@ -104,7 +132,7 @@ export function CameraFrame() {
           <div className="h-1.5 w-4/6 rounded bg-slate-200" />
         </div>
         <p className="mt-2.5 flex items-center gap-1 text-[11px] font-medium text-emerald-700">
-          <Check className="h-3.5 w-3.5" /> Ready for review
+          <Check className="h-3.5 w-3.5" /> {t.ready}
         </p>
       </div>
     </div>

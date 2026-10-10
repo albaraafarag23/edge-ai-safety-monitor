@@ -67,6 +67,7 @@ class Report(Base):
 
     event_id: Mapped[str] = mapped_column(String, primary_key=True)
     markdown: Mapped[str] = mapped_column(Text)
+    markdown_ar: Mapped[str | None] = mapped_column(Text, nullable=True)  # Arabic version (contracts v2.4)
     generated_by: Mapped[str] = mapped_column(String)   # model id, "template", or "duplicate"
     delivery: Mapped[dict] = mapped_column(JSONB)       # {"status", "recipients", "attachments", "error"}
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
@@ -75,7 +76,8 @@ class Report(Base):
         return {"generated_by": self.generated_by, "delivery_status": (self.delivery or {}).get("status")}
 
     def to_dict(self) -> dict:
-        return {"event_id": self.event_id, "markdown": self.markdown, "generated_by": self.generated_by,
+        return {"event_id": self.event_id, "markdown": self.markdown, "markdown_ar": self.markdown_ar,
+                "generated_by": self.generated_by,
                 "delivery": self.delivery, "created_at": iso(self.created_at)}
 
 

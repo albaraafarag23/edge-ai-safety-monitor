@@ -4,6 +4,7 @@
  * and editorial type (a grotesk display face with a serif italic initial).
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useLang } from "../lib/i18n";
 
 export const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
@@ -32,12 +33,30 @@ export function Photo({ name, className = "", alt = "", eager = false }: {
   );
 }
 
+/**
+ * Splits a heading into its large initial and the rest. Arabic letters join their neighbours, and a letter
+ * cut off into its own span would lose its joined shape, so in Arabic the whole first word is the initial.
+ */
+export function splitInitial(text: string, lang: string): [string, string] {
+  if (lang !== "ar") return [text[0], text.slice(1)];
+  const space = text.indexOf(" ");
+  return space === -1 ? [text, ""] : [text.slice(0, space), text.slice(space)];
+}
+
 /** A heading whose first letter is a large serif italic initial, the way magazines open a story. */
 export function Flourish({ text, className = "" }: { text: string; className?: string }) {
+  const { lang } = useLang();
+  const [initial, rest] = splitInitial(text, lang);
   return (
     <h3 className={`font-serif text-[2.6rem] leading-[1.05] tracking-tight text-balance sm:text-6xl ${className}`}>
-      <span className="mr-[0.02em] inline-block align-[-0.08em] text-[1.45em] leading-none text-amber-600 italic">{text[0]}</span>
-      {text.slice(1)}
+      <span
+        className={`me-[0.02em] inline-block align-[-0.08em] leading-none text-amber-600 italic ${
+          lang === "ar" ? "text-[1.15em]" : "text-[1.45em]"
+        }`}
+      >
+        {initial}
+      </span>
+      {rest}
     </h3>
   );
 }
@@ -49,14 +68,19 @@ export function PillLink({ href, children }: { href: string; children: ReactNode
       href={href}
       className="mt-3 inline-flex items-center gap-1 rounded-sm bg-white/80 px-1.5 py-0.5 text-xs font-semibold text-ink ring-1 ring-ink/10 transition hover:bg-white"
     >
-      {children} <span aria-hidden>↗</span>
+      {children} <span aria-hidden className="flip-rtl inline-block">↗</span>
     </a>
   );
 }
 
-/** Muted looping screen recording. Plays only while on screen, and not at all with reduced motion. */
+/**
+ * Muted looping screen recording. Plays only while on screen, and not at all with reduced motion.
+ * In Arabic it plays the Arabic recording of the console (clip-<name>-ar.mp4).
+ */
 export function AutoVideo({ name, label, className = "" }: { name: string; label: string; className?: string }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const { lang } = useLang();
+  const file = lang === "ar" ? `${name}-ar` : name;
   const [reduced] = useState(() => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
   useEffect(() => {
     const video = ref.current;
@@ -71,8 +95,8 @@ export function AutoVideo({ name, label, className = "" }: { name: string; label
   return (
     <video
       ref={ref}
-      src={`/edition/clip-${name}.mp4`}
-      poster={`/edition/clip-${name}.webp`}
+      src={`/edition/clip-${file}.mp4`}
+      poster={`/edition/clip-${file}.webp`}
       muted
       loop
       playsInline
@@ -101,7 +125,7 @@ export function Chapter({ id, n, title, kicker, photo, children }: {
       <div className="sticky top-0 -mb-[100svh] h-[100svh] overflow-hidden bg-ink" data-surface="dark">
         <Photo name={photo} className="opener-photo absolute inset-0 h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 to-black/70" aria-hidden />
-        <div className="opener-title relative flex h-full flex-col justify-between px-5 pt-24 pb-14 sm:px-8 lg:pl-[17rem]">
+        <div className="opener-title relative flex h-full flex-col justify-between px-5 pt-24 pb-14 sm:px-8 lg:ps-[17rem]">
           <h2
             id={`${id}-title`}
             className="font-display text-[clamp(3.5rem,13vw,13rem)] leading-[0.86] font-semibold tracking-[-0.045em] text-balance text-paper"
@@ -117,7 +141,7 @@ export function Chapter({ id, n, title, kicker, photo, children }: {
       {/* empty space so the opener can be seen whole before the content covers it */}
       <div className="chapter-spacer h-[100svh]" aria-hidden />
       <div className="paper-grain relative z-10 rounded-t-[2rem] bg-paper text-ink shadow-[0_-30px_60px_-20px_rgb(0_0_0/0.45)]" data-surface="light">
-        <div className="px-5 py-20 sm:px-8 sm:py-28 lg:pr-12 lg:pl-[17rem]">{children}</div>
+        <div className="px-5 py-20 sm:px-8 sm:py-28 lg:pe-12 lg:ps-[17rem]">{children}</div>
       </div>
     </section>
   );
@@ -175,16 +199,20 @@ export function useScrollState(chapters: ChapterInfo[], probe: () => { x: number
 }
 
 /**
- * Fixed chapter list at the bottom left (wide screens): the current chapter is bold with a dotted leader.
+ * Fixed chapter list at the bottom left, bottom right in Arabic (wide screens): the current chapter is bold with a dotted leader.
  * It inverts against whatever is behind it (mix-blend-difference), so it stays readable while a chapter's
  * paper slides over a dark photo.
  */
-export function ChapterIndex({ chapters, active }: { chapters: ChapterInfo[]; active: string | null }) {
+export function ChapterIndex({ chapters, active, label = "Chapters" }: {
+  chapters: ChapterInfo[];
+  active: string | null;
+  label?: string;
+}) {
   return (
     <nav
       data-overlay
-      aria-label="Chapters"
-      className={`fixed bottom-8 left-6 z-30 hidden w-52 text-paper mix-blend-difference transition-opacity duration-300 lg:block ${
+      aria-label={label}
+      className={`fixed bottom-8 start-6 z-30 hidden w-52 text-paper mix-blend-difference transition-opacity duration-300 lg:block ${
         active ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
     >

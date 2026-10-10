@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request, 
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 
 import analytics
 import auth
@@ -32,6 +32,7 @@ MEDIA_DIR = os.getenv("MEDIA_DIR", "/media")
 class ReportIn(BaseModel):
     event_id: str
     markdown: str
+    markdown_ar: str | None = None
     generated_by: str
     delivery: dict = {}
 
@@ -103,6 +104,9 @@ async def consume_incidents(r: aioredis.Redis):
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # create_all never alters an existing table; until there are migrations (Alembic), columns added
+        # later are added here. IF NOT EXISTS makes it safe on every start.
+        await conn.execute(text("ALTER TABLE reports ADD COLUMN IF NOT EXISTS markdown_ar TEXT"))
     await auth.ensure_admin()
 
     r = aioredis.from_url(REDIS_URL, decode_responses=True)

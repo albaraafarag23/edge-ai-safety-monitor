@@ -7,21 +7,73 @@ import { CameraFeed } from "../components/CameraFeed";
 import { PageHeader } from "../components/Layout";
 import { Card, EmptyState, ErrorState, SeverityBadge, Spinner } from "../components/ui";
 import { humanize, timeAgo } from "../lib/format";
+import { bilingual, useText } from "../lib/i18n";
+import { eventTypeLabel, usePluginText } from "../lib/terms";
+
+const TEXT = bilingual(
+  {
+    noIncidents: "No incidents on this camera yet",
+    noLocation: "No location set",
+    online: "Online",
+    offline: "Offline",
+    title: "Live cameras",
+    countOnline: (online: number, total: number) => `${online} of ${total} camera${total === 1 ? "" : "s"} online`,
+    noneYet: "No cameras have connected yet",
+    noneHintBefore: "Start the detector (",
+    noneHintAfter: "). Its camera appears here within a few seconds.",
+    boxesBefore: "Boxes are drawn by the detector: ",
+    green: "green",
+    worn: " PPE worn, ",
+    red: "red",
+    missing: " PPE missing.",
+    saveFrame: "Save frame",
+    camera: "Camera",
+    rows: { status: "Status", location: "Location", speed: "Detector speed", resolution: "Stream resolution", model: "Model", plugin: "Plugin", mode: "Mode" },
+    modeTest: "Test (synthetic frames)",
+    modeLive: "Live camera",
+    recent: "Recent incidents",
+    viewAll: "View all",
+  },
+  {
+    noIncidents: "لا توجد حوادث على هذه الكاميرا بعد",
+    noLocation: "لم يُحدد الموقع",
+    online: "متصلة",
+    offline: "غير متصلة",
+    title: "الكاميرات المباشرة",
+    countOnline: (online: number, total: number) => `الكاميرات المتصلة: ${online} من ${total}`,
+    noneYet: "لم تتصل أي كاميرا بعد",
+    noneHintBefore: "شغّل النظام (",
+    noneHintAfter: "). تظهر الكاميرا هنا خلال ثوانٍ.",
+    boxesBefore: "يرسم النظام المربعات: ",
+    green: "الأخضر",
+    worn: " معدات الوقاية موجودة، و",
+    red: "الأحمر",
+    missing: " معدات الوقاية ناقصة.",
+    saveFrame: "حفظ الإطار",
+    camera: "الكاميرا",
+    rows: { status: "الحالة", location: "الموقع", speed: "سرعة الرصد", resolution: "دقة البث", model: "النموذج", plugin: "الإضافة", mode: "الوضع" },
+    modeTest: "اختبار (إطارات اصطناعية)",
+    modeLive: "كاميرا مباشرة",
+    recent: "أحدث الحوادث",
+    viewAll: "عرض الكل",
+  },
+);
 
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4 py-2 text-sm">
       <dt className="text-slate-500">{label}</dt>
-      <dd className="text-right font-medium text-slate-900">{children ?? "—"}</dd>
+      <dd className="text-end font-medium text-slate-900">{children ?? "—"}</dd>
     </div>
   );
 }
 
 function CameraIncidents({ cameraId }: { cameraId: string }) {
   const incidents = useIncidents({ camera_id: cameraId, limit: 6 });
+  const t = useText(TEXT);
   if (incidents.isPending) return <Spinner />;
   if (incidents.isError) return <ErrorState error={incidents.error} />;
-  if (!incidents.data.items.length) return <EmptyState title="No incidents on this camera yet" />;
+  if (!incidents.data.items.length) return <EmptyState title={t.noIncidents} />;
   return (
     <ul className="-my-2 divide-y divide-slate-100">
       {incidents.data.items.map((i) => {
@@ -33,7 +85,7 @@ function CameraIncidents({ cameraId }: { cameraId: string }) {
                 {thumb && <img src={thumb} alt="" loading="lazy" className="h-full w-full object-cover" />}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-slate-900">{humanize(i.event_type)}</span>
+                <span className="block truncate text-sm font-medium text-slate-900">{eventTypeLabel(i.event_type)}</span>
                 <span className="block text-xs text-slate-500">{timeAgo(i.received_at)}</span>
               </span>
               <SeverityBadge severity={i.severity} />
@@ -46,10 +98,11 @@ function CameraIncidents({ cameraId }: { cameraId: string }) {
 }
 
 function CameraTile({ camera, selected, onSelect }: { camera: Camera; selected: boolean; onSelect: () => void }) {
+  const t = useText(TEXT);
   return (
     <button
       onClick={onSelect}
-      className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition ${
+      className={`flex w-full items-center gap-3 rounded-xl border p-3 text-start transition ${
         selected ? "border-slate-900 bg-white shadow-sm ring-1 ring-slate-900" : "border-slate-200 bg-white hover:border-slate-300"
       }`}
     >
@@ -58,9 +111,9 @@ function CameraTile({ camera, selected, onSelect }: { camera: Camera; selected: 
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium text-slate-900">{camera.camera_id}</span>
-        <span className="block truncate text-xs text-slate-500">{camera.location ?? "No location set"}</span>
+        <span className="block truncate text-xs text-slate-500">{camera.location ?? t.noLocation}</span>
       </span>
-      <span className={`h-2.5 w-2.5 rounded-full ${camera.online ? "bg-emerald-500" : "bg-slate-300"}`} title={camera.online ? "Online" : "Offline"} />
+      <span className={`h-2.5 w-2.5 rounded-full ${camera.online ? "bg-emerald-500" : "bg-slate-300"}`} title={camera.online ? t.online : t.offline} />
     </button>
   );
 }
@@ -68,6 +121,8 @@ function CameraTile({ camera, selected, onSelect }: { camera: Camera; selected: 
 export function Cameras() {
   const cameras = useCameras();
   const [params, setParams] = useSearchParams();
+  const t = useText(TEXT);
+  const plugin = usePluginText();
 
   if (cameras.isPending) return <Spinner />;
   if (cameras.isError) return <ErrorState error={cameras.error} onRetry={() => cameras.refetch()} />;
@@ -79,13 +134,15 @@ export function Cameras() {
   return (
     <>
       <PageHeader
-        title="Live cameras"
-        subtitle={list.length ? `${online} of ${list.length} camera${list.length === 1 ? "" : "s"} online` : undefined}
+        title={t.title}
+        subtitle={list.length ? t.countOnline(online, list.length) : undefined}
       />
       {!selected ? (
         <Card>
-          <EmptyState title="No cameras have connected yet">
-            Start the detector (<code className="text-xs">cv_pipeline</code>). Its camera appears here within a few seconds.
+          <EmptyState title={t.noneYet}>
+            {t.noneHintBefore}
+            <code className="text-xs">cv_pipeline</code>
+            {t.noneHintAfter}
           </EmptyState>
         </Card>
       ) : (
@@ -94,8 +151,11 @@ export function Cameras() {
             <CameraFeed camera={selected} className="w-full shadow-lg shadow-slate-900/10" />
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
               <p>
-                Boxes are drawn by the detector: <span className="font-medium text-emerald-700">green</span> PPE worn,{" "}
-                <span className="font-medium text-red-700">red</span> PPE missing.
+                {t.boxesBefore}
+                <span className="font-medium text-emerald-700">{t.green}</span>
+                {t.worn}
+                <span className="font-medium text-red-700">{t.red}</span>
+                {t.missing}
               </p>
               {selected.online && (
                 <a
@@ -103,7 +163,7 @@ export function Cameras() {
                   download={`${selected.camera_id}-${new Date().toISOString().slice(0, 19)}.jpg`}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50"
                 >
-                  <Download className="h-4 w-4" /> Save frame
+                  <Download className="h-4 w-4" /> {t.saveFrame}
                 </a>
               )}
             </div>
@@ -118,26 +178,26 @@ export function Cameras() {
                 ))}
               </div>
             )}
-            <Card title="Camera">
+            <Card title={t.camera}>
               <dl className="-my-2 divide-y divide-slate-100">
-                <Detail label="Status">
+                <Detail label={t.rows.status}>
                   <span className={selected.online ? "text-emerald-700" : "text-slate-500"}>
-                    {selected.online ? "Online" : "Offline"}
+                    {selected.online ? t.online : t.offline}
                   </span>
                 </Detail>
-                <Detail label="Location">{selected.location}</Detail>
-                <Detail label="Detector speed">{selected.fps !== null ? `${selected.fps.toFixed(1)} fps` : null}</Detail>
-                <Detail label="Stream resolution">{selected.width ? `${selected.width} × ${selected.height}` : null}</Detail>
-                <Detail label="Model">{selected.model}</Detail>
-                <Detail label="Plugin">{selected.plugin_id ? humanize(selected.plugin_id.toUpperCase()) : null}</Detail>
-                <Detail label="Mode">{selected.mode === "test" ? "Test (synthetic frames)" : selected.mode === "live" ? "Live camera" : null}</Detail>
+                <Detail label={t.rows.location}>{selected.location}</Detail>
+                <Detail label={t.rows.speed}>{selected.fps !== null ? `${selected.fps.toFixed(1)} fps` : null}</Detail>
+                <Detail label={t.rows.resolution}>{selected.width ? `${selected.width} × ${selected.height}` : null}</Detail>
+                <Detail label={t.rows.model}>{selected.model}</Detail>
+                <Detail label={t.rows.plugin}>{selected.plugin_id ? plugin.pluginName(humanize(selected.plugin_id.toUpperCase())) : null}</Detail>
+                <Detail label={t.rows.mode}>{selected.mode === "test" ? t.modeTest : selected.mode === "live" ? t.modeLive : null}</Detail>
               </dl>
             </Card>
             <Card
-              title="Recent incidents"
+              title={t.recent}
               action={
                 <Link to={`/app/incidents?camera_id=${encodeURIComponent(selected.camera_id)}`} className="text-sm font-medium text-sky-700 hover:underline">
-                  View all
+                  {t.viewAll}
                 </Link>
               }
             >

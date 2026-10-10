@@ -2,6 +2,26 @@ import { CameraOff, Maximize2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { cameraStreamUrl } from "../api/client";
 import type { Camera } from "../api/types";
+import { bilingual, useText } from "../lib/i18n";
+
+const TEXT = bilingual(
+  {
+    live: "LIVE",
+    offline: "OFFLINE",
+    testMode: "TEST MODE",
+    fullScreen: "Full screen",
+    cameraOffline: "Camera offline",
+    waiting: "Waiting for the detector to send frames…",
+  },
+  {
+    live: "مباشر",
+    offline: "غير متصل",
+    testMode: "وضع الاختبار",
+    fullScreen: "ملء الشاشة",
+    cameraOffline: "الكاميرا غير متصلة",
+    waiting: "في انتظار أن يرسل النظام الصور…",
+  },
+);
 
 /**
  * Live view of one camera: a Motion-JPEG stream in a plain <img>, with a status overlay.
@@ -13,6 +33,7 @@ export function CameraFeed({ camera, className = "", showFullscreen = true }: {
   className?: string;
   showFullscreen?: boolean;
 }) {
+  const t = useText(TEXT);
   const box = useRef<HTMLDivElement>(null);
   const img = useRef<HTMLImageElement>(null);
   const [failed, setFailed] = useState(false);
@@ -55,8 +76,8 @@ export function CameraFeed({ camera, className = "", showFullscreen = true }: {
       ) : (
         <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-slate-500">
           <CameraOff className="h-8 w-8" aria-hidden />
-          <p className="text-sm font-medium text-slate-400">Camera offline</p>
-          <p className="text-xs">Waiting for the detector to send frames…</p>
+          <p className="text-sm font-medium text-slate-400">{t.cameraOffline}</p>
+          <p className="text-xs">{t.waiting}</p>
         </div>
       )}
 
@@ -68,13 +89,13 @@ export function CameraFeed({ camera, className = "", showFullscreen = true }: {
             }`}
           >
             {live && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />}
-            {live ? "LIVE" : "OFFLINE"}
+            {live ? t.live : t.offline}
           </span>
           <span className="text-xs font-medium drop-shadow">{camera.camera_id}</span>
           {camera.location && <span className="hidden text-xs text-white/70 sm:inline">· {camera.location}</span>}
         </div>
         <div className="flex items-center gap-2 text-[11px] text-white/80">
-          {camera.mode === "test" && <span className="rounded bg-amber-400/90 px-1.5 py-0.5 font-semibold text-slate-950">TEST MODE</span>}
+          {camera.mode === "test" && <span className="rounded bg-amber-400/90 px-1.5 py-0.5 font-semibold text-slate-950">{t.testMode}</span>}
           {live && camera.fps !== null && <span className="tabular-nums">{camera.fps.toFixed(1)} fps</span>}
         </div>
       </div>
@@ -82,9 +103,9 @@ export function CameraFeed({ camera, className = "", showFullscreen = true }: {
       {showFullscreen && live && (
         <button
           onClick={() => box.current?.requestFullscreen?.()}
-          className="absolute right-3 bottom-3 rounded-md bg-black/50 p-1.5 text-white opacity-0 transition group-hover:opacity-100 focus:opacity-100"
-          aria-label="Full screen"
-          title="Full screen"
+          className="absolute end-3 bottom-3 rounded-md bg-black/50 p-1.5 text-white opacity-0 transition group-hover:opacity-100 focus:opacity-100"
+          aria-label={t.fullScreen}
+          title={t.fullScreen}
         >
           <Maximize2 className="h-4 w-4" />
         </button>

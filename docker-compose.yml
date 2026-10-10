@@ -130,6 +130,9 @@ services:
       # alert emails: times in site time, and an "Open this incident" button to the public console
       SITE_TIMEZONE: ${SITE_TIMEZONE:-Africa/Cairo}
       CONSOLE_URL: ${CONSOLE_URL:-}
+      # reports are written in English and Arabic ("en" = English only); emails go out in EMAIL_LANGUAGE
+      REPORT_LANGUAGES: ${REPORT_LANGUAGES:-en,ar}
+      EMAIL_LANGUAGE: ${EMAIL_LANGUAGE:-en}
     volumes:
       - ./plugins:/app/plugins:ro
       - ./media:/media:ro

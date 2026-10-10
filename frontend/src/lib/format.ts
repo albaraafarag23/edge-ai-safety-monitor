@@ -1,4 +1,8 @@
 import type { IncidentStatus, Severity } from "../api/types";
+import { currentLang, LOCALES } from "./i18n";
+
+const locale = () => LOCALES[currentLang()];
+const isAr = () => currentLang() === "ar";
 
 /** PPE_MISSING -> "PPE missing", PERSON_NEAR_MACHINERY -> "Person near machinery". */
 export function humanize(code: string | null | undefined): string {
@@ -18,11 +22,14 @@ export function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "medium" });
+  // Arabic: month by name ("10 أكتوبر 2026"); numeric dates with slashes get reordered inside right-to-left text
+  return isAr()
+    ? d.toLocaleString(locale(), { day: "numeric", month: "long", year: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" })
+    : d.toLocaleString(locale(), { dateStyle: "medium", timeStyle: "medium" });
 }
 
 export function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return new Date(iso).toLocaleTimeString(locale(), { hour: "2-digit", minute: "2-digit" });
 }
 
 const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
@@ -35,20 +42,22 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
 export function timeAgo(iso: string | null | undefined, now: number = Date.now()): string {
   if (!iso) return "—";
   const seconds = Math.round((new Date(iso).getTime() - now) / 1000);
-  if (Math.abs(seconds) < 10) return "just now";
-  const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  const justNow = isAr() ? "الآن" : "just now";
+  if (Math.abs(seconds) < 10) return justNow;
+  const rtf = new Intl.RelativeTimeFormat(locale(), { numeric: "auto" });
   for (const [unit, size] of UNITS) {
     if (Math.abs(seconds) >= size) return rtf.format(Math.round(seconds / size), unit);
   }
-  return "just now";
+  return justNow;
 }
 
 export function formatDuration(seconds: number | null | undefined): string {
   if (seconds === null || seconds === undefined) return "—";
-  if (seconds < 60) return `${seconds.toFixed(seconds < 10 ? 1 : 0)} s`;
+  const [sec, min] = isAr() ? ["ث", "د"] : ["s", "min"];
+  if (seconds < 60) return `${seconds.toFixed(seconds < 10 ? 1 : 0)} ${sec}`;
   const m = Math.floor(seconds / 60);
   const s = Math.round(seconds % 60);
-  return s ? `${m} min ${s} s` : `${m} min`;
+  return s ? `${m} ${min} ${s} ${sec}` : `${m} ${min}`;
 }
 
 export const SEVERITY_ORDER: Severity[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];

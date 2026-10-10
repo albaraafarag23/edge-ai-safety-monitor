@@ -6,7 +6,84 @@ import { PageHeader } from "../components/Layout";
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, Card, ErrorState, INPUT, Modal, SeverityBadge, Spinner } from "../components/ui";
 import { useAuth } from "../lib/auth";
 import { SEVERITY_ORDER, formatDuration, timeAgo } from "../lib/format";
-import { DAY_NAMES, describeHours, settingsChange } from "../lib/rules";
+import { bilingual, plural, useText } from "../lib/i18n";
+import { dayNames, describeHours, settingsChange } from "../lib/rules";
+import { severityLabel, usePluginText } from "../lib/terms";
+
+const TEXT = bilingual(
+  {
+    changed: "changed",
+    settingsTitle: (name: string) => `${name} settings`,
+    alertAfter: "Alert after (s)",
+    alertAfterHint: "How long it must last",
+    repeatAfter: "Repeat after (s)",
+    repeatAfterHint: "While it continues",
+    severity: "Severity",
+    maxPeople: "Maximum people allowed",
+    workingHours: "Working hours",
+    always: "Always",
+    onlyDuring: "Only during",
+    from: "From",
+    until: "Until",
+    to: "to",
+    siteTime: (tz: string) => `Site time (${tz}). If the end is earlier than the start, the hours run overnight.`,
+    pickDay: "Pick at least one day.",
+    defaults: "Plugin defaults",
+    cancel: "Cancel",
+    save: "Save",
+    alertsAfter: (d: string) => `alerts after ${d}`,
+    alertsAtOnce: "alerts at once",
+    moreThan: (n: number) => `more than ${n} people`,
+    changedBy: (who: string, when: string) => `changed by ${who} ${when}`,
+    settings: "Settings",
+    onOff: (name: string, on: boolean) => `${name}: ${on ? "on" : "off"}`,
+    comingSoon: "Coming soon",
+    notAvailableYet: "Not available yet",
+    needs: (what: string) => `Needs: ${what}`,
+    notAvailable: (name: string) => `${name}: not available`,
+    title: "Safety rules",
+    subtitleEdit: "Choose which rules raise incidents and alerts, and when. A rule that's off is ignored until you switch it back on.",
+    subtitleView: "Which rules raise incidents and alerts. Only admins and supervisors can change them.",
+    off: (n: number): string => `${n === 1 ? "1 rule is" : `${n} rules are`} switched off. These violations are not detected or reported.`,
+  },
+  {
+    changed: "معدّل",
+    settingsTitle: (name: string) => `إعدادات ${name}`,
+    alertAfter: "التنبيه بعد (ث)",
+    alertAfterHint: "المدة التي يجب أن تستمرها المخالفة",
+    repeatAfter: "التكرار بعد (ث)",
+    repeatAfterHint: "ما دامت المخالفة مستمرة",
+    severity: "الخطورة",
+    maxPeople: "أقصى عدد مسموح من الأشخاص",
+    workingHours: "ساعات العمل",
+    always: "دائمًا",
+    onlyDuring: "فقط خلال",
+    from: "من",
+    until: "حتى",
+    to: "إلى",
+    siteTime: (tz: string) => `بتوقيت الموقع (${tz}). إذا كانت النهاية قبل البداية، تمتد الساعات خلال الليل.`,
+    pickDay: "اختر يومًا واحدًا على الأقل.",
+    defaults: "القيم الافتراضية للإضافة",
+    cancel: "إلغاء",
+    save: "حفظ",
+    alertsAfter: (d: string) => `تنبيه بعد ${d}`,
+    alertsAtOnce: "تنبيه فوري",
+    moreThan: (n: number) => `أكثر من ${n} ${plural("ar", n, { one: "شخص", two: "شخص", few: "أشخاص", other: "شخصًا" })}`,
+    changedBy: (who: string, when: string) => `غيّرها ${who} ${when}`,
+    settings: "الإعدادات",
+    onOff: (name: string, on: boolean) => `${name}: ${on ? "تعمل" : "متوقفة"}`,
+    comingSoon: "قريبًا",
+    notAvailableYet: "غير متاحة بعد",
+    needs: (what: string) => `تحتاج إلى: ${what}`,
+    notAvailable: (name: string) => `${name}: غير متاحة`,
+    title: "قواعد السلامة",
+    subtitleEdit: "اختر القواعد التي تُنشئ حوادث وتنبيهات، ومتى. القاعدة المتوقفة تُتجاهل حتى تعيد تشغيلها.",
+    subtitleView: "القواعد التي تُنشئ حوادث وتنبيهات. يمكن للمسؤولين والمشرفين فقط تغييرها.",
+    off: (n: number) =>
+      `${plural("ar", n, { one: "قاعدة واحدة متوقفة", two: "قاعدتان متوقفتان", few: `${n} قواعد متوقفة`, other: `${n} قاعدة متوقفة` })}. ` +
+      "لا تُرصد هذه المخالفات ولا يُبلَّغ عنها.",
+  },
+);
 
 // Sunday–Thursday: the usual site week in Egypt
 const WORK_WEEK: ActiveHours = { start: "07:00", end: "17:00", days: [0, 1, 2, 3, 6] };
@@ -30,7 +107,7 @@ function Toggle({ checked, disabled, label, onChange }: {
       }`}
     >
       <span
-        className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${checked ? "translate-x-[22px]" : "translate-x-0.5"}`}
+        className={`inline-block h-5 w-5 rounded-full bg-white shadow transition ${checked ? "translate-x-[22px] rtl:-translate-x-[22px]" : "translate-x-0.5 rtl:-translate-x-0.5"}`}
         aria-hidden
       />
     </button>
@@ -38,11 +115,12 @@ function Toggle({ checked, disabled, label, onChange }: {
 }
 
 function Field({ label, hint, changed, children }: { label: string; hint?: string; changed?: boolean; children: ReactNode }) {
+  const t = useText(TEXT);
   return (
     <label className="block text-sm font-medium text-slate-700">
       <span className="flex items-center gap-2">
         {label}
-        {changed && <span className="rounded bg-sky-50 px-1.5 text-[11px] font-medium text-sky-700">changed</span>}
+        {changed && <span className="rounded bg-sky-50 px-1.5 text-[11px] font-medium text-sky-700">{t.changed}</span>}
       </span>
       {children}
       {hint && <span className="mt-1 block text-xs font-normal text-slate-500">{hint}</span>}
@@ -64,6 +142,8 @@ function SettingsDialog({ rule, timezone, onClose }: { rule: SafetyRule; timezon
   const hours = form.active_hours;
   const setHours = (c: Partial<ActiveHours>) => hours && set({ active_hours: { ...hours, ...c } });
   const isDefault = (key: keyof RuleSettings) => JSON.stringify(form[key]) === JSON.stringify(rule.defaults[key]);
+  const t = useText(TEXT);
+  const plugin = usePluginText();
 
   const submit = (e: FormEvent) => {
     e.preventDefault();
@@ -73,10 +153,10 @@ function SettingsDialog({ rule, timezone, onClose }: { rule: SafetyRule; timezon
   };
 
   return (
-    <Modal title={`${rule.name} settings`} onClose={onClose}>
+    <Modal title={t.settingsTitle(plugin.ruleName(rule.rule_id, rule.name))} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <Field label="Alert after (s)" hint="How long it must last" changed={!isDefault("min_duration_s")}>
+          <Field label={t.alertAfter} hint={t.alertAfterHint} changed={!isDefault("min_duration_s")}>
             <input
               type="number"
               min={0}
@@ -88,7 +168,7 @@ function SettingsDialog({ rule, timezone, onClose }: { rule: SafetyRule; timezon
               className={INPUT}
             />
           </Field>
-          <Field label="Repeat after (s)" hint="While it continues" changed={!isDefault("cooldown_s")}>
+          <Field label={t.repeatAfter} hint={t.repeatAfterHint} changed={!isDefault("cooldown_s")}>
             <input
               type="number"
               min={0}
@@ -101,17 +181,17 @@ function SettingsDialog({ rule, timezone, onClose }: { rule: SafetyRule; timezon
             />
           </Field>
         </div>
-        <Field label="Severity" changed={!isDefault("severity")}>
+        <Field label={t.severity} changed={!isDefault("severity")}>
           <select value={form.severity} onChange={(e) => set({ severity: e.target.value as Severity })} className={INPUT}>
             {SEVERITY_ORDER.map((s) => (
               <option key={s} value={s}>
-                {s.charAt(0) + s.slice(1).toLowerCase()}
+                {severityLabel(s)}
               </option>
             ))}
           </select>
         </Field>
         {rule.defaults.max_count !== null && (
-          <Field label="Maximum people allowed" hint={rule.zone_name ?? undefined} changed={!isDefault("max_count")}>
+          <Field label={t.maxPeople} hint={plugin.zoneName(rule.zone_id, rule.zone_name) ?? undefined} changed={!isDefault("max_count")}>
             <input
               type="number"
               min={0}
@@ -125,15 +205,15 @@ function SettingsDialog({ rule, timezone, onClose }: { rule: SafetyRule; timezon
         )}
         <fieldset>
           <legend className="flex items-center gap-2 text-sm font-medium text-slate-700">
-            Working hours
-            {!isDefault("active_hours") && <span className="rounded bg-sky-50 px-1.5 text-[11px] font-medium text-sky-700">changed</span>}
+            {t.workingHours}
+            {!isDefault("active_hours") && <span className="rounded bg-sky-50 px-1.5 text-[11px] font-medium text-sky-700">{t.changed}</span>}
           </legend>
           <div className="mt-1.5 flex gap-4 text-sm text-slate-700">
             <label className="flex items-center gap-2">
-              <input type="radio" checked={!hours} onChange={() => set({ active_hours: null })} /> Always
+              <input type="radio" checked={!hours} onChange={() => set({ active_hours: null })} /> {t.always}
             </label>
             <label className="flex items-center gap-2">
-              <input type="radio" checked={!!hours} onChange={() => set({ active_hours: hours ?? WORK_WEEK })} /> Only during
+              <input type="radio" checked={!!hours} onChange={() => set({ active_hours: hours ?? WORK_WEEK })} /> {t.onlyDuring}
             </label>
           </div>
           {hours && (
@@ -145,20 +225,20 @@ function SettingsDialog({ rule, timezone, onClose }: { rule: SafetyRule; timezon
                   value={hours.start}
                   onChange={(e) => setHours({ start: e.target.value })}
                   className={`${INPUT} mt-0`}
-                  aria-label="From"
+                  aria-label={t.from}
                 />
-                to
+                {t.to}
                 <input
                   type="time"
                   required
                   value={hours.end}
                   onChange={(e) => setHours({ end: e.target.value })}
                   className={`${INPUT} mt-0`}
-                  aria-label="Until"
+                  aria-label={t.until}
                 />
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {DAY_NAMES.map((name, day) => {
+                {dayNames().map((name, day) => {
                   const on = hours.days.includes(day);
                   return (
                     <button
@@ -178,9 +258,9 @@ function SettingsDialog({ rule, timezone, onClose }: { rule: SafetyRule; timezon
                 })}
               </div>
               <p className="text-xs text-slate-500">
-                Site time ({timezone}). If the end is earlier than the start, the hours run overnight.
+                {t.siteTime(timezone)}
               </p>
-              {hours.days.length === 0 && <p className="text-xs text-red-700">Pick at least one day.</p>}
+              {hours.days.length === 0 && <p className="text-xs text-red-700">{t.pickDay}</p>}
             </div>
           )}
         </fieldset>
@@ -191,18 +271,18 @@ function SettingsDialog({ rule, timezone, onClose }: { rule: SafetyRule; timezon
             onClick={() => setForm(rule.defaults)}
             className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900"
           >
-            <RotateCcw className="h-4 w-4" /> Plugin defaults
+            <RotateCcw className="h-4 w-4" /> {t.defaults}
           </button>
           <div className="flex gap-2">
             <button type="button" onClick={onClose} className={BUTTON_SECONDARY}>
-              Cancel
+              {t.cancel}
             </button>
             <button
               type="submit"
               disabled={change.isPending || (hours !== null && (hours.days.length === 0 || hours.start === hours.end))}
               className={BUTTON_PRIMARY}
             >
-              Save
+              {t.save}
             </button>
           </div>
         </div>
@@ -216,45 +296,47 @@ function RuleRow({ rule, canEdit, onSettings }: { rule: SafetyRule; canEdit: boo
   const pending = change.isPending;
   // show the new position straight away while the request is on its way
   const enabled = pending && change.variables.change.enabled !== undefined ? change.variables.change.enabled : rule.enabled;
+  const t = useText(TEXT);
+  const plugin = usePluginText();
+  const name = plugin.ruleName(rule.rule_id, rule.name);
+  const zone = plugin.zoneName(rule.zone_id, rule.zone_name);
 
   return (
     <li className={`flex items-start gap-4 px-5 py-4 ${enabled ? "" : "bg-slate-50/60"}`}>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className={`font-medium ${enabled ? "text-slate-900" : "text-slate-500"}`}>{rule.name}</p>
+          <p className={`font-medium ${enabled ? "text-slate-900" : "text-slate-500"}`}>{name}</p>
           <SeverityBadge severity={rule.severity} />
         </div>
-        <p className="mt-0.5 text-sm text-slate-600">{rule.description}</p>
+        <p className="mt-0.5 text-sm text-slate-600">{plugin.ruleDescription(rule.rule_id, rule.description)}</p>
         <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-400">
           <span>{rule.rule_id}</span>
-          {rule.zone_name && <span>· {rule.zone_name}</span>}
-          <span>· {rule.min_duration_s > 0 ? `alerts after ${formatDuration(rule.min_duration_s)}` : "alerts at once"}</span>
-          {rule.max_count !== null && <span>· more than {rule.max_count} people</span>}
+          {zone && <span>· {zone}</span>}
+          <span>· {rule.min_duration_s > 0 ? t.alertsAfter(formatDuration(rule.min_duration_s)) : t.alertsAtOnce}</span>
+          {rule.max_count !== null && <span>· {t.moreThan(rule.max_count)}</span>}
           {rule.active_hours && (
             <span className="inline-flex items-center gap-1 text-sky-700">
               · <Clock className="h-3 w-3" /> {describeHours(rule.active_hours)}
             </span>
           )}
           {rule.changed_by && rule.changed_at && (
-            <span>
-              · changed by {rule.changed_by} {timeAgo(rule.changed_at)}
-            </span>
+            <span>· {t.changedBy(rule.changed_by, timeAgo(rule.changed_at))}</span>
           )}
         </p>
         {change.isError && <p className="mt-1 text-sm text-red-700">{change.error.message}</p>}
       </div>
       <div className="flex items-center gap-3">
         {canEdit && (
-          <button onClick={onSettings} className={BUTTON_SECONDARY} title="Settings">
+          <button onClick={onSettings} className={BUTTON_SECONDARY} title={t.settings}>
             <SlidersHorizontal className="h-4 w-4" />
-            <span className="hidden sm:inline">Settings</span>
-            {rule.changed.length > 0 && <span className="h-1.5 w-1.5 rounded-full bg-sky-600" aria-label="changed" />}
+            <span className="hidden sm:inline">{t.settings}</span>
+            {rule.changed.length > 0 && <span className="h-1.5 w-1.5 rounded-full bg-sky-600" aria-label={t.changed} />}
           </button>
         )}
         <Toggle
           checked={enabled}
           disabled={!canEdit || pending}
-          label={`${rule.name}: ${enabled ? "on" : "off"}`}
+          label={t.onOff(name, enabled)}
           onChange={(on) => change.mutate({ ruleId: rule.rule_id, change: { enabled: on } })}
         />
       </div>
@@ -263,20 +345,24 @@ function RuleRow({ rule, canEdit, onSettings }: { rule: SafetyRule; canEdit: boo
 }
 
 function UnavailableRow({ rule }: { rule: SafetyRule }) {
+  const t = useText(TEXT);
+  const plugin = usePluginText();
+  const name = plugin.ruleName(rule.rule_id, rule.name);
+  const requires = plugin.ruleRequires(rule.rule_id, rule.requires);
   return (
     <li className="flex items-start gap-4 px-5 py-4">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="font-medium text-slate-700">{rule.name}</p>
+          <p className="font-medium text-slate-700">{name}</p>
           <SeverityBadge severity={rule.severity} />
           <span className="rounded-md bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 ring-1 ring-amber-600/20 ring-inset">
-            {rule.planned ? "Coming soon" : "Not available yet"}
+            {rule.planned ? t.comingSoon : t.notAvailableYet}
           </span>
         </div>
-        <p className="mt-0.5 text-sm text-slate-600">{rule.description}</p>
-        {rule.requires && <p className="mt-1 text-xs text-slate-500">Needs: {rule.requires}</p>}
+        <p className="mt-0.5 text-sm text-slate-600">{plugin.ruleDescription(rule.rule_id, rule.description)}</p>
+        {requires && <p className="mt-1 text-xs text-slate-500">{t.needs(requires)}</p>}
       </div>
-      <Toggle checked={false} disabled label={`${rule.name}: not available`} onChange={() => {}} />
+      <Toggle checked={false} disabled label={t.notAvailable(name)} onChange={() => {}} />
     </li>
   );
 }
@@ -289,20 +375,18 @@ export function Rules() {
   const available = rules.data?.rules.filter((r) => r.available) ?? [];
   const unavailable = rules.data?.rules.filter((r) => !r.available) ?? [];
   const off = available.filter((r) => !r.enabled).length;
+  const t = useText(TEXT);
+  const plugin = usePluginText();
 
   return (
     <>
       <PageHeader
-        title="Safety rules"
-        subtitle={
-          canEdit
-            ? "Choose which rules raise incidents and alerts, and when. A rule that's off is ignored until you switch it back on."
-            : "Which rules raise incidents and alerts. Only admins and supervisors can change them."
-        }
+        title={t.title}
+        subtitle={canEdit ? t.subtitleEdit : t.subtitleView}
       />
       {off > 0 && (
         <p className="mb-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200">
-          {off === 1 ? "1 rule is" : `${off} rules are`} switched off. These violations are not detected or reported.
+          {t.off(off)}
         </p>
       )}
       {rules.isPending ? (
@@ -315,7 +399,7 @@ export function Rules() {
         </Card>
       ) : (
         <div className="space-y-6">
-          <Card title={rules.data.plugin_name}>
+          <Card title={plugin.pluginName(rules.data.plugin_name)}>
             <ul className="-mx-5 -my-5 divide-y divide-slate-100">
               {available.map((rule) => (
                 <RuleRow key={rule.rule_id} rule={rule} canEdit={canEdit} onSettings={() => setEditing(rule)} />
@@ -323,7 +407,7 @@ export function Rules() {
             </ul>
           </Card>
           {unavailable.length > 0 && (
-            <Card title="Coming soon">
+            <Card title={t.comingSoon}>
               <ul className="-mx-5 -my-5 divide-y divide-slate-100">
                 {unavailable.map((rule) => (
                   <UnavailableRow key={rule.rule_id} rule={rule} />

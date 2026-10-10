@@ -47,6 +47,7 @@ export type DeliveryStatus = "sent" | "retrying" | "failed" | "not_configured" |
 export interface Report {
   event_id: string;
   markdown: string;
+  markdown_ar?: string | null; // Arabic version, when the report was written in both (contracts v2.4)
   generated_by: string;
   delivery: {
     status?: DeliveryStatus;
@@ -149,6 +150,7 @@ export interface SafetyRule extends RuleSettings {
   type: string;
   description: string;
   event_type: string;
+  zone_id: string | null;
   zone_name: string | null;
   available: boolean; // false: not usable yet, see requires
   planned: boolean;
@@ -160,11 +162,20 @@ export interface SafetyRule extends RuleSettings {
   changed_at: string | null;
 }
 
+/** A plugin's text in another language (the plugin's `translations` block, docs/plugins.md). */
+export interface PluginTranslation {
+  plugin_name?: string;
+  rules?: Record<string, { name?: string; description?: string; requires?: string }>;
+  zones?: Record<string, string>;
+}
+
 export interface SafetyRules {
   plugin_id: string;
   plugin_name: string;
   timezone: string;
   rules: SafetyRule[];
+  zones?: Record<string, string>; // zone id -> English name
+  translations?: { ar?: PluginTranslation };
 }
 
 /** PATCH /rules/{id}: only the fields sent change; null resets a field to the plugin's value. */

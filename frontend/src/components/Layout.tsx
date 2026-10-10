@@ -3,38 +3,90 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useIncidents } from "../api/queries";
 import { useAuth } from "../lib/auth";
-import { SEVERITY_STYLES, humanize, timeAgo } from "../lib/format";
+import { SEVERITY_STYLES, timeAgo } from "../lib/format";
+import { bilingual, LanguageSwitch, useText } from "../lib/i18n";
 import { LiveProvider, useLive } from "../lib/live";
 import { isUnread, useNotificationPrefs } from "../lib/notifications";
+import { eventTypeLabel, roleLabel, severityLabel, usePluginText } from "../lib/terms";
 import { Logo } from "./Brand";
 import { SeverityBadge } from "./ui";
 
+const TEXT = bilingual(
+  {
+    nav: {
+      overview: "Overview",
+      cameras: "Live cameras",
+      incidents: "Incidents",
+      analytics: "Analytics",
+      notifications: "Notifications",
+      rules: "Safety rules",
+      users: "Users",
+    },
+    connection: { live: "Connected", connecting: "Connecting…", offline: "Offline" },
+    dismiss: "Dismiss",
+    viewIncident: "View incident",
+    notifications: "Notifications",
+    unread: (n: number) => `, ${n} unread`,
+    markAllRead: "Mark all as read",
+    noAlerts: "No alerts yet",
+    allNotifications: "All notifications and settings",
+    account: "Account and password",
+    signOut: "Sign out",
+    consoleName: "Site safety console",
+    monitoring: "Monitoring",
+    pluginName: "Construction safety",
+  },
+  {
+    nav: {
+      overview: "نظرة عامة",
+      cameras: "الكاميرات المباشرة",
+      incidents: "الحوادث",
+      analytics: "التحليلات",
+      notifications: "الإشعارات",
+      rules: "قواعد السلامة",
+      users: "المستخدمون",
+    },
+    connection: { live: "متصل", connecting: "جارٍ الاتصال…", offline: "غير متصل" },
+    dismiss: "إغلاق",
+    viewIncident: "عرض الحادثة",
+    notifications: "الإشعارات",
+    unread: (n: number) => `، ${n} غير مقروءة`,
+    markAllRead: "تحديد الكل كمقروء",
+    noAlerts: "لا توجد تنبيهات بعد",
+    allNotifications: "كل الإشعارات والإعدادات",
+    account: "الحساب وكلمة المرور",
+    signOut: "تسجيل الخروج",
+    consoleName: "لوحة تحكم سلامة الموقع",
+    monitoring: "المراقبة",
+    pluginName: "سلامة مواقع البناء",
+  },
+);
+type NavKey = keyof typeof TEXT.en.nav;
+
 // Each console page is a numbered "chapter" with its own opener photo (public/edition), like the product page.
 const NAV = [
-  { to: "/app", label: "Overview", icon: LayoutDashboard, end: true, photo: "console" },
-  { to: "/app/cameras", label: "Live cameras", icon: Camera, end: false, photo: "ppe" },
-  { to: "/app/incidents", label: "Incidents", icon: ListChecks, end: false, photo: "alerts" },
-  { to: "/app/analytics", label: "Analytics", icon: BarChart3, end: false, photo: "rules" },
-  { to: "/app/notifications", label: "Notifications", icon: Bell, end: false, photo: "closing" },
-  { to: "/app/rules", label: "Safety rules", icon: ShieldCheck, end: false, photo: "zones" },
+  { to: "/app", key: "overview" as NavKey, icon: LayoutDashboard, end: true, photo: "console" },
+  { to: "/app/cameras", key: "cameras" as NavKey, icon: Camera, end: false, photo: "ppe" },
+  { to: "/app/incidents", key: "incidents" as NavKey, icon: ListChecks, end: false, photo: "alerts" },
+  { to: "/app/analytics", key: "analytics" as NavKey, icon: BarChart3, end: false, photo: "rules" },
+  { to: "/app/notifications", key: "notifications" as NavKey, icon: Bell, end: false, photo: "closing" },
+  { to: "/app/rules", key: "rules" as NavKey, icon: ShieldCheck, end: false, photo: "zones" },
 ];
-const ADMIN_NAV = [{ to: "/app/users", label: "Users", icon: Users, end: false, photo: "how" }];
+const ADMIN_NAV = [{ to: "/app/users", key: "users" as NavKey, icon: Users, end: false, photo: "how" }];
 const OTHER_PAGES: Record<string, string> = { "/app/account": "hero" };
 const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
 
 function useNav() {
   const { user } = useAuth();
-  return user?.role === "admin" ? [...NAV, ...ADMIN_NAV] : NAV;
+  const t = useText(TEXT);
+  return (user?.role === "admin" ? [...NAV, ...ADMIN_NAV] : NAV).map((n) => ({ ...n, label: t.nav[n.key] }));
 }
 
 function LiveIndicator() {
   const { connection } = useLive();
-  const styles = {
-    live: ["bg-emerald-500", "Connected"],
-    connecting: ["bg-amber-400", "Connecting…"],
-    offline: ["bg-red-500", "Offline"],
-  } as const;
-  const [color, label] = styles[connection];
+  const t = useText(TEXT);
+  const color = { live: "bg-emerald-500", connecting: "bg-amber-400", offline: "bg-red-500" }[connection];
+  const label = t.connection[connection];
   return (
     <span className="flex items-center gap-2 text-xs text-slate-400" aria-live="polite">
       <span className="relative flex h-2 w-2">
@@ -48,27 +100,29 @@ function LiveIndicator() {
 
 function Toasts() {
   const { toasts, dismiss } = useLive();
+  const t = useText(TEXT);
+  const plugin = usePluginText();
   return (
-    <div className="pointer-events-none fixed right-4 bottom-4 z-50 flex w-80 flex-col gap-2" aria-live="assertive">
+    <div className="pointer-events-none fixed end-4 bottom-4 z-50 flex w-80 flex-col gap-2" aria-live="assertive">
       {toasts.map(({ id, incident }) => (
         <div key={id} className="pointer-events-auto rounded-xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/10">
           <div className="flex items-start justify-between gap-2">
             <SeverityBadge severity={incident.severity} />
-            <button onClick={() => dismiss(id)} className="text-slate-400 hover:text-slate-600" aria-label="Dismiss">
+            <button onClick={() => dismiss(id)} className="text-slate-400 hover:text-slate-600" aria-label={t.dismiss}>
               ×
             </button>
           </div>
-          <p className="mt-2 text-sm font-medium text-slate-900">{humanize(incident.event_type)}</p>
+          <p className="mt-2 text-sm font-medium text-slate-900">{eventTypeLabel(incident.event_type)}</p>
           <p className="text-xs text-slate-500">
             {incident.camera_id}
-            {incident.location !== "NOT SPECIFIED" ? ` · ${incident.location}` : ""}
+            {plugin.location(incident.location, incident.metadata?.zone_id) ? ` · ${plugin.location(incident.location, incident.metadata?.zone_id)}` : ""}
           </p>
           <Link
             to={`/app/incidents/${incident.event_id}`}
             onClick={() => dismiss(id)}
             className="mt-2 inline-block text-xs font-medium text-sky-700 hover:underline"
           >
-            View incident →
+            {t.viewIncident} <span className="flip-rtl inline-block">→</span>
           </Link>
         </div>
       ))}
@@ -99,6 +153,8 @@ function NotificationBell() {
   const [prefs, update] = useNotificationPrefs();
   const recent = useIncidents({ limit: 8 });
   const items = recent.data?.items ?? [];
+  const t = useText(TEXT);
+  const plugin = usePluginText();
 
   // first visit: start counting from now instead of flagging the whole history as unread
   useEffect(() => {
@@ -113,28 +169,28 @@ function NotificationBell() {
       <button
         onClick={() => setOpen(!open)}
         className="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
-        aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`}
+        aria-label={`${t.notifications}${unread ? t.unread(unread) : ""}`}
         aria-expanded={open}
       >
         <Bell className="h-5 w-5" />
         {unread > 0 && (
-          <span className="absolute top-1 right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
+          <span className="absolute top-1 end-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white">
             {unread >= items.length && items.length >= 8 ? "8+" : unread}
           </span>
         )}
       </button>
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
+        <div className="absolute end-0 z-40 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
           <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
-            <p className="text-sm font-semibold text-slate-900">Notifications</p>
+            <p className="text-sm font-semibold text-slate-900">{t.notifications}</p>
             {unread > 0 && (
               <button onClick={markRead} className="text-xs font-medium text-sky-700 hover:underline">
-                Mark all as read
+                {t.markAllRead}
               </button>
             )}
           </div>
           <ul className="max-h-96 divide-y divide-slate-100 overflow-y-auto">
-            {items.length === 0 && <li className="px-4 py-8 text-center text-sm text-slate-500">No alerts yet</li>}
+            {items.length === 0 && <li className="px-4 py-8 text-center text-sm text-slate-500">{t.noAlerts}</li>}
             {items.map((i) => (
               <li key={i.event_id}>
                 <Link
@@ -144,10 +200,10 @@ function NotificationBell() {
                 >
                   <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${SEVERITY_STYLES[i.severity]?.dot ?? "bg-slate-400"}`} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-slate-900">{humanize(i.event_type)}</span>
+                    <span className="block truncate text-sm font-medium text-slate-900">{eventTypeLabel(i.event_type)}</span>
                     <span className="block truncate text-xs text-slate-500">
-                      {i.severity} · {i.camera_id}
-                      {i.location !== "NOT SPECIFIED" ? ` · ${i.location}` : ""}
+                      {severityLabel(i.severity)} · {i.camera_id}
+                      {plugin.location(i.location, i.metadata?.zone_id) ? ` · ${plugin.location(i.location, i.metadata?.zone_id)}` : ""}
                     </span>
                   </span>
                   <span className="shrink-0 text-xs text-slate-400">{timeAgo(i.received_at)}</span>
@@ -160,7 +216,7 @@ function NotificationBell() {
             onClick={() => setOpen(false)}
             className="block border-t border-slate-100 px-4 py-2.5 text-center text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
-            All notifications and settings
+            {t.allNotifications}
           </Link>
         </div>
       )}
@@ -172,6 +228,7 @@ function UserMenu() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { open, setOpen, ref } = usePopover();
+  const t = useText(TEXT);
   if (!user) return null;
   const initials = user.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
@@ -179,20 +236,20 @@ function UserMenu() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 rounded-lg py-1 pr-2 pl-1 hover:bg-slate-100"
+        className="flex items-center gap-2 rounded-lg py-1 pe-2 ps-1 hover:bg-slate-100"
         aria-expanded={open}
       >
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
           {initials}
         </span>
-        <span className="hidden text-left leading-tight sm:block">
+        <span className="hidden text-start leading-tight sm:block">
           <span className="block text-sm font-medium text-slate-900">{user.name}</span>
-          <span className="block text-xs text-slate-500 capitalize">{user.role}</span>
+          <span className="block text-xs text-slate-500">{roleLabel(user.role)}</span>
         </span>
         <ChevronDown className="h-4 w-4 text-slate-400" />
       </button>
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
+        <div className="absolute end-0 z-40 mt-2 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
           <div className="border-b border-slate-100 px-4 py-3">
             <p className="text-sm font-medium text-slate-900">{user.name}</p>
             <p className="truncate text-xs text-slate-500">{user.email}</p>
@@ -200,18 +257,18 @@ function UserMenu() {
           <Link
             to="/app/account"
             onClick={() => setOpen(false)}
-            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm text-slate-700 hover:bg-slate-50"
           >
-            <UserCog className="h-4 w-4" /> Account and password
+            <UserCog className="h-4 w-4" /> {t.account}
           </Link>
           <button
             onClick={async () => {
               await logout();
               navigate("/login", { replace: true });
             }}
-            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50"
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-start text-sm text-slate-700 hover:bg-slate-50"
           >
-            <LogOut className="h-4 w-4" /> Sign out
+            <LogOut className="flip-rtl h-4 w-4" /> {t.signOut}
           </button>
         </div>
       )}
@@ -221,14 +278,15 @@ function UserMenu() {
 
 function SideNav() {
   const nav = useNav();
+  const t = useText(TEXT);
   return (
     <aside className="hidden bg-ink text-paper/70 lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
       <div className="px-5 py-5">
-        <Logo to="/app" dark subtitle="Site safety console" />
+        <Logo to="/app" dark subtitle={t.consoleName} />
       </div>
       {/* the product page's chapter index: name, a dotted leader on the current page, Roman numeral */}
       <nav className="flex flex-1 flex-col justify-end px-5 pb-8">
-        <p className="pb-3 font-serif text-lg text-amber-400/90 italic">Monitoring</p>
+        <p className="pb-3 font-serif text-lg text-amber-400/90 italic">{t.monitoring}</p>
         <ol className="space-y-1">
           {nav.map(({ to, label, end }, i) => (
             <li key={to}>
@@ -254,7 +312,7 @@ function SideNav() {
         </ol>
       </nav>
       <div className="space-y-1 border-t border-white/10 px-5 py-4">
-        <p className="font-serif text-base text-paper/80 italic">Construction safety</p>
+        <p className="font-serif text-base text-paper/80 italic">{t.pluginName}</p>
         <LiveIndicator />
       </div>
     </aside>
@@ -269,7 +327,8 @@ function TopBar() {
         <div className="lg:hidden">
           <Logo to="/app" />
         </div>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ms-auto flex items-center gap-2">
+          <LanguageSwitch className="text-ink/70 ring-1 ring-ink/15 hover:bg-ink/5" />
           <NotificationBell />
           <span className="mx-1 h-6 w-px bg-ink/15" aria-hidden />
           <UserMenu />
@@ -303,7 +362,7 @@ export function AppShell() {
     <LiveProvider>
       <div className="paper-grain min-h-screen bg-paper font-display text-ink">
         <SideNav />
-        <div className="lg:pl-64">
+        <div className="lg:ps-64">
           <TopBar />
           <main className="px-4 py-8 sm:px-6 lg:px-10">
             <Outlet />

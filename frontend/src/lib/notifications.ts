@@ -1,6 +1,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 import type { Incident } from "../api/types";
-import { humanize } from "./format";
+import { currentLang } from "./i18n";
+import { eventTypeLabel, NOT_SPECIFIED, severityLabel } from "./terms";
 
 /**
  * Per-browser notification settings and "read up to" time, kept in localStorage.
@@ -72,9 +73,11 @@ export async function enableDesktop(): Promise<boolean> {
 export function alertIncident(incident: Incident, onClick: () => void) {
   const prefs = read();
   if (prefs.desktop && desktopSupported() && Notification.permission === "granted") {
-    const where = incident.location !== "NOT SPECIFIED" ? ` · ${incident.location}` : "";
-    const n = new Notification(`${incident.severity}: ${humanize(incident.event_type)}`, {
+    const where = incident.location !== NOT_SPECIFIED ? ` · ${incident.location}` : "";
+    const severity = currentLang() === "ar" ? severityLabel(incident.severity) : incident.severity;
+    const n = new Notification(`${severity}: ${eventTypeLabel(incident.event_type)}`, {
       body: `${incident.camera_id}${where}`,
+      dir: currentLang() === "ar" ? "rtl" : "ltr",
       tag: incident.event_id,
     });
     n.onclick = () => {

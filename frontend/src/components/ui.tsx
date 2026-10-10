@@ -1,21 +1,43 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { IncidentStatus, Severity } from "../api/types";
-import { SEVERITY_STYLES, STATUS_STYLES, humanize } from "../lib/format";
+import { SEVERITY_STYLES, STATUS_STYLES } from "../lib/format";
+import { bilingual, useLang, useText } from "../lib/i18n";
+import { severityLabel, statusLabel } from "../lib/terms";
+
+const TEXT = bilingual(
+  {
+    loading: "Loading…",
+    loadFailed: "Couldn't load data",
+    backendHint: (message: string) => `${message}. Is the backend running?`,
+    somethingWrong: "Something went wrong",
+    tryAgain: "Try again",
+    close: "Close",
+  },
+  {
+    loading: "جارٍ التحميل…",
+    loadFailed: "تعذّر تحميل البيانات",
+    backendHint: (message: string) => `${message}. هل الخادم يعمل؟`,
+    somethingWrong: "حدث خطأ ما",
+    tryAgain: "إعادة المحاولة",
+    close: "إغلاق",
+  },
+);
 
 const BADGE = "inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset";
 
 export function SeverityBadge({ severity }: { severity: Severity }) {
   const s = SEVERITY_STYLES[severity] ?? SEVERITY_STYLES.LOW;
+  const { lang } = useLang();
   return (
     <span className={`${BADGE} ${s.badge}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${s.dot}`} aria-hidden />
-      {severity}
+      {lang === "ar" ? severityLabel(severity) : severity}
     </span>
   );
 }
 
 export function StatusBadge({ status }: { status: IncidentStatus }) {
-  return <span className={`${BADGE} ${STATUS_STYLES[status]}`}>{humanize(status.toUpperCase())}</span>;
+  return <span className={`${BADGE} ${STATUS_STYLES[status]}`}>{statusLabel(status)}</span>;
 }
 
 export function Card({ title, action, children, className = "" }: {
@@ -87,24 +109,26 @@ export function StatCard({ label, value, hint, accent = "bg-ink" }: {
   );
 }
 
-export function Spinner({ label = "Loading…" }: { label?: string }) {
+export function Spinner({ label }: { label?: string }) {
+  const t = useText(TEXT);
   return (
     <div className="flex items-center justify-center gap-3 py-12 text-sm text-slate-500" role="status">
       <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
-      {label}
+      {label ?? t.loading}
     </div>
   );
 }
 
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
-  const message = error instanceof Error ? error.message : "Something went wrong";
+  const t = useText(TEXT);
+  const message = error instanceof Error ? error.message : t.somethingWrong;
   return (
     <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
-      <p className="font-medium">Couldn't load data</p>
-      <p className="mt-0.5 text-red-700">{message}. Is the backend running?</p>
+      <p className="font-medium">{t.loadFailed}</p>
+      <p className="mt-0.5 text-red-700">{t.backendHint(message)}</p>
       {onRetry && (
         <button onClick={onRetry} className="mt-2 font-medium text-red-900 underline underline-offset-2">
-          Try again
+          {t.tryAgain}
         </button>
       )}
     </div>
@@ -156,6 +180,7 @@ export function FullPageSpinner() {
 
 /** Centered dialog over a dimmed page. Closes on Escape or a click outside. */
 export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  const t = useText(TEXT);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
@@ -169,7 +194,7 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
       <div role="dialog" aria-modal="true" aria-label={title} className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="text-base font-semibold text-slate-900">{title}</h2>
-          <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600" aria-label="Close">
+          <button onClick={onClose} className="text-xl leading-none text-slate-400 hover:text-slate-600" aria-label={t.close}>
             ×
           </button>
         </div>

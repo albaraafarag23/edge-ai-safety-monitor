@@ -127,6 +127,7 @@ def _rule_dict(plugin: dict, rule: dict, row: RuleSetting | None) -> dict:
         "type": rule.get("type"),
         "description": rule.get("description", ""),
         "event_type": rule["event_type"],
+        "zone_id": rule.get("zone") if zone else None,
         "zone_name": zone["name"] if zone else None,
         "available": available,
         "planned": bool(rule.get("planned")),
@@ -148,7 +149,11 @@ async def list_rules():
     async with SessionLocal() as session:
         rows = await _rows(session)
     return {"plugin_id": PLUGIN_ID, "plugin_name": plugin.get("name", PLUGIN_ID), "timezone": SITE_TIMEZONE,
-            "rules": [_rule_dict(plugin, r, rows.get(r["rule_id"])) for r in plugin.get("rules", [])]}
+            "rules": [_rule_dict(plugin, r, rows.get(r["rule_id"])) for r in plugin.get("rules", [])],
+            # for the console's other languages: zone ids (incidents carry the English zone name) and the
+            # plugin's own translations of rule and zone names (docs/plugins.md)
+            "zones": {zid: z.get("name", zid) for zid, z in plugin.get("zones", {}).items()},
+            "translations": plugin.get("translations", {})}
 
 
 @router.patch("/{rule_id}")

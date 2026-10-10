@@ -55,6 +55,32 @@ Test the rules with synthetic frames:
 
     cd event_engine && python test_rules.py
 
+## `translations` section (other languages)
+Optional. The console's own text is translated in the frontend; text that comes from the plugin is translated
+here, per language code (only `ar` for now):
+
+```json
+"translations": {
+  "ar": {
+    "plugin_name": "مراقبة سلامة مواقع البناء",
+    "zones": { "excavation_edge": "حافة الحفرة" },
+    "rules": {
+      "RULE_PPE_01": {
+        "name": "الخوذة",
+        "description": "ارتداء الخوذة إلزامي في الموقع",
+        "requires": "…",
+        "recommended_actions": ["…", "…"]
+      }
+    }
+  }
+}
+```
+
+`GET /rules` returns the block (and a zone id → English name map) so the console can show rule and zone names in
+the reader's language. Anything missing falls back to the English text. `recommended_actions` must be in the same
+order as the English list; the Arabic version of the AI report picks from it. The detector and the rule engine
+ignore this section.
+
 ## Startup checks
 - A class missing from the model prints a warning and is skipped.
 - A rule using a class not in `detection.classes` stops startup (disabled rules are skipped).

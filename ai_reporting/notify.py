@@ -4,7 +4,8 @@ report below it (email_template.py), and the snapshot and clip attached.
 Configured through environment variables (see .env.example):
   SMTP_HOST, SMTP_PORT (587 = STARTTLS, 465 = SSL), SMTP_USER, SMTP_PASSWORD, SMTP_FROM,
   SMTP_TLS (starttls | ssl | none), SUPERVISOR_EMAILS (comma-separated), MAX_ATTACHMENT_MB,
-  CONSOLE_URL (for the "Open this incident" button), SITE_TIMEZONE.
+  CONSOLE_URL (for the "Open this incident" button), SITE_TIMEZONE. The language (EMAIL_LANGUAGE) is chosen
+  in main.py, which passes the report and actions in that language.
 """
 import os
 import smtplib
@@ -29,19 +30,22 @@ def configured() -> bool:
     return bool(SMTP_HOST and SMTP_FROM and RECIPIENTS)
 
 
-def build_email(incident: dict, report_md: str, snapshot: Path | None, clip: Path | None, actions: list[str] = ()):
-    """Returns (message, list of attached file names)."""
+def build_email(incident: dict, report_md: str, snapshot: Path | None, clip: Path | None, actions: list[str] = (),
+                lang: str = "en", names: dict | None = None):
+    """Returns (message, list of attached file names). `names`: Arabic names for an Arabic email."""
     has_clip = bool(clip and clip.stat().st_size <= MAX_ATTACHMENT_BYTES)
     msg = EmailMessage()
-    msg["Subject"] = email_template.subject(incident)
+    msg["Subject"] = email_template.subject(incident, lang, names)
     msg["From"] = SMTP_FROM
     msg["To"] = ", ".join(RECIPIENTS)
     # plain-text version for clients that don't show HTML
-    msg.set_content(email_template.plain_text(incident, report_md, list(actions), has_clip))
+    msg.set_content(email_template.plain_text(incident, report_md, list(actions), has_clip, lang, names))
+    if lang != "en":
+        msg["Content-Language"] = lang
 
     snapshot_cid = make_msgid(domain="sitesentry")
     msg.add_alternative(email_template.html_body(incident, report_md, list(actions), snapshot_cid[1:-1] if snapshot else None,
-                                                 has_clip), subtype="html")
+                                                 has_clip, lang, names), subtype="html")
 
     attached = []
     if snapshot:
@@ -56,12 +60,13 @@ def build_email(incident: dict, report_md: str, snapshot: Path | None, clip: Pat
     return msg, attached
 
 
-def send(incident: dict, report_md: str, snapshot: Path | None, clip: Path | None, actions: list[str] = ()) -> dict:
+def send(incident: dict, report_md: str, snapshot: Path | None, clip: Path | None, actions: list[str] = (),
+         lang: str = "en", names: dict | None = None) -> dict:
     """Sends the report. Returns a delivery record that is stored with the report."""
     if not configured():
         return {"status": "not_configured", "recipients": [], "attachments": [],
                 "error": "Set SMTP_HOST, SMTP_FROM/SMTP_USER and SUPERVISOR_EMAILS to send email"}
-    msg, attached = build_email(incident, report_md, snapshot, clip, actions)
+    msg, attached = build_email(incident, report_md, snapshot, clip, actions, lang, names)
     try:
         if SMTP_TLS == "ssl":
             server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=ssl.create_default_context(), timeout=30)
