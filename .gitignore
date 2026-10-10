@@ -33,3 +33,6 @@ Thumbs.db
 
 # Incident snapshots and clips (written by cv_pipeline)
 media/
+
+# Local AI-assistant briefing, kept off GitHub
+CLAUDE.md
