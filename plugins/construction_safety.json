@@ -8,7 +8,7 @@
   },
   "detection": {
     "model": "construction_ppe.pt",
-    "imgsz": 640,
+    "imgsz": 960,
     "default_confidence": 0.4,
     "classes": {
       "Person": {
