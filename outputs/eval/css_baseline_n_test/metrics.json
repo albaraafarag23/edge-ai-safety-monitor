@@ -1,0 +1,102 @@
+{
+  "weights": "/home/albaraa/edge-ai-safety-monitor/outputs/runs/css_baseline_n/weights/best.pt",
+  "data": "/home/albaraa/edge-ai-safety-monitor/data/construction-site-safety/data_local.yaml",
+  "split": "test",
+  "imgsz": 640,
+  "evaluated_at": "2026-10-10T04:00:53",
+  "overall": {
+    "precision": 0.8735,
+    "recall": 0.6628,
+    "mAP50": 0.7386,
+    "mAP50-95": 0.453
+  },
+  "speed_ms_per_image": {
+    "preprocess": 0.79,
+    "inference": 4.12,
+    "loss": 0.01,
+    "postprocess": 5.51
+  },
+  "per_class": [
+    {
+      "class": "Hardhat",
+      "instances": 110,
+      "precision": 0.9554,
+      "recall": 0.7797,
+      "mAP50": 0.9088,
+      "mAP50-95": 0.557
+    },
+    {
+      "class": "Mask",
+      "instances": 28,
+      "precision": 0.9727,
+      "recall": 0.75,
+      "mAP50": 0.7802,
+      "mAP50-95": 0.5418
+    },
+    {
+      "class": "NO-Hardhat",
+      "instances": 41,
+      "precision": 0.7924,
+      "recall": 0.5122,
+      "mAP50": 0.5578,
+      "mAP50-95": 0.2957
+    },
+    {
+      "class": "NO-Mask",
+      "instances": 79,
+      "precision": 0.8724,
+      "recall": 0.606,
+      "mAP50": 0.7162,
+      "mAP50-95": 0.2959
+    },
+    {
+      "class": "NO-Safety Vest",
+      "instances": 90,
+      "precision": 0.9354,
+      "recall": 0.6778,
+      "mAP50": 0.7866,
+      "mAP50-95": 0.4853
+    },
+    {
+      "class": "Person",
+      "instances": 174,
+      "precision": 0.8823,
+      "recall": 0.7327,
+      "mAP50": 0.8349,
+      "mAP50-95": 0.5283
+    },
+    {
+      "class": "Safety Cone",
+      "instances": 92,
+      "precision": 0.7837,
+      "recall": 0.4022,
+      "mAP50": 0.4321,
+      "mAP50-95": 0.2142
+    },
+    {
+      "class": "Safety Vest",
+      "instances": 61,
+      "precision": 0.9054,
+      "recall": 0.7869,
+      "mAP50": 0.8496,
+      "mAP50-95": 0.5673
+    },
+    {
+      "class": "machinery",
+      "instances": 44,
+      "precision": 0.9156,
+      "recall": 0.7955,
+      "mAP50": 0.8563,
+      "mAP50-95": 0.6644
+    },
+    {
+      "class": "vehicle",
+      "instances": 41,
+      "precision": 0.7198,
+      "recall": 0.5854,
+      "mAP50": 0.6636,
+      "mAP50-95": 0.3798
+    }
+  ],
+  "classes_not_in_split": []
+}

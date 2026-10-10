@@ -1,0 +1,126 @@
+{
+  "data_yaml": "/home/albaraa/edge-ai-safety-monitor/data/construction-site-safety/data_local.yaml",
+  "root": "/home/albaraa/edge-ai-safety-monitor/data/construction-site-safety",
+  "classes": {
+    "0": "Hardhat",
+    "1": "Mask",
+    "2": "NO-Hardhat",
+    "3": "NO-Mask",
+    "4": "NO-Safety Vest",
+    "5": "Person",
+    "6": "Safety Cone",
+    "7": "Safety Vest",
+    "8": "machinery",
+    "9": "vehicle"
+  },
+  "splits": {
+    "train": {
+      "images": 2605,
+      "missing_label_file": [],
+      "empty_label_file": 6,
+      "bad_lines": [],
+      "unreadable_images": [],
+      "instances": {
+        "Hardhat": 3145,
+        "Mask": 1651,
+        "NO-Hardhat": 2317,
+        "NO-Mask": 3097,
+        "NO-Safety Vest": 3962,
+        "Person": 9532,
+        "Safety Cone": 3366,
+        "Safety Vest": 3033,
+        "machinery": 5247,
+        "vehicle": 1545
+      },
+      "images_per_class": {
+        "Hardhat": 1314,
+        "Mask": 1096,
+        "NO-Hardhat": 1380,
+        "NO-Mask": 1531,
+        "NO-Safety Vest": 1864,
+        "Person": 2526,
+        "Safety Cone": 631,
+        "Safety Vest": 1319,
+        "machinery": 2101,
+        "vehicle": 744
+      }
+    },
+    "val": {
+      "images": 114,
+      "missing_label_file": [],
+      "empty_label_file": 10,
+      "bad_lines": [],
+      "unreadable_images": [],
+      "instances": {
+        "Hardhat": 79,
+        "Mask": 21,
+        "NO-Hardhat": 69,
+        "NO-Mask": 74,
+        "NO-Safety Vest": 106,
+        "Person": 166,
+        "Safety Cone": 44,
+        "Safety Vest": 41,
+        "machinery": 55,
+        "vehicle": 42
+      },
+      "images_per_class": {
+        "Hardhat": 42,
+        "Mask": 19,
+        "NO-Hardhat": 37,
+        "NO-Mask": 44,
+        "NO-Safety Vest": 56,
+        "Person": 84,
+        "Safety Cone": 13,
+        "Safety Vest": 28,
+        "machinery": 26,
+        "vehicle": 16
+      }
+    },
+    "test": {
+      "images": 82,
+      "missing_label_file": [],
+      "empty_label_file": 8,
+      "bad_lines": [],
+      "unreadable_images": [],
+      "instances": {
+        "Hardhat": 110,
+        "Mask": 28,
+        "NO-Hardhat": 41,
+        "NO-Mask": 79,
+        "NO-Safety Vest": 90,
+        "Person": 174,
+        "Safety Cone": 92,
+        "Safety Vest": 61,
+        "machinery": 44,
+        "vehicle": 41
+      },
+      "images_per_class": {
+        "Hardhat": 30,
+        "Mask": 16,
+        "NO-Hardhat": 25,
+        "NO-Mask": 30,
+        "NO-Safety Vest": 36,
+        "Person": 59,
+        "Safety Cone": 8,
+        "Safety Vest": 22,
+        "machinery": 22,
+        "vehicle": 15
+      }
+    }
+  },
+  "duplicates_across_splits": [],
+  "total_instances": {
+    "Hardhat": 3334,
+    "Mask": 1700,
+    "NO-Hardhat": 2427,
+    "NO-Mask": 3250,
+    "NO-Safety Vest": 4158,
+    "Person": 9872,
+    "Safety Cone": 3502,
+    "Safety Vest": 3135,
+    "machinery": 5346,
+    "vehicle": 1628
+  },
+  "imbalance_ratio": 6.1,
+  "classes_with_no_instances": []
+}
