@@ -42,7 +42,7 @@ export interface Incident {
   report: { generated_by: string; delivery_status: DeliveryStatus | null } | null;
 }
 
-export type DeliveryStatus = "sent" | "failed" | "not_configured" | "suppressed_duplicate";
+export type DeliveryStatus = "sent" | "retrying" | "failed" | "not_configured" | "suppressed_duplicate";
 
 export interface Report {
   event_id: string;
@@ -54,6 +54,8 @@ export interface Report {
     attachments?: string[];
     error?: string | null;
     duplicate_of?: string;
+    attempts?: number;
+    next_attempt_at?: string;
   };
   created_at: string;
 }

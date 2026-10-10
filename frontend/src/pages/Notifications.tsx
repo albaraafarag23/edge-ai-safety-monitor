@@ -18,6 +18,7 @@ type View = (typeof VIEWS)[number]["key"];
 
 const EMAIL_TEXT: Record<string, [string, string]> = {
   sent: ["Emailed to supervisors", "text-emerald-700"],
+  retrying: ["Email not sent yet, retrying", "text-amber-700"],
   failed: ["Email failed", "text-red-700"],
   not_configured: ["Email not configured", "text-slate-500"],
   suppressed_duplicate: ["Repeat, not re-emailed", "text-slate-500"],

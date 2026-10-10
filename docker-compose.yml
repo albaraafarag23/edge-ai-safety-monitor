@@ -5,6 +5,10 @@ services:
 
   redis:
     image: redis:7-alpine
+    # append-only file on a volume: queued detections, incidents and email retries survive a restart or power cut
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    volumes:
+      - redis_data:/data
     ports:
       - "127.0.0.1:6379:6379"
     healthcheck:
@@ -122,6 +126,7 @@ services:
       SMTP_FROM: ${SMTP_FROM:-}
       SUPERVISOR_EMAILS: ${SUPERVISOR_EMAILS:-}
       NOTIFY_COOLDOWN_S: ${NOTIFY_COOLDOWN_S:-300}
+      RETRY_GIVE_UP_S: ${RETRY_GIVE_UP_S:-86400}
       # alert emails: times in site time, and an "Open this incident" button to the public console
       SITE_TIMEZONE: ${SITE_TIMEZONE:-Africa/Cairo}
       CONSOLE_URL: ${CONSOLE_URL:-}
@@ -142,3 +147,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:

@@ -58,6 +58,7 @@ function Evidence({ incident }: { incident: Incident }) {
 
 const DELIVERY_TEXT: Record<string, string> = {
   sent: "Emailed",
+  retrying: "Email not sent yet, retrying",
   failed: "Email failed",
   not_configured: "Email not configured",
   suppressed_duplicate: "Not re-sent (repeat)",
@@ -94,7 +95,10 @@ function ReportCard({ id }: { id: string }) {
             Original: {d.duplicate_of}
           </Link>
         )}
-        {d.error && <span className="text-red-700">{d.error}</span>}
+        {d.status === "retrying" && d.next_attempt_at && (
+          <span>Next try {timeAgo(d.next_attempt_at)} (attempt {(d.attempts ?? 0) + 1})</span>
+        )}
+        {d.error && <span className={d.status === "retrying" ? "text-amber-700" : "text-red-700"}>{d.error}</span>}
       </div>
       <article className="report text-sm leading-6 text-slate-700">
         <Markdown>{r.markdown}</Markdown>

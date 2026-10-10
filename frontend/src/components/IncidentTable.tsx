@@ -5,6 +5,7 @@ import { SeverityBadge, StatusBadge } from "./ui";
 
 const DELIVERY_LABEL: Record<string, string> = {
   sent: "Emailed",
+  retrying: "Email retrying",
   failed: "Email failed",
   not_configured: "Email off",
   suppressed_duplicate: "Repeat",

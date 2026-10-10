@@ -1,5 +1,7 @@
 # Interface contracts
 
+Version 2.3 (2026-10-10): adds the report delivery status `retrying` (with `attempts`, `next_attempt_at`).
+Additive only: detections and incidents are unchanged.
 Version 2.2 (2026-10-09): construction domain, plugin-driven detection, incident media.
 2.2 adds more than one model per plugin (`model` can name several) and the event types `SMOKING`, `VAPING`
 (and, planned, `PERSON_DOWN`, `SLEEPING_ON_SITE`). The fields are unchanged.
@@ -112,4 +114,7 @@ The backend's `GET /incidents` and `GET /incidents/{event_id}` return this paylo
 ```
 `generated_by` is a model id, `"template"` (Claude unavailable), or `"duplicate"`. A repeat of the
 same rule on the same camera within the cooldown isn't re-sent: `delivery.status` is
-`"suppressed_duplicate"`. Other statuses: `sent`, `failed`, `not_configured`.
+`"suppressed_duplicate"`. Other statuses: `sent`, `failed`, `not_configured`, and `retrying` (the email
+couldn't be sent, e.g. no network; it is retried with growing waits and the report is updated when it
+goes out, or set to `failed` after `RETRY_GIVE_UP_S`). A retried delivery also has `attempts` and, while
+`retrying`, `next_attempt_at` (ISO 8601 UTC).

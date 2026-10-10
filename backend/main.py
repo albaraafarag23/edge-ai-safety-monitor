@@ -55,10 +55,16 @@ async def consume_incidents(r: aioredis.Redis):
 
     print("[Backend] Consuming incidents stream...", flush=True)
 
+    # Incidents read but never acknowledged (a failed save, or a restart mid-save) stay pending in the
+    # group and are not returned by ">" again, so they are re-read from "0" first, then new ones.
+    backlog = True
     while True:
         try:
-            messages = await r.xreadgroup(CONSUMER_GROUP, CONSUMER_NAME, {INCIDENT_STREAM: ">"},
-                                          count=10, block=1000)
+            messages = await r.xreadgroup(CONSUMER_GROUP, CONSUMER_NAME, {INCIDENT_STREAM: "0" if backlog else ">"},
+                                          count=10, block=None if backlog else 1000)
+            if backlog and not any(events for _, events in messages or []):
+                backlog = False
+                continue
             if not messages:
                 continue
 
@@ -67,13 +73,18 @@ async def consume_incidents(r: aioredis.Redis):
                 for _, events in messages:
                     for msg_id, data in events:
                         handled.append(msg_id)
+                        if not data:  # pending entry already trimmed from the stream
+                            continue
                         try:
                             row = Incident.from_contract(json.loads(data["data"]))
-                            session.add(row)
-                            stored.append(row)
                         except (KeyError, json.JSONDecodeError) as e:
                             print(f"[Backend] Skipping message {msg_id}: not in the contract format ({e})", flush=True)
-                # acknowledge only after the commit succeeds, so a failed save is redelivered
+                            continue
+                        # a redelivered incident may already be stored (and acknowledged/resolved since)
+                        if await session.get(Incident, row.event_id) is None:
+                            session.add(row)
+                            stored.append(row)
+                # acknowledge only after the commit succeeds; a failed save is re-read from the backlog
                 await session.commit()
             await r.xack(INCIDENT_STREAM, CONSUMER_GROUP, *handled)
             for row in stored:
@@ -84,6 +95,7 @@ async def consume_incidents(r: aioredis.Redis):
             break
         except Exception as e:
             print(f"[Backend] Consumer error: {e}", flush=True)
+            backlog = True
             await asyncio.sleep(1)
 
 
