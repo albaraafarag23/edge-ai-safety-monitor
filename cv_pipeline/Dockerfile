@@ -14,6 +14,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY requirements-media.txt .
 RUN pip install --no-cache-dir -r requirements-media.txt
 
-COPY main.py plugin_config.py media.py live_view.py .
+COPY main.py plugin_config.py media.py live_view.py camera.py .
 
 CMD ["python", "main.py"]

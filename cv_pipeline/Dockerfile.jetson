@@ -1,0 +1,17 @@
+# Detector image for the Jetson Orin Nano (JetPack 6): Ultralytics' Jetson image already has CUDA,
+# TensorRT and NVIDIA's PyTorch build. Used by docker-compose.jetson.yml, see jetson/README.md.
+FROM ultralytics/ultralytics:latest-jetson-jetpack6
+
+WORKDIR /app
+
+# v4l2-ctl sets camera controls (50 Hz anti-flicker) on every start, see camera.py
+RUN apt-get update && apt-get install -y --no-install-recommends v4l-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir "redis>=5.0.0"
+COPY requirements-media.txt .
+RUN pip install --no-cache-dir -r requirements-media.txt
+
+COPY main.py plugin_config.py media.py live_view.py camera.py .
+
+CMD ["python3", "main.py"]

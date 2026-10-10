@@ -1,0 +1,24 @@
+# On the Jetson: the detector runs on the GPU with the TensorRT models and the USB camera.
+#   docker compose -f docker-compose.yml -f docker-compose.jetson.yml up -d --build
+# The .engine files are built on the Jetson itself (TensorRT builds are tied to the device), see jetson/README.md.
+services:
+  cv_pipeline:
+    build:
+      context: ./cv_pipeline
+      dockerfile: Dockerfile.jetson
+    runtime: nvidia
+    ipc: host
+    environment:
+      TEST_MODE: ${CV_TEST_MODE:-false}
+      MODEL_FORMAT: engine
+      # the camera's stable name: after a USB dropout it can come back as another /dev/videoN
+      SOURCE: ${CV_SOURCE:-/dev/v4l/by-id/usb-Arducam_Technology_Co.__Ltd._Arducam_12MP_SN0001-video-index0}
+      CAMERA_SIZE: ${CAMERA_SIZE:-1920x1080}
+      CAMERA_DECODE: ${CAMERA_DECODE:-half}
+    # all of /dev plus permission for any video device (major 81), so a camera that reconnects under a
+    # new number is still reachable without restarting the container
+    devices: !reset []
+    device_cgroup_rules:
+      - "c 81:* rmw"
+    volumes:
+      - /dev:/dev

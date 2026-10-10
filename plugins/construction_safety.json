@@ -30,6 +30,7 @@
     "extra_models": [
       {
         "model": "smoking.pt",
+        "every_n_frames": 3,
         "imgsz": 640,
         "default_confidence": 0.5,
         "classes": {

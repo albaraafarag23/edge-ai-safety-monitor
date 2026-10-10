@@ -20,6 +20,7 @@ class ModelConfig:
     imgsz: int
     class_ids: list[int]             # model class ids passed to YOLO
     thresholds: dict[str, float]     # class_name -> min confidence
+    every_n_frames: int = 1          # run on every n-th frame only, reuse the last result in between
 
     @property
     def min_confidence(self) -> float:
@@ -53,7 +54,7 @@ def rule_classes(rule: dict) -> set[str]:
 
 def model_specs(plugin: dict) -> list[dict]:
     """The main model's section, then each of detection.extra_models (same fields: model, imgsz,
-    default_confidence, classes)."""
+    default_confidence, classes, plus optional every_n_frames)."""
     det = plugin.get("detection") or {}
     return [det, *det.get("extra_models", [])]
 
@@ -68,7 +69,7 @@ def load_plugin(plugins_dir: str, plugin_id: str) -> dict:
 
 
 def build_config(plugin: dict, model_names: list[dict[int, str]], models_dir: str = ".",
-                 model_override: str | None = None) -> DetectionConfig:
+                 model_override: str | None = None, engine: bool = False) -> DetectionConfig:
     """model_names: each model's id -> class name map (YOLO(...).names), in model_specs order.
     A model without names (None) is skipped with a warning, e.g. an optional model not trained yet."""
     pid = plugin.get("plugin_id", "?")
@@ -77,7 +78,7 @@ def build_config(plugin: dict, model_names: list[dict[int, str]], models_dir: st
         raise PluginError(f"[{pid}] plugin has no detection.classes section")
 
     warnings, models, requested, not_loaded = [], [], set(), set()
-    for spec, names, path in zip(model_specs(plugin), model_names, model_paths(plugin, models_dir, model_override)):
+    for spec, names, path in zip(model_specs(plugin), model_names, model_paths(plugin, models_dir, model_override, engine)):
         requested |= set(spec.get("classes", {}))
         if names is None:
             not_loaded |= set(spec.get("classes", {}))
@@ -96,9 +97,10 @@ def build_config(plugin: dict, model_names: list[dict[int, str]], models_dir: st
             raise PluginError(f"[{pid}] none of the classes listed for {Path(path).name} exist in it "
                               f"(model classes: {sorted(name_to_id)})")
         models.append(ModelConfig(model_path=path, imgsz=int(spec.get("imgsz", det.get("imgsz", 640))),
-                                  class_ids=sorted(name_to_id[n] for n in thresholds), thresholds=thresholds))
+                                  class_ids=sorted(name_to_id[n] for n in thresholds), thresholds=thresholds,
+                                  every_n_frames=max(1, int(spec.get("every_n_frames", 1)))))
 
-    if not models or models[0].model_path != model_paths(plugin, models_dir, model_override)[0]:
+    if not models or models[0].model_path != model_paths(plugin, models_dir, model_override, engine)[0]:
         raise PluginError(f"[{pid}] the main model is required")
     detectable = {k for m in models for k in m.thresholds}
 
@@ -119,18 +121,24 @@ def build_config(plugin: dict, model_names: list[dict[int, str]], models_dir: st
     return DetectionConfig(plugin_id=pid, models=models, warnings=warnings)
 
 
-def model_paths(plugin: dict, models_dir: str = ".", model_override: str | None = None) -> list[str]:
-    """Paths of the main model (or model_override, e.g. a TensorRT .engine) and the extra models."""
+def model_paths(plugin: dict, models_dir: str = ".", model_override: str | None = None,
+                engine: bool = False) -> list[str]:
+    """Paths of the main model (or model_override) and the extra models. With engine=True (Jetson), each
+    model's TensorRT build next to it (smoking.pt -> smoking.engine) is used when it exists."""
     specs = model_specs(plugin)
     paths = [str(Path(models_dir) / spec.get("model", "yolo11n.pt")) for spec in specs]
+    if engine:
+        paths = [str(Path(p).with_suffix(".engine")) if Path(p).with_suffix(".engine").exists() else p
+                 for p in paths]
     if model_override:
         paths[0] = model_override
     return paths
 
 
-def check_main_model(plugin: dict, models_dir: str = ".", model_override: str | None = None):
+def check_main_model(plugin: dict, models_dir: str = ".", model_override: str | None = None,
+                     engine: bool = False):
     """The main model must exist before the detector starts; extra models are optional."""
-    path = model_paths(plugin, models_dir, model_override)[0]
+    path = model_paths(plugin, models_dir, model_override, engine)[0]
     if not Path(path).exists():
         raise PluginError(f"[{plugin.get('plugin_id', '?')}] model file not found: {path} "
                           f"(train it first, or set MODEL_PATH to use another model)")

@@ -7,6 +7,7 @@ import cv2
 import numpy as np
 import redis
 
+from camera import Camera
 from live_view import LiveView
 from media import MediaRecorder
 from plugin_config import (DetectionConfig, PluginError, build_config, check_main_model, load_plugin,
@@ -15,9 +16,14 @@ from plugin_config import (DetectionConfig, PluginError, build_config, check_mai
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 PLUGINS_DIR = os.getenv("PLUGINS_DIR", "../plugins")
 MODELS_DIR = os.getenv("MODELS_DIR", "../models")
-# Optional: use a different model file than the plugin names (e.g. a TensorRT .engine on the Jetson)
+# Optional: use a different main model file than the plugin names
 MODEL_OVERRIDE = os.getenv("MODEL_PATH") or None
+# "engine" on the Jetson: use each model's TensorRT build (construction_ppe.engine) when it exists
+USE_ENGINE = os.getenv("MODEL_FORMAT", "pt").lower() == "engine"
 SOURCE = os.getenv("SOURCE", "0")
+CAMERA_SIZE = os.getenv("CAMERA_SIZE", "1920x1080")
+CAMERA_DECODE = os.getenv("CAMERA_DECODE", "half")   # see camera.py
+CAMERA_CONTROLS = os.getenv("CAMERA_CONTROLS", "power_line_frequency=1")   # 50 Hz mains
 CAMERA_ID = os.getenv("CAMERA_ID", "cam_01")
 CAMERA_LOCATION = os.getenv("CAMERA_LOCATION") or None  # shown in the dashboard, e.g. "North gate"
 PLUGIN_ID = os.getenv("PLUGIN_ID", "construction_safety")
@@ -119,12 +125,13 @@ def run_test_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder, live: L
         time.sleep(1 / SYNTHETIC_FPS)
 
 
-def detect(model, cfg_model, boxes) -> list[dict]:
+def detect(model, cfg_model, boxes, scale: float = 1.0) -> list[dict]:
+    """scale maps boxes from the frame the model saw back to camera pixels (see camera.py)."""
     return [
         {
             "class_name": model.names[int(b.cls[0])],
             "confidence": round(float(b.conf[0]), 3),
-            "bbox": [round(v, 1) for v in b.xyxy[0].tolist()],
+            "bbox": [round(v * scale, 1) for v in b.xyxy[0].tolist()],
         }
         for b in boxes
         if cfg_model.keep(model.names[int(b.cls[0])], float(b.conf[0]))
@@ -134,39 +141,31 @@ def detect(model, cfg_model, boxes) -> list[dict]:
 def run_live_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder, live: LiveView):
     from ultralytics import YOLO
 
-    check_main_model(plugin, MODELS_DIR, MODEL_OVERRIDE)
-    paths = model_paths(plugin, MODELS_DIR, MODEL_OVERRIDE)
-    loaded = {p: YOLO(p) for p in paths if os.path.exists(p)}   # extra models are optional
-    cfg = build_config(plugin, [loaded[p].names if p in loaded else None for p in paths], MODELS_DIR, MODEL_OVERRIDE)
+    check_main_model(plugin, MODELS_DIR, MODEL_OVERRIDE, USE_ENGINE)
+    paths = model_paths(plugin, MODELS_DIR, MODEL_OVERRIDE, USE_ENGINE)
+    loaded = {p: YOLO(p, task="detect") for p in paths if os.path.exists(p)}   # extra models are optional
+    cfg = build_config(plugin, [loaded[p].names if p in loaded else None for p in paths], MODELS_DIR,
+                       MODEL_OVERRIDE, USE_ENGINE)
     log_config(cfg)
-    main_cfg, extras = cfg.models[0], cfg.models[1:]
-    model = loaded[main_cfg.model_path]
-    source = int(SOURCE) if SOURCE.isdigit() else SOURCE
-    print(f"[CV] LIVE MODE — source={source}  models={[m.model_path for m in cfg.models]}", flush=True)
+    camera = Camera(SOURCE, CAMERA_SIZE, decode=CAMERA_DECODE, controls=CAMERA_CONTROLS)
+    print(f"[CV] LIVE MODE — source={SOURCE}  models={[m.model_path for m in cfg.models]}", flush=True)
 
-    # e.g. "construction_ppe.pt+smoking.pt" when an extra model runs too
+    # e.g. "construction_ppe.engine+smoking.engine" when an extra model runs too
     model_name = "+".join(os.path.basename(m.model_path) for m in cfg.models)
     live.set_model(model_name)
-    for frame_id, result in enumerate(model.predict(
-        source=source,
-        conf=main_cfg.min_confidence,
-        classes=main_cfg.class_ids,
-        imgsz=main_cfg.imgsz,
-        stream=True,
-        show=False,
-        save=False,
-        verbose=False,
-    ), start=1):
-        detections = detect(model, main_cfg, result.boxes)
-        for extra in extras:   # same frame through each extra model (e.g. smoking)
-            extra_model = loaded[extra.model_path]
-            boxes = extra_model.predict(result.orig_img, conf=extra.min_confidence, classes=extra.class_ids,
-                                        imgsz=extra.imgsz, verbose=False)[0].boxes
-            detections += detect(extra_model, extra, boxes)
+    last = {}   # model path -> its latest detections, reused on frames it skips (every_n_frames)
+    for frame_id, frame in enumerate(camera.frames(), start=1):
+        detections = []
+        for m in cfg.models:   # main model, then each extra model (e.g. smoking) on the same frame
+            if (frame_id - 1) % m.every_n_frames == 0:
+                model = loaded[m.model_path]
+                boxes = model.predict(frame, conf=m.min_confidence, classes=m.class_ids, imgsz=m.imgsz,
+                                      verbose=False)[0].boxes
+                last[m.model_path] = detect(model, m, boxes, camera.scale)
+            detections += last[m.model_path]
 
-        h, w = result.orig_shape
-        message = detection_message(frame_id, detections, model_name, (w, h))
-        recorder.add(frame_id, result.orig_img, message["detections"])
+        message = detection_message(frame_id, detections, model_name, camera.frame_size)
+        recorder.add(frame_id, frame, message["detections"], 1 / camera.scale)
         publish(r, message)
         live.frame_processed()
 

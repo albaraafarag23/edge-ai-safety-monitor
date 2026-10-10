@@ -1,0 +1,46 @@
+{
+  "name": "oc_check_960_maxn",
+  "model": "/models/construction_ppe.engine",
+  "imgsz": 960,
+  "capture": "1920x1080",
+  "decode": "half",
+  "measured_at": "2026-10-10T18:44:44",
+  "power_mode": "MAXN_SUPER",
+  "idle": {
+    "power_w": 5.29,
+    "power_w_max": 5.94,
+    "gpu_load_pct": 0,
+    "samples": 10
+  },
+  "model_only": {
+    "mean_ms": 24.65,
+    "p50_ms": 24.28,
+    "p95_ms": 27.5,
+    "fps": 40.6,
+    "power_w": 13.49,
+    "power_w_max": 13.83,
+    "gpu_load_pct": 63,
+    "samples": 15
+  },
+  "camera_only": {
+    "fps": 33.3,
+    "power_w": 5.72,
+    "power_w_max": 9.74,
+    "gpu_load_pct": 1,
+    "samples": 20
+  },
+  "camera_and_model": {
+    "processed_fps": 33.0,
+    "camera_frames_skipped": 6,
+    "inference": {
+      "mean_ms": 27.57,
+      "p50_ms": 26.87,
+      "p95_ms": 31.68,
+      "fps": 36.3
+    },
+    "power_w": 12.04,
+    "power_w_max": 13.38,
+    "gpu_load_pct": 60,
+    "samples": 39
+  }
+}

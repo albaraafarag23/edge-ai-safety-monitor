@@ -73,7 +73,8 @@ class MediaRecorder:
         self._last_add = 0.0
 
     # ---------- called by the detector for every frame ----------
-    def add(self, frame_id: int, image, detections: list[dict]):
+    def add(self, frame_id: int, image, detections: list[dict], box_scale: float = 1.0):
+        """box_scale maps detection boxes onto `image` (0.5 when the frame was decoded at half the camera size)."""
         now = time.time()
         if now - self._last_add < 1 / BUFFER_FPS:
             return
@@ -81,7 +82,7 @@ class MediaRecorder:
         h, w = image.shape[:2]
         scale = min(1.0, MAX_WIDTH / w)
         small = cv2.resize(image, (int(w * scale), int(h * scale))) if scale < 1 else image.copy()
-        annotated = annotate(small, detections, scale)
+        annotated = annotate(small, detections, scale * box_scale)
         ok, jpg = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 85])
         if not ok:
             return
