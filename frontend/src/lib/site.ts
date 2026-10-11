@@ -15,6 +15,13 @@ export function useDemoStatus(): DemoStatus {
   const health = useQuery({
     queryKey: ["demo-health"],
     queryFn: async () => {
+      // first ask this site (a Cloudflare function checks the console: works on every network), then the console
+      // itself (when the function isn't deployed, e.g. a local build)
+      const viaSite = await fetch("/demo-health", { cache: "no-store", signal: AbortSignal.timeout(8000) }).catch(() => null);
+      if (viaSite?.headers.get("content-type")?.includes("application/json")) {
+        if (!viaSite.ok) throw new Error(String(viaSite.status));
+        return true;
+      }
       const res = await fetch(`${CONSOLE_URL}/api/health`, { cache: "no-store", signal: AbortSignal.timeout(8000) });
       if (!res.ok) throw new Error(String(res.status));
       return true;

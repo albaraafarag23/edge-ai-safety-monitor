@@ -38,9 +38,12 @@ run the command again. It prints the public address, e.g. `https://sitesentry.ta
 ### Keeping it reachable after a reboot
 `--bg` is not always enough: after a reboot the console can run fine and `tailscale funnel status` can say "on"
 while the public address no longer exists (public DNS answers "no such name"), so the product page shows
-"Live demo offline". Running `tailscale funnel --bg 3000` again brings it back. `scripts/funnel-watchdog.sh` does
-this by itself. Every 5 minutes it checks the address over the public internet, and after two failed checks in
-a row it switches Funnel on again. It does nothing if the console itself or the internet is down. Set it up once:
+"Live demo offline". Running `tailscale funnel --bg 3000` again brings it back. A second kind of breakage: the
+address exists, but the tunnel behind it is stuck (connections open, then the secure handshake is cut); then
+`tailscale funnel --https=443 off` followed by `--bg 3000` fixes it. `scripts/funnel-watchdog.sh` does both by
+itself. Every 5 minutes it checks the address over the public internet; on the second failed check in a row it
+switches Funnel on again, and from the third it switches it fully off and on. It does nothing if the console
+itself or the internet is down. Set it up once:
 
     sudo tailscale set --operator=$USER      # so Funnel can be changed without sudo
     (crontab -l 2>/dev/null; echo "*/5 * * * * $PWD/scripts/funnel-watchdog.sh") | crontab -
@@ -57,6 +60,11 @@ can keep getting "server can't be found" for up to about an hour. Airplane mode 
 
 It publishes to `https://edge-ai-safety.pages.dev` (Cloudflare adds a suffix if the name
 is taken). Run the script again after changing the product page.
+
+The "Live demo" badge asks `/demo-health` on the product page's own address. The script generates that as a small
+Cloudflare Pages Function (`frontend/functions/demo-health.js`, not in git) that checks the console from
+Cloudflare. A browser checking the console itself is blocked by Chrome on devices inside your tailnet, where the
+console's address is a private one, so those devices used to show "offline".
 
 ## Notes
 - Test mode (`CV_TEST_MODE=true`) creates a few incidents a minute, all day. Fine for a demo, but the

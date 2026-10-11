@@ -73,9 +73,34 @@ html {
 }
 .float-slow { animation: float 6s ease-in-out infinite; }
 .float-slower { animation: float 8s ease-in-out infinite 1s; }
+/* "How it works": a pulse along the flow line */
+@keyframes flow-pulse {
+  from { inset-inline-start: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  to { inset-inline-start: 100%; opacity: 0; }
+}
+.flow-pulse { animation: flow-pulse 3.2s ease-in-out infinite; }
+/* "Try it yourself": a scan over the photo, then the boxes and the steps appear */
+@keyframes try-scan {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(700%); }
+}
+.try-scan { animation: try-scan 1.3s ease-in-out both; }
+@keyframes try-pop {
+  from { opacity: 0; transform: scale(1.08); }
+  to { opacity: 1; transform: scale(1); }
+}
+.try-box { animation: try-pop 0.35s ease-out both; }
+/* slide only, no fade: text stays at full contrast the whole time */
+@keyframes try-step {
+  from { transform: translateY(14px); }
+  to { transform: translateY(0); }
+}
+.try-step { animation: try-step 0.45s ease-out both; }
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .scan-line, .float-slow, .float-slower { animation: none; }
+  .scan-line, .float-slow, .float-slower, .try-scan, .try-box, .try-step, .flow-pulse { animation: none; }
 }
 
 /* Product page ("edition" layout): the paper has a faint grain */

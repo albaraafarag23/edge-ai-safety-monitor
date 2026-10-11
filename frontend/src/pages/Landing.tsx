@@ -1,8 +1,9 @@
-import { ArrowRight, Check, Mail } from "lucide-react";
+import { ArrowRight, BellRing, Check, Cpu, Mail, ScanEye, Video } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { LogoMark, PRODUCT_NAME } from "../components/Brand";
 import { CameraFrame } from "../components/CameraFrame";
+import { TryIt } from "../components/TryIt";
 import {
   AutoVideo,
   Chapter,
@@ -50,7 +51,7 @@ const TEXT = bilingual(
     } as Record<DemoStatus, string>,
     demoOfflineHint: "The console runs on the on-site device, which is switched off at the moment",
     tagline: "Construction safety",
-    nav: { faq: "FAQ", team: "Team" },
+    nav: { faq: "FAQ", team: "Team", tryIt: "Try it" },
     severity: { CRITICAL: "CRITICAL", HIGH: "HIGH", MEDIUM: "MEDIUM" } as Record<Severity, string>,
     hero: {
       line1: "Every risk on site,",
@@ -147,7 +148,7 @@ const TEXT = bilingual(
         ["Evidence attached", "A snapshot of the moment the rule fired and a clip around it, saved with every incident."],
         ["No alert storms", "The same rule on the same camera isn't emailed again within a few minutes."],
         ["Desktop and sound", "High and critical incidents can pop up and chime on the supervisor's computer."],
-        ["Acknowledge, resolve", "Each incident has a status and a note, so nothing is handled twice or forgotten."],
+        ["I'm on it, Done", "One tap says who is dealing with an incident and another closes it, so nothing is handled twice or forgotten."],
       ] as Pair[],
     },
     rules: {
@@ -182,10 +183,10 @@ const TEXT = bilingual(
       tabsLabel: "Console screens",
       tour: {
         signin: ["Sign in", "Each person signs in with their own account; roles decide what they can change."],
-        overview: ["Overview", "A control room: the site's state in one sentence, the live camera, and new incidents as they arrive."],
-        cameras: ["Live cameras", "Watch every camera live, with what the detector sees drawn on the video."],
-        incident: ["Incident", "Each incident opens on its own snapshot, with the clip, the emailed AI report and the acknowledge-and-resolve workflow."],
-        analytics: ["Analytics", "Spot patterns: the busiest hours, the riskiest zones and the PPE most often missing."],
+        overview: ["Overview", "The site's state in one sentence, the live camera, and what to handle first, each with its next step and one-tap buttons."],
+        cameras: ["Live cameras", "Watch every camera live, and see where on site incidents happen most."],
+        incident: ["Incident", "Each incident starts with what to do now and who is on it, then the snapshot, the clip and the AI report."],
+        analytics: ["Analytics", "Patterns in plain sentences first, then the charts: the busiest hours, the riskiest zones, the gear most often missing."],
         rules: ["Safety rules", "Switch rules on and off, and set when each one applies and how serious it is."],
       } as Record<TourKey, Pair>,
       screenAlt: (label: string) => `${P} console: ${label}`,
@@ -199,6 +200,7 @@ const TEXT = bilingual(
         "Detection, rules and the console all run on a small computer on site. Only the text facts of an incident go to the AI " +
         "that writes the report, never images.",
       step: "Step",
+      facts: ["1080p camera, 30 frames a second", "YOLO + TensorRT on an NVIDIA Jetson", "Zones, distances, time and working hours", "Photo, video clip and written report"],
       steps: [
         ["See", "A camera on site streams to an NVIDIA Jetson edge device, which analyses the video right there."],
         ["Detect", "YOLO models optimised with TensorRT find people, PPE, machinery and cigarettes in every frame."],
@@ -226,7 +228,8 @@ const TEXT = bilingual(
         ["Can we turn off rules we don't need?", "Yes. Admins and supervisors can switch any rule off or back on from the console, with no restart, for example if smoking is allowed on your site. Each rule can also be limited to working hours, given a different severity, or set to wait longer before alerting. The console shows who changed what and when."],
         ["How far away can it spot smoking?", "A cigarette is much smaller than a hard hat, so smoking detection works at close range, within a few metres of the camera. It's best on a camera covering a no-smoking area, such as a fuel store or a site entrance. Vaping detection is in development."],
         ["Can the AI report make things up?", "It's instructed to use only the fields recorded for the incident, never to invent causes or names, and to write NOT SPECIFIED when something is missing. Recommended actions come from the site's own approved list. If the AI is unavailable, a fixed template is used instead."],
-        ["What happens if the internet goes down?", "Detection, the rules and the local console keep working, because they all run on site. Email and AI reports need the internet; without the AI, reports fall back to the template."],
+        ["What happens if the internet goes down?", "Detection, the rules and the local console keep working, because they all run on site. Alert emails wait and are sent automatically once the connection is back (retried for up to a day), so none are lost. Without the AI, reports fall back to the template."],
+        ["How does a supervisor deal with an incident?", "The console's front page lists what to handle first, each with the next step from the site's approved list. One tap on “I'm on it” tells everyone who is dealing with it, and “Done” closes it. Repeats of the same thing are grouped, so they can be closed together."],
         ["Is it only for construction?", "No. Each type of site is a plugin with its own model, zones, rules and report style. Construction is the first plugin; healthcare is in development."],
         ["Who can see the console?", "Only people with an account. Admins add users and choose their role: admin, supervisor (handles incidents) or viewer (read-only)."],
       ] as Pair[],
@@ -276,7 +279,7 @@ const TEXT = bilingual(
     },
     demoOfflineHint: "تعمل لوحة التحكم على جهاز الموقع، وهو مطفأ حاليًا",
     tagline: "سلامة مواقع البناء",
-    nav: { faq: "الأسئلة الشائعة", team: "الفريق" },
+    nav: { faq: "الأسئلة الشائعة", team: "الفريق", tryIt: "جرّبه" },
     severity: { CRITICAL: "حرج", HIGH: "مرتفع", MEDIUM: "متوسط" },
     hero: {
       line1: "كل خطر في الموقع،",
@@ -370,7 +373,7 @@ const TEXT = bilingual(
         ["الأدلة مرفقة", "لقطة للحظة تحقق القاعدة ومقطع حولها، محفوظان مع كل حادثة."],
         ["لا سيل من التنبيهات", "لا يُرسل بريد عن القاعدة نفسها على الكاميرا نفسها مرة أخرى خلال بضع دقائق."],
         ["إشعار وصوت", "يمكن أن تظهر الحوادث المرتفعة والحرجة إشعارًا مع صوت على حاسوب المشرف."],
-        ["استلام ثم حل", "لكل حادثة حالة وملاحظة، فلا يُعالج شيء مرتين ولا يُنسى."],
+        ["أتولّى الأمر، تم", "ضغطة تُعلم الجميع بمن يتعامل مع الحادثة وأخرى تغلقها، فلا يُعالج شيء مرتين ولا يُنسى."],
       ],
     },
     rules: {
@@ -405,10 +408,10 @@ const TEXT = bilingual(
       tabsLabel: "شاشات لوحة التحكم",
       tour: {
         signin: ["تسجيل الدخول", "يدخل كل شخص بحسابه الخاص، وتحدد الأدوار ما يمكنه تغييره."],
-        overview: ["نظرة عامة", "غرفة تحكم: حالة الموقع في جملة واحدة، والكاميرا المباشرة، والحوادث الجديدة لحظة وصولها."],
-        cameras: ["الكاميرات المباشرة", "شاهد كل كاميرا مباشرةً، مع ما يرصده النظام مرسومًا على الفيديو."],
-        incident: ["الحادثة", "تُفتح كل حادثة على لقطتها، مع المقطع وتقرير الذكاء الاصطناعي المرسل بالبريد وخطوات الاستلام والحل."],
-        analytics: ["التحليلات", "اكتشف الأنماط: أكثر الساعات ازدحامًا، وأخطر المناطق، وأكثر معدات الوقاية غيابًا."],
+        overview: ["نظرة عامة", "حالة الموقع في جملة واحدة، والكاميرا المباشرة، وما يجب البدء به مع الخطوة التالية وأزرار بضغطة واحدة."],
+        cameras: ["الكاميرات المباشرة", "شاهد كل كاميرا مباشرةً، واعرف أين تقع الحوادث أكثر في الموقع."],
+        incident: ["الحادثة", "تبدأ كل حادثة بما يجب عمله الآن ومن يتولّاها، ثم اللقطة والمقطع وتقرير الذكاء الاصطناعي."],
+        analytics: ["التحليلات", "الأنماط بجمل واضحة أولًا ثم الرسوم: أكثر الساعات ازدحامًا، وأخطر المناطق، والمعدات الأكثر نقصًا."],
         rules: ["قواعد السلامة", "شغّل القواعد وأوقفها، وحدد متى تُطبَّق كل قاعدة ومدى خطورتها."],
       },
       screenAlt: (label: string) => `لوحة تحكم ${P}: ${label}`,
@@ -422,6 +425,7 @@ const TEXT = bilingual(
         "يعمل الرصد والقواعد ولوحة التحكم كلها على حاسوب صغير في الموقع. ولا يُرسل إلى الذكاء الاصطناعي الذي يكتب " +
         "التقرير إلا الوقائع النصية للحادثة، ولا صور أبدًا.",
       step: "الخطوة",
+      facts: ["كاميرا 1080p بمعدل 30 إطارًا في الثانية", "YOLO وTensorRT على NVIDIA Jetson", "المناطق والمسافات والوقت وساعات العمل", "صورة ومقطع فيديو وتقرير مكتوب"],
       steps: [
         ["الرؤية", "تبث كاميرا في الموقع إلى جهاز طرفي من NVIDIA Jetson يحلل الفيديو في مكانه."],
         ["الرصد", "نماذج YOLO مُسرَّعة بـ TensorRT تجد الأشخاص ومعدات الوقاية والآليات والسجائر في كل إطار."],
@@ -449,7 +453,8 @@ const TEXT = bilingual(
         ["هل يمكننا إيقاف القواعد التي لا نحتاج إليها؟", "نعم. يمكن للمسؤولين والمشرفين إيقاف أي قاعدة أو إعادة تشغيلها من لوحة التحكم دون إعادة تشغيل النظام، مثلًا إذا كان التدخين مسموحًا في موقعكم. ويمكن أيضًا قصر كل قاعدة على ساعات العمل، أو تغيير درجة خطورتها، أو جعلها تنتظر مدة أطول قبل التنبيه. وتعرض لوحة التحكم من غيّر ماذا ومتى."],
         ["من أي مسافة يمكنه رصد التدخين؟", "السيجارة أصغر بكثير من الخوذة، لذلك يعمل رصد التدخين من مسافة قريبة، في حدود بضعة أمتار من الكاميرا. ويكون أفضل على كاميرا تغطي منطقة يُمنع فيها التدخين، مثل مخزن وقود أو مدخل الموقع. ورصد السجائر الإلكترونية قيد التطوير."],
         ["هل يمكن أن يختلق تقرير الذكاء الاصطناعي معلومات؟", "يُطلب منه استخدام الحقول المسجلة للحادثة فقط، وعدم اختلاق أسباب أو أسماء أبدًا، وكتابة «غير محدد» عند غياب معلومة. وتأتي الإجراءات الموصى بها من القائمة المعتمدة للموقع. وإذا تعذّر الوصول إلى الذكاء الاصطناعي يُستخدم نموذج ثابت بدلًا منه."],
-        ["ماذا يحدث إذا انقطع الإنترنت؟", "يستمر الرصد والقواعد ولوحة التحكم المحلية في العمل، لأنها كلها تعمل في الموقع. أما البريد وتقارير الذكاء الاصطناعي فتحتاج إلى الإنترنت، ودون الذكاء الاصطناعي تُكتب التقارير بالنموذج الثابت."],
+        ["ماذا يحدث إذا انقطع الإنترنت؟", "يستمر الرصد والقواعد ولوحة التحكم المحلية في العمل، لأنها كلها تعمل في الموقع. وتنتظر رسائل التنبيه ثم تُرسل تلقائيًا فور عودة الاتصال (مع إعادة المحاولة لمدة تصل إلى يوم)، فلا يضيع منها شيء. ودون الذكاء الاصطناعي تُكتب التقارير بالنموذج الثابت."],
+        ["كيف يتعامل المشرف مع الحادثة؟", "تعرض الصفحة الأولى في لوحة التحكم ما يجب البدء به، ومع كل حادثة الخطوة التالية من قائمة الموقع المعتمدة. ضغطة واحدة على «أتولّى الأمر» تُعلم الجميع بمن يتعامل معها، و«تم» تغلقها. وتُجمع الحوادث المتكررة معًا ليمكن إغلاقها دفعة واحدة."],
         ["هل هو لمواقع البناء فقط؟", "لا. كل نوع من المواقع إضافة لها نموذجها ومناطقها وقواعدها وأسلوب تقاريرها. مواقع البناء هي الإضافة الأولى، والرعاية الصحية قيد التطوير."],
         ["من يمكنه رؤية لوحة التحكم؟", "أصحاب الحسابات فقط. يضيف المسؤولون المستخدمين ويختارون أدوارهم: مسؤول، أو مشرف (يتعامل مع الحوادث)، أو مشاهد (للقراءة فقط)."],
       ],
@@ -557,6 +562,9 @@ function TopBar({ surface }: { surface: "dark" | "light" }) {
           </span>
         </Link>
         <nav className="ms-auto hidden items-center gap-6 font-display text-sm md:flex">
+          <a href="#try" className="opacity-80 hover:opacity-100">
+            {t.nav.tryIt}
+          </a>
           <a href="#faq" className="opacity-80 hover:opacity-100">
             {t.nav.faq}
           </a>
@@ -608,6 +616,9 @@ function Hero() {
             <ConsoleButton className="bg-amber-400 px-5 py-2.5 text-sm text-ink hover:bg-amber-300">
               {t.signInConsole} <ForwardArrow />
             </ConsoleButton>
+            <a href="#try" className="rounded-full px-4 py-2.5 text-sm font-semibold text-paper ring-1 ring-paper/40 hover:bg-white/10">
+              {t.nav.tryIt}
+            </a>
             <DemoBadge />
           </div>
         </div>
@@ -826,22 +837,37 @@ function ConsoleChapter() {
   );
 }
 
+const FLOW_ICONS = [Video, ScanEye, Cpu, BellRing];
+
 function EdgeChapter() {
   const t = useText(TEXT).edge;
   return (
     <Chapter id="edge" n={7} title={t.title} kicker={t.kicker} photo="how">
       <Lead title={t.leadTitle}>{t.lead}</Lead>
-      <ol className="mt-16 grid gap-x-8 gap-y-12 md:grid-cols-2 xl:grid-cols-4">
-        {t.steps.map(([title, text], i) => (
-          <li key={title} className="reveal border-t border-ink/20 pt-4">
-            <p className="font-serif text-lg text-amber-700 italic">
-              {t.step} {ROMAN[i]}
-            </p>
-            <p className="mt-1 font-display text-2xl font-semibold tracking-tight">{title}</p>
-            <p className="mt-2 text-[15px] leading-6 text-ink/60">{text}</p>
-          </li>
-        ))}
-      </ol>
+      {/* the four steps as one flow: a pulse travels along the line from the camera to the supervisor */}
+      <div className="relative mt-16">
+        <div className="absolute inset-x-[12.5%] top-7 hidden h-px bg-ink/15 xl:block" aria-hidden>
+          <span className="flow-pulse absolute -top-[3px] h-[7px] w-[7px] rounded-full bg-amber-500 shadow-[0_0_12px_rgb(245_158_11/0.9)]" />
+        </div>
+        <ol className="grid gap-x-8 gap-y-10 md:grid-cols-2 xl:grid-cols-4">
+          {t.steps.map(([title, text], i) => {
+            const Icon = FLOW_ICONS[i];
+            return (
+              <li key={title} className="reveal relative xl:text-center">
+                <span className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full bg-ink text-amber-300 ring-8 ring-paper xl:mx-auto">
+                  <Icon className="h-6 w-6" />
+                </span>
+                <p className="mt-4 font-serif text-lg text-amber-700 italic">
+                  {t.step} {ROMAN[i]}
+                </p>
+                <p className="mt-1 font-display text-2xl font-semibold tracking-tight">{title}</p>
+                <p className="mt-2 text-[15px] leading-6 text-ink/60">{text}</p>
+                <p className="mt-3 inline-block rounded-full bg-ink/[0.06] px-3 py-1 text-xs font-semibold text-ink/70">{t.facts[i]}</p>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
       <div className="mt-16 grid gap-4 md:grid-cols-2">
         {t.plugins.map(([title, status, text, available]) => (
           <div key={title} className="reveal rounded-md bg-ink p-6 text-paper">
@@ -996,6 +1022,7 @@ export function Landing() {
       <ChapterIndex chapters={t.chapters} active={active} label={t.chaptersLabel} />
       <main>
         <Hero />
+        <TryIt />
         <PpeChapter />
         <SmokingChapter />
         <ZonesChapter />

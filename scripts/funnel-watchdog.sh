@@ -4,6 +4,7 @@
 #
 # Why: after a reboot (2026-10-11) the console was fine locally and `tailscale funnel status` said "on", but the
 # public DNS record was gone, so the product page showed "Live demo offline" until Funnel was switched on again.
+# Later the same day the record was there but the tunnel behind it was stuck; switching Funnel off and on fixed it.
 # A check from this laptop must go over the public internet: the laptop's own DNS (MagicDNS) answers with the
 # Tailscale address and would say all is well. Needs `sudo tailscale set --operator=$USER` once (done).
 set -u
@@ -45,9 +46,20 @@ fi
 echo x >> "$FAILS"
 n=$(wc -l < "$FAILS")
 log "check failed ($problem), $n in a row"
-if [ "$n" -ge 2 ]; then
+# 2nd failure: switch it on again (fixes a missing public DNS record, seen after a reboot).
+# 3rd failure on: switch it fully off and on, which rebuilds the tunnel behind the address (seen 2026-10-11 evening:
+# the address existed, but the relay cut every TLS handshake; re-applying the same setting changed nothing).
+if [ "$n" -eq 2 ]; then
     if out=$(tailscale funnel --bg "$TARGET" 2>&1); then
         log "switched Funnel on again"
+    else
+        log "could not switch Funnel on: $out"
+    fi
+elif [ "$n" -ge 3 ]; then
+    tailscale funnel --https=443 off >/dev/null 2>&1
+    sleep 3
+    if out=$(tailscale funnel --bg "$TARGET" 2>&1); then
+        log "switched Funnel off and on again"
     else
         log "could not switch Funnel on: $out"
     fi

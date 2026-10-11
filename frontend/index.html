@@ -3,12 +3,26 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23f59e0b' d='M12 2 2 21h20L12 2zm0 6 1 7h-2l1-7zm0 9a1.2 1.2 0 1 1 0 2.4A1.2 1.2 0 0 1 12 17z'/></svg>" />
+    <!-- the logo: an eye inside a shield, on amber -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#14110f" />
     <title>SiteSentry · Edge AI construction safety monitoring</title>
     <meta name="description" content="SiteSentry watches site cameras on an edge device, flags missing PPE, restricted-zone entries and machinery near misses in real time, and writes the incident report with AI." />
+    <!-- link previews (WhatsApp, LinkedIn, X). deploy-site.sh makes og:image and og:url absolute for the public site -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SiteSentry" />
     <meta property="og:title" content="SiteSentry · Edge AI construction safety monitoring" />
-    <meta property="og:description" content="Real-time edge AI safety monitoring with generative incident reporting. A capstone project at Misr University for Science &amp; Technology." />
-    <meta property="og:image" content="/screenshots/overview.jpg" />
+    <meta property="og:description" content="A camera that spots missing hard hats, people in danger zones and machinery near misses as they happen, and tells the supervisor in plain words. Capstone project, Misr University for Science &amp; Technology." />
+    <meta property="og:image" content="/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="SiteSentry: every risk on site, caught as it happens" />
+    <meta property="og:url" content="/" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="ar_EG" />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
     <div id="root"></div>

@@ -44,11 +44,11 @@ export function splitInitial(text: string, lang: string): [string, string] {
 }
 
 /** A heading whose first letter is a large serif italic initial, the way magazines open a story. */
-export function Flourish({ text, className = "" }: { text: string; className?: string }) {
+export function Flourish({ text, className = "", as: Tag = "h3" }: { text: string; className?: string; as?: "h2" | "h3" }) {
   const { lang } = useLang();
   const [initial, rest] = splitInitial(text, lang);
   return (
-    <h3 className={`font-serif text-[2.6rem] leading-[1.05] tracking-tight text-balance sm:text-6xl ${className}`}>
+    <Tag className={`font-serif text-[2.6rem] leading-[1.05] tracking-tight text-balance sm:text-6xl ${className}`}>
       <span
         className={`me-[0.02em] inline-block align-[-0.08em] leading-none text-amber-600 italic ${
           lang === "ar" ? "text-[1.15em]" : "text-[1.45em]"
@@ -57,7 +57,7 @@ export function Flourish({ text, className = "" }: { text: string; className?: s
         {initial}
       </span>
       {rest}
-    </h3>
+    </Tag>
   );
 }
 

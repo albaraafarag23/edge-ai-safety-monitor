@@ -1,0 +1,192 @@
+[
+ {
+  "key": "vest",
+  "image": "/edition/try-vest.webp",
+  "width": 640,
+  "height": 640,
+  "boxes": [
+   {
+    "cls": "NO-Safety Vest",
+    "label": {
+     "en": "No safety vest",
+     "ar": "بدون سترة"
+    },
+    "box": [
+     0.2736,
+     0.003,
+     0.5406,
+     0.3611
+    ],
+    "bad": true
+   },
+   {
+    "cls": "Hardhat",
+    "label": {
+     "en": "Hard hat",
+     "ar": "خوذة"
+    },
+    "box": [
+     0.496,
+     0.0001,
+     0.5852,
+     0.1518
+    ],
+    "bad": false
+   }
+  ],
+  "event_type": "PPE_MISSING",
+  "severity": "HIGH",
+  "missing": [
+   "safety_vest"
+  ],
+  "location": "Formwork area",
+  "duration": 12.4,
+  "actions": {
+   "en": [
+    "Stop the worker and require a high-visibility vest before they continue work.",
+    "Check that high-visibility vests are available at the site entrance.",
+    "Record the violation and repeat the PPE briefing at the next toolbox talk."
+   ],
+   "ar": [
+    "أوقف العامل واطلب منه ارتداء السترة العاكسة قبل متابعة العمل.",
+    "تأكد من توفر السترات العاكسة عند مدخل الموقع.",
+    "سجّل المخالفة وأعد شرح تعليمات معدات الوقاية في اجتماع السلامة القادم."
+   ]
+  },
+  "report": {
+   "en": "# Safety Incident Report: PPE missing\n## Summary\nPPE missing (severity HIGH) was detected on camera cam_01, location Formwork area, at 2026-10-11T08:14:05Z UTC. The condition lasted 12.4 seconds before the alert.\n## Violations\n- RULE_PPE_02: High-visibility safety vest required on site\n## Findings\n- Event ID: evt_sample_vest\n- Time (UTC): 2026-10-11T08:14:05Z\n- Camera: cam_01\n- Location: Formwork area\n- Duration: 12.4 s\n- Severity: HIGH\n- Detected entities: Hardhat, NO-Safety Vest\n- Missing equipment: safety_vest\n- Evidence attached: snapshot, video_clip\n## Recommended Actions\n1. Stop the worker and require a high-visibility vest before they continue work.\n2. Check that high-visibility vests are available at the site entrance.\n3. Record the violation and repeat the PPE briefing at the next toolbox talk.",
+   "ar": "# تقرير حادثة سلامة: معدات وقاية ناقصة\n## الملخص\nرُصدت حادثة «معدات وقاية ناقصة» (الخطورة: مرتفعة) على الكاميرا cam_01، في الموقع: Formwork area، بتاريخ 2026-10-11T08:14:05Z (بالتوقيت العالمي UTC). استمرت الحالة 12.4 ثانية قبل التنبيه.\n## المخالفات\n- RULE_PPE_02: ارتداء السترة العاكسة إلزامي في الموقع\n## النتائج\n- رقم الحادثة: evt_sample_vest\n- الوقت (UTC): 2026-10-11T08:14:05Z\n- الكاميرا: cam_01\n- الموقع: Formwork area\n- المدة: 12.4 ثانية\n- الخطورة: مرتفعة\n- ما رُصد: خوذة، بدون سترة\n- المعدات الناقصة: سترة عاكسة\n- الأدلة المرفقة: لقطة، مقطع فيديو\n## الإجراءات الموصى بها\n1. أوقف العامل واطلب منه ارتداء السترة العاكسة قبل متابعة العمل.\n2. تأكد من توفر السترات العاكسة عند مدخل الموقع.\n3. سجّل المخالفة وأعد شرح تعليمات معدات الوقاية في اجتماع السلامة القادم."
+  }
+ },
+ {
+  "key": "hardhat",
+  "image": "/edition/try-hardhat.webp",
+  "width": 640,
+  "height": 640,
+  "boxes": [
+   {
+    "cls": "NO-Hardhat",
+    "label": {
+     "en": "No hard hat",
+     "ar": "بدون خوذة"
+    },
+    "box": [
+     0.3786,
+     0.1085,
+     0.4753,
+     0.2154
+    ],
+    "bad": true
+   },
+   {
+    "cls": "NO-Safety Vest",
+    "label": {
+     "en": "No safety vest",
+     "ar": "بدون سترة"
+    },
+    "box": [
+     0.3191,
+     0.3245,
+     0.549,
+     1.0
+    ],
+    "bad": true
+   }
+  ],
+  "event_type": "PPE_MISSING",
+  "severity": "HIGH",
+  "missing": [
+   "hard_hat",
+   "safety_vest"
+  ],
+  "location": "Site entrance",
+  "duration": 9.0,
+  "actions": {
+   "en": [
+    "Stop the worker and require a hard hat before they continue work.",
+    "Check that hard hats are available at the site entrance.",
+    "Record the violation and repeat the PPE briefing at the next toolbox talk."
+   ],
+   "ar": [
+    "أوقف العامل واطلب منه ارتداء الخوذة قبل متابعة العمل.",
+    "تأكد من توفر الخوذات عند مدخل الموقع.",
+    "سجّل المخالفة وأعد شرح تعليمات معدات الوقاية في اجتماع السلامة القادم."
+   ]
+  },
+  "report": {
+   "en": "# Safety Incident Report: PPE missing\n## Summary\nPPE missing (severity HIGH) was detected on camera cam_01, location Site entrance, at 2026-10-11T08:14:05Z UTC. The condition lasted 9.0 seconds before the alert.\n## Violations\n- RULE_PPE_01: Hard hat required on site\n## Findings\n- Event ID: evt_sample_hardhat\n- Time (UTC): 2026-10-11T08:14:05Z\n- Camera: cam_01\n- Location: Site entrance\n- Duration: 9.0 s\n- Severity: HIGH\n- Detected entities: NO-Hardhat, NO-Safety Vest\n- Missing equipment: hard_hat, safety_vest\n- Evidence attached: snapshot, video_clip\n## Recommended Actions\n1. Stop the worker and require a hard hat before they continue work.\n2. Check that hard hats are available at the site entrance.\n3. Record the violation and repeat the PPE briefing at the next toolbox talk.",
+   "ar": "# تقرير حادثة سلامة: معدات وقاية ناقصة\n## الملخص\nرُصدت حادثة «معدات وقاية ناقصة» (الخطورة: مرتفعة) على الكاميرا cam_01، في الموقع: Site entrance، بتاريخ 2026-10-11T08:14:05Z (بالتوقيت العالمي UTC). استمرت الحالة 9.0 ثانية قبل التنبيه.\n## المخالفات\n- RULE_PPE_01: ارتداء الخوذة إلزامي في الموقع\n## النتائج\n- رقم الحادثة: evt_sample_hardhat\n- الوقت (UTC): 2026-10-11T08:14:05Z\n- الكاميرا: cam_01\n- الموقع: Site entrance\n- المدة: 9.0 ثانية\n- الخطورة: مرتفعة\n- ما رُصد: بدون خوذة، بدون سترة\n- المعدات الناقصة: خوذة، سترة عاكسة\n- الأدلة المرفقة: لقطة، مقطع فيديو\n## الإجراءات الموصى بها\n1. أوقف العامل واطلب منه ارتداء الخوذة قبل متابعة العمل.\n2. تأكد من توفر الخوذات عند مدخل الموقع.\n3. سجّل المخالفة وأعد شرح تعليمات معدات الوقاية في اجتماع السلامة القادم."
+  }
+ },
+ {
+  "key": "machinery",
+  "image": "/edition/try-machinery.webp",
+  "width": 640,
+  "height": 520,
+  "boxes": [
+   {
+    "cls": "Person",
+    "label": {
+     "en": "Person",
+     "ar": "شخص"
+    },
+    "box": [
+     0.5058,
+     0.3665,
+     0.606,
+     0.8752
+    ],
+    "bad": true
+   },
+   {
+    "cls": "Person",
+    "label": {
+     "en": "Person",
+     "ar": "شخص"
+    },
+    "box": [
+     0.4026,
+     0.484,
+     0.5446,
+     0.9998
+    ],
+    "bad": true
+   },
+   {
+    "cls": "machinery",
+    "label": {
+     "en": "Machinery",
+     "ar": "آلة"
+    },
+    "box": [
+     0.351,
+     0.1294,
+     0.9947,
+     0.9682
+    ],
+    "bad": true
+   }
+  ],
+  "event_type": "PERSON_NEAR_MACHINERY",
+  "severity": "CRITICAL",
+  "missing": [],
+  "location": "Earthworks",
+  "duration": 3.2,
+  "actions": {
+   "en": [
+    "Stop the machine and separate the worker from it immediately.",
+    "Re-establish the exclusion zone around operating machinery.",
+    "Brief the operator and nearby workers on safe distances and a banksman's role."
+   ],
+   "ar": [
+    "أوقف الآلة وأبعد العامل عنها فورًا.",
+    "أعد تحديد منطقة الحظر حول الآلات العاملة.",
+    "اشرح للمشغل والعمال القريبين مسافات الأمان ودور الموجّه."
+   ]
+  },
+  "report": {
+   "en": "# Safety Incident Report: Person near machinery\n## Summary\nPerson near machinery (severity CRITICAL) was detected on camera cam_01, location Earthworks, at 2026-10-11T08:14:05Z UTC. The condition lasted 3.2 seconds before the alert.\n## Violations\n- RULE_PROX_01: Worker too close to moving machinery\n## Findings\n- Event ID: evt_sample_machinery\n- Time (UTC): 2026-10-11T08:14:05Z\n- Camera: cam_01\n- Location: Earthworks\n- Duration: 3.2 s\n- Severity: CRITICAL\n- Detected entities: Person, machinery\n- Missing equipment: NOT SPECIFIED\n- Evidence attached: snapshot, video_clip\n## Recommended Actions\n1. Stop the machine and separate the worker from it immediately.\n2. Re-establish the exclusion zone around operating machinery.\n3. Brief the operator and nearby workers on safe distances and a banksman's role.",
+   "ar": "# تقرير حادثة سلامة: شخص قرب آلة\n## الملخص\nرُصدت حادثة «شخص قرب آلة» (الخطورة: حرجة) على الكاميرا cam_01، في الموقع: Earthworks، بتاريخ 2026-10-11T08:14:05Z (بالتوقيت العالمي UTC). استمرت الحالة 3.2 ثانية قبل التنبيه.\n## المخالفات\n- RULE_PROX_01: عامل قريب جدًا من آلة تعمل\n## النتائج\n- رقم الحادثة: evt_sample_machinery\n- الوقت (UTC): 2026-10-11T08:14:05Z\n- الكاميرا: cam_01\n- الموقع: Earthworks\n- المدة: 3.2 ثانية\n- الخطورة: حرجة\n- ما رُصد: شخص، آلات\n- المعدات الناقصة: غير محدد\n- الأدلة المرفقة: لقطة، مقطع فيديو\n## الإجراءات الموصى بها\n1. أوقف الآلة وأبعد العامل عنها فورًا.\n2. أعد تحديد منطقة الحظر حول الآلات العاملة.\n3. اشرح للمشغل والعمال القريبين مسافات الأمان ودور الموجّه."
+  }
+ }
+]
