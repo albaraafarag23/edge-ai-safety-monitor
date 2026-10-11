@@ -20,6 +20,8 @@ SITE_TIMEZONE = os.getenv("SITE_TIMEZONE", "Africa/Cairo")
 # (backend/rule_settings.py)
 SETTINGS_KEY = "rules:settings:{plugin_id}"
 SETTINGS_REFRESH_S = 2.0
+# wait between attempts while Redis is unreachable (doubles up to the maximum)
+RECONNECT_MIN_S, RECONNECT_MAX_S = 1.0, 10.0
 
 
 def load_plugins(plugins_dir: str) -> dict:
@@ -45,16 +47,40 @@ def refresh_settings(r, engine: RuleEngine):
         engine.settings[plugin_id] = settings
 
 
-def main():
-    r = redis.from_url(REDIS_URL, decode_responses=True)
-    engine = RuleEngine(load_plugins(PLUGINS_DIR), cooldown_s=COOLDOWN_SECONDS, site_tz=SITE_TIMEZONE)
-
+def ensure_group(r):
     try:
         r.xgroup_create(DETECTION_STREAM, CONSUMER_GROUP, id="0", mkstream=True)
     except redis.exceptions.ResponseError as e:
         if "BUSYGROUP" not in str(e):
             raise
 
+
+def main():
+    r = redis.from_url(REDIS_URL, decode_responses=True)
+    engine = RuleEngine(load_plugins(PLUGINS_DIR), cooldown_s=COOLDOWN_SECONDS, site_tz=SITE_TIMEZONE)
+
+    # A Redis restart must not restart the engine: that would lose the rule state (how long each
+    # violation has lasted, cooldowns). redis-py reconnects on the next command, so wait and retry.
+    wait = 0.0
+    while True:
+        try:
+            # after a reconnect Redis may be back without the group (no append-only file)
+            ensure_group(r)
+            if wait:
+                print("[EE] Redis is back", flush=True)
+                wait = 0.0
+            run(r, engine)
+        except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
+            wait = min(wait * 2, RECONNECT_MAX_S) if wait else RECONNECT_MIN_S
+            print(f"[EE] Redis unreachable ({e}), retrying in {wait:.0f} s", flush=True)
+            time.sleep(wait)
+        except redis.exceptions.ResponseError as e:
+            if "NOGROUP" not in str(e):
+                raise
+            print("[EE] Consumer group missing, creating it again", flush=True)
+
+
+def run(r, engine: RuleEngine):
     print(f"[EE] Listening on '{DETECTION_STREAM}'...", flush=True)
 
     last_refresh = 0.0
@@ -62,6 +88,8 @@ def main():
         if time.monotonic() - last_refresh >= SETTINGS_REFRESH_S:
             try:
                 refresh_settings(r, engine)
+            except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
+                raise
             except redis.exceptions.RedisError as e:
                 print(f"[EE] Couldn't read rule settings, keeping the last ones: {e}", flush=True)
             last_refresh = time.monotonic()

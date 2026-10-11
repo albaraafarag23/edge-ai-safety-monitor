@@ -100,14 +100,17 @@ class MediaRecorder:
     def _listen(self):
         r = redis.from_url(self.redis_url, decode_responses=True)
         group = f"media_{self.camera_id}"
-        try:
-            r.xgroup_create(INCIDENT_STREAM, group, id="$", mkstream=True)
-        except redis.exceptions.ResponseError as e:
-            if "BUSYGROUP" not in str(e):
-                raise
         print(f"[CV] Media recorder ready ({MEDIA_SUMMARY}) -> {self.media_dir}", flush=True)
+        need_group = True
         while True:
             try:
+                if need_group:  # at start, and if Redis came back without the group
+                    try:
+                        r.xgroup_create(INCIDENT_STREAM, group, id="$", mkstream=True)
+                    except redis.exceptions.ResponseError as e:
+                        if "BUSYGROUP" not in str(e):
+                            raise
+                    need_group = False
                 messages = r.xreadgroup(group, "detector", {INCIDENT_STREAM: ">"}, count=10, block=1000)
                 for _, entries in messages or []:
                     for msg_id, data in entries:
@@ -118,9 +121,13 @@ class MediaRecorder:
                         except Exception as e:  # never let one bad incident stop the recorder
                             print(f"[CV] Media: could not save for message {msg_id}: {e}", flush=True)
                         r.xack(INCIDENT_STREAM, group, msg_id)
-            except redis.exceptions.ConnectionError as e:
+            except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
                 print(f"[CV] Media: Redis connection lost ({e}), retrying", flush=True)
                 time.sleep(2)
+            except redis.exceptions.ResponseError as e:
+                if "NOGROUP" not in str(e):
+                    raise
+                need_group = True
 
     def _path(self, url: str | None) -> Path | None:
         if not url or not url.startswith("/media/"):

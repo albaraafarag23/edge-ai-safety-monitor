@@ -47,13 +47,16 @@ class StatusIn(BaseModel):
     note: str | None = None
 
 
-async def consume_incidents(r: aioredis.Redis):
+async def ensure_group(r: aioredis.Redis):
     try:
         await r.xgroup_create(INCIDENT_STREAM, CONSUMER_GROUP, id="0", mkstream=True)
     except Exception as e:
         if "BUSYGROUP" not in str(e):
             print(f"[Backend] xgroup_create: {e}", flush=True)
 
+
+async def consume_incidents(r: aioredis.Redis):
+    await ensure_group(r)
     print("[Backend] Consuming incidents stream...", flush=True)
 
     # Incidents read but never acknowledged (a failed save, or a restart mid-save) stay pending in the
@@ -98,6 +101,8 @@ async def consume_incidents(r: aioredis.Redis):
             print(f"[Backend] Consumer error: {e}", flush=True)
             backlog = True
             await asyncio.sleep(1)
+            if "NOGROUP" in str(e):  # Redis came back without the group (no append-only file)
+                await ensure_group(r)
 
 
 @asynccontextmanager

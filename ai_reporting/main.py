@@ -38,6 +38,8 @@ EMAIL_LANGUAGE = os.getenv("EMAIL_LANGUAGE", "en").strip().lower() or "en"
 INCIDENT_STREAM = "incidents"
 CONSUMER_GROUP = "ai_reporting"
 CONSUMER_NAME = "reporter_01"
+# wait between attempts while Redis is unreachable (doubles up to the maximum)
+RECONNECT_MIN_S, RECONNECT_MAX_S = 1.0, 10.0
 
 
 def load_plugins() -> dict:
@@ -222,23 +224,47 @@ def handle(r, incident: dict, plugins: dict, client, last_notified: dict):
           f"{' (' + delivery['error'] + ')' if delivery.get('error') else ''}", flush=True)
 
 
-def main():
-    r = redis.from_url(REDIS_URL, decode_responses=True)
+def ensure_group(r):
     try:
         r.xgroup_create(INCIDENT_STREAM, CONSUMER_GROUP, id="0", mkstream=True)
     except redis.exceptions.ResponseError as e:
         if "BUSYGROUP" not in str(e):
             raise
 
+
+def main():
+    r = redis.from_url(REDIS_URL, decode_responses=True)
     plugins = load_plugins()
     client = claude_client()
     print(f"[AI] Ready. Plugins: {list(plugins)}. Reports by: {MODEL if client else 'template (no API key)'}, "
           f"in {', '.join(REPORT_LANGUAGES)}; email in {EMAIL_LANGUAGE}. "
           f"Email: {'to ' + ', '.join(notify.RECIPIENTS) if notify.configured() else 'not configured'}.", flush=True)
 
-    if outbox.pending(r):
-        print(f"[AI] {outbox.pending(r)} email(s)/report(s) waiting to be retried", flush=True)
+    # A Redis restart must not restart this service: that would forget which alerts were just sent
+    # (last_notified) and send repeats. redis-py reconnects on the next command, so wait and retry.
     last_notified = {}
+    wait = 0.0
+    while True:
+        try:
+            # after a reconnect Redis may be back without the group (no append-only file)
+            ensure_group(r)
+            if wait:
+                print("[AI] Redis is back", flush=True)
+                wait = 0.0
+            if outbox.pending(r):
+                print(f"[AI] {outbox.pending(r)} email(s)/report(s) waiting to be retried", flush=True)
+            run(r, plugins, client, last_notified)
+        except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
+            wait = min(wait * 2, RECONNECT_MAX_S) if wait else RECONNECT_MIN_S
+            print(f"[AI] Redis unreachable ({e}), retrying in {wait:.0f} s", flush=True)
+            time.sleep(wait)
+        except redis.exceptions.ResponseError as e:
+            if "NOGROUP" not in str(e):
+                raise
+            print("[AI] Consumer group missing, creating it again", flush=True)
+
+
+def run(r, plugins: dict, client, last_notified: dict):
     while True:
         try:
             process_outbox(r)

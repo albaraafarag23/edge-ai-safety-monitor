@@ -76,9 +76,25 @@ def detection_message(frame_id: int, detections: list[dict], model_name: str, fr
     }
 
 
+_redis_down_since: float | None = None
+
+
 def publish(r: redis.Redis, message: dict):
     # one stream entry per frame; the whole message is JSON in the "data" field
-    r.xadd(STREAM_KEY, {"data": json.dumps(message)}, maxlen=1000)
+    global _redis_down_since
+    try:
+        r.xadd(STREAM_KEY, {"data": json.dumps(message)}, maxlen=1000)
+    except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
+        # A Redis restart must not stop detection (reopening the camera and loading the models takes
+        # a while on the Jetson). Detections are live data, so the ones made meanwhile are dropped;
+        # redis-py reconnects on the next frame.
+        if _redis_down_since is None:
+            _redis_down_since = time.monotonic()
+            print(f"[CV] Redis unreachable ({e}); detection continues, results dropped until it is back", flush=True)
+        return
+    if _redis_down_since is not None:
+        print(f"[CV] Redis is back after {time.monotonic() - _redis_down_since:.0f} s", flush=True)
+        _redis_down_since = None
 
 
 def synthetic_frame(frame_id: int):
