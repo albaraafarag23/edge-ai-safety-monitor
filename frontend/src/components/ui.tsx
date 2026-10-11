@@ -1,3 +1,4 @@
+import { ApiError } from "../api/client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { IncidentStatus, Severity } from "../api/types";
 import { SEVERITY_STYLES, STATUS_STYLES } from "../lib/format";
@@ -8,7 +9,9 @@ const TEXT = bilingual(
   {
     loading: "Loading…",
     loadFailed: "Couldn't load data",
-    backendHint: (message: string) => `${message}. Is the backend running?`,
+    backendHint: (message: string) => message,
+    serverDown: "Can't reach the console's server right now",
+    serverDownHint: "The site computer may be restarting. This page tries again by itself.",
     somethingWrong: "Something went wrong",
     tryAgain: "Try again",
     close: "Close",
@@ -16,7 +19,9 @@ const TEXT = bilingual(
   {
     loading: "جارٍ التحميل…",
     loadFailed: "تعذّر تحميل البيانات",
-    backendHint: (message: string) => `${message}. هل الخادم يعمل؟`,
+    backendHint: (message: string) => message,
+    serverDown: "تعذّر الوصول إلى خادم لوحة التحكم الآن",
+    serverDownHint: "ربما يُعاد تشغيل جهاز الموقع. تعيد هذه الصفحة المحاولة تلقائيًا.",
     somethingWrong: "حدث خطأ ما",
     tryAgain: "إعادة المحاولة",
     close: "إغلاق",
@@ -122,10 +127,12 @@ export function Spinner({ label }: { label?: string }) {
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const t = useText(TEXT);
   const message = error instanceof Error ? error.message : t.somethingWrong;
+  // no answer, or a gateway error: the server is down or restarting, which isn't the reader's problem to debug
+  const down = !(error instanceof ApiError) || error.status >= 500;
   return (
-    <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">
-      <p className="font-medium">{t.loadFailed}</p>
-      <p className="mt-0.5 text-red-700">{t.backendHint(message)}</p>
+    <div className={`rounded-lg border px-4 py-3 text-sm ${down ? "border-amber-200 bg-amber-50 text-amber-900" : "border-red-200 bg-red-50 text-red-800"}`} role="alert">
+      <p className="font-medium">{down ? t.serverDown : t.loadFailed}</p>
+      <p className={`mt-0.5 ${down ? "text-amber-800" : "text-red-700"}`}>{down ? t.serverDownHint : t.backendHint(message)}</p>
       {onRetry && (
         <button onClick={onRetry} className="mt-2 font-medium text-red-900 underline underline-offset-2">
           {t.tryAgain}

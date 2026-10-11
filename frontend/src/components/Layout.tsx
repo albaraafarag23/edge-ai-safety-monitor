@@ -102,7 +102,7 @@ function Toasts() {
   const t = useText(TEXT);
   const plugin = usePluginText();
   return (
-    <div className="pointer-events-none fixed end-4 bottom-4 z-50 flex w-80 flex-col gap-2" aria-live="assertive">
+    <div className="pointer-events-none fixed end-4 bottom-4 z-50 flex w-80 flex-col gap-2 print:hidden" aria-live="assertive">
       {toasts.map(({ id, incident }) => (
         <div key={id} className="pointer-events-auto rounded-xl border border-slate-200 bg-white p-4 shadow-xl shadow-slate-900/10">
           <div className="flex items-start justify-between gap-2">
@@ -279,7 +279,7 @@ function SideNav() {
   const nav = useNav();
   const t = useText(TEXT);
   return (
-    <aside className="hidden bg-ink text-paper/70 lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
+    <aside className="hidden bg-ink text-paper/70 print:!hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
       <div className="px-5 py-5">
         <Logo to="/app" dark subtitle={t.consoleName} />
       </div>
@@ -294,7 +294,7 @@ function SideNav() {
                 end={end}
                 className={({ isActive }) =>
                   `group flex items-baseline gap-2 py-0.5 font-display text-[19px] leading-tight font-semibold tracking-tight transition ${
-                    isActive ? "text-paper" : "text-paper/40 hover:text-paper/80"
+                    isActive ? "text-paper" : "text-paper/60 hover:text-paper"
                   }`
                 }
               >
@@ -321,7 +321,7 @@ function SideNav() {
 function TopBar() {
   const nav = useNav();
   return (
-    <header className="sticky top-0 z-30 border-b border-ink/10 bg-paper/80 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-ink/10 bg-paper/80 backdrop-blur-md print:hidden">
       <div className="flex h-16 items-center gap-4 px-4 sm:px-6 lg:px-8">
         <div className="lg:hidden">
           <Logo to="/app" />
@@ -361,7 +361,7 @@ export function AppShell() {
     <LiveProvider>
       <div className="paper-grain min-h-screen bg-paper font-display text-ink">
         <SideNav />
-        <div className="lg:ps-64">
+        <div className="lg:ps-64 print:!ps-0">
           <TopBar />
           <main className="px-4 py-8 sm:px-6 lg:px-10">
             <Outlet />
@@ -394,7 +394,7 @@ export function PageHeader({ title, subtitle, actions, image, back }: {
 
   return (
     <>
-      <div className="relative -mx-4 -mt-8 h-[clamp(260px,40vh,440px)] overflow-hidden bg-ink sm:-mx-6 lg:-mx-10">
+      <div className="relative -mx-4 -mt-8 h-[clamp(260px,40vh,440px)] overflow-hidden bg-ink sm:-mx-6 lg:-mx-10 print:hidden">
         {useImage ? (
           <img src={image} alt="" onError={() => setImageFailed(true)} className="page-photo absolute inset-0 h-full w-full object-cover" />
         ) : (
@@ -414,7 +414,7 @@ export function PageHeader({ title, subtitle, actions, image, back }: {
           </h1>
         </div>
       </div>
-      <div className="paper-grain relative z-10 -mx-4 -mt-10 mb-8 flex flex-wrap items-end justify-between gap-4 rounded-t-[2rem] bg-paper px-4 pt-8 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10">
+      <div className="paper-grain relative z-10 -mx-4 -mt-10 mb-8 flex flex-wrap items-end justify-between gap-4 rounded-t-[2rem] bg-paper px-4 pt-8 sm:-mx-6 sm:px-6 lg:-mx-10 lg:px-10 print:hidden">
         {subtitle ? <p className="max-w-3xl font-serif text-2xl leading-snug text-ink/70 sm:text-[1.7rem]">{subtitle}</p> : <span />}
         {actions}
       </div>

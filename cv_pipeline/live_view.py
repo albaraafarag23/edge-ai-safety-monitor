@@ -29,6 +29,11 @@ class LiveView:
     def set_model(self, model: str):
         self.info["model"] = model
 
+    def set_frame_size(self, width: int, height: int):
+        """The detector's frame size: the pixels that boxes and the plugin's zone polygons are in. The live JPEG
+        may be smaller; the console needs this to draw zones in the right place."""
+        self.info["frame_width"], self.info["frame_height"] = int(width), int(height)
+
     def frame_processed(self):
         """Call once per detector frame; measures the detector's real frame rate."""
         self._frames += 1

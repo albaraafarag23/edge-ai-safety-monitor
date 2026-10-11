@@ -54,6 +54,9 @@ async def camera_info(camera_id: str) -> dict:
         "fps": number("fps"),
         "width": number("width", int),
         "height": number("height", int),
+        # the detector's own frame size (boxes and zone polygons are in these pixels); older detectors don't send it
+        "frame_width": number("frame_width", int),
+        "frame_height": number("frame_height", int),
         "updated_at": info.get("updated_at"),
     }
 

@@ -48,6 +48,7 @@ const TEXT = bilingual(
     done: "Done",
     closeAll: (n: number) => `Close all ${n}`,
     someoneOnIt: "Someone is on it",
+    isOnIt: (who: string) => `${who} is on it`,
     failed: "That didn't work. Try again.",
     recent: "Recent activity",
     viewAll: "View all",
@@ -56,6 +57,14 @@ const TEXT = bilingual(
     todayMostly: (what: string) => `Most common today: ${what.toLowerCase()}.`,
     todayQuiet: "No incidents so far today.",
     seeNumbers: "Charts and numbers",
+    since: {
+      lead: (ago: string) => `Since you were last here (${ago}): `,
+      nothing: "nothing new.",
+      news: (n: number, waiting: number): string =>
+        `${n === 1 ? "1 new incident" : `${n} new incidents`}${waiting ? `, ${waiting} still waiting` : ", all handled"}.`,
+      see: "See them",
+      close: "Close",
+    },
     welcome: {
       title: "Welcome to SiteSentry",
       intro: "A camera watches the site and tells you when someone is at risk. Here is how this page works:",
@@ -110,6 +119,7 @@ const TEXT = bilingual(
     done: "تم",
     closeAll: (n: number) => `إغلاق الكل (${n})`,
     someoneOnIt: "هناك من يتولّى الأمر",
+    isOnIt: (who: string) => `${who} يتولّى الأمر`,
     failed: "لم ينجح ذلك. حاول مرة أخرى.",
     recent: "آخر ما حدث",
     viewAll: "عرض الكل",
@@ -118,6 +128,14 @@ const TEXT = bilingual(
     todayMostly: (what: string) => `أكثر ما رُصد اليوم: ${what}.`,
     todayQuiet: "لا حوادث حتى الآن اليوم.",
     seeNumbers: "الرسوم والأرقام",
+    since: {
+      lead: (ago: string) => `منذ زيارتك الأخيرة (${ago}): `,
+      nothing: "لا جديد.",
+      news: (n: number, waiting: number) =>
+        `${plural("ar", n, { one: "حادثة جديدة", two: "حادثتان جديدتان", few: `${n} حوادث جديدة`, other: `${n} حادثة جديدة` })}${waiting ? `، منها ${waiting} بانتظارك` : "، وكلها عولجت"}.`,
+      see: "عرضها",
+      close: "إغلاق",
+    },
     welcome: {
       title: "مرحبًا بك في SiteSentry",
       intro: "تراقب كاميرا الموقع وتنبّهك حين يكون أحد في خطر. هكذا تعمل هذه الصفحة:",
@@ -150,6 +168,59 @@ function useClock() {
     return () => window.clearInterval(timer);
   }, []);
   return now;
+}
+
+/** The previous visit's time (this browser only), and records this one. Read once per page load. */
+function usePreviousVisit(userId: number | undefined): Date | null {
+  const key = `sitesentry.lastVisit.${userId ?? ""}`;
+  // read once; saving happens in the effect, after the read (React may run this initializer twice)
+  const [previous] = useState<Date | null>(() => {
+    try {
+      const saved = localStorage.getItem(key);
+      return saved ? new Date(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  useEffect(() => {
+    if (userId === undefined) return;
+    try {
+      localStorage.setItem(key, new Date().toISOString());
+    } catch {
+      // private window: no "since you were last here", which is fine
+    }
+  }, [key, userId]);
+  return previous;
+}
+
+/** "Since you were last here (3 hours ago): 12 new incidents, 5 still waiting." After 30 minutes away. */
+function SinceLastVisit() {
+  const t = useText(TEXT).since;
+  const { user } = useAuth();
+  const previous = usePreviousVisit(user?.id);
+  const [closed, setClosed] = useState(false);
+  const away = previous ? Date.now() - previous.getTime() : 0;
+  const hours = Math.round((away / 3_600_000) * 100) / 100;
+  const show = !!previous && away > 30 * 60_000 && !closed;
+  const fresh = useIncidents({ hours: show ? hours : 0.01, limit: 1 });
+  const waiting = useIncidents({ hours: show ? hours : 0.01, status: "open", limit: 1 });
+  if (!show || !fresh.data || !waiting.data) return null;
+  return (
+    <div className="mb-6 flex items-start gap-3 rounded-2xl bg-white px-5 py-4 text-[15px] text-ink/80 ring-1 ring-ink/[0.08]">
+      <p className="flex-1">
+        {t.lead(timeAgo(previous.toISOString()))}
+        <span className="font-semibold text-ink">{fresh.data.total ? t.news(fresh.data.total, waiting.data.total) : t.nothing}</span>
+        {waiting.data.total > 0 && (
+          <Link to="/app/incidents?status=open" className="ms-2 font-semibold text-amber-700 hover:underline">
+            {t.see}
+          </Link>
+        )}
+      </p>
+      <button onClick={() => setClosed(true)} className="rounded-full p-1 text-ink/40 hover:bg-paper hover:text-ink" aria-label={t.close}>
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  );
 }
 
 /** Shown once per person (until "Got it"): what this page is for. Kept in this browser only. */
@@ -344,14 +415,16 @@ function TaskCard({ group, canHandle }: { group: Group; canHandle: boolean }) {
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink/60">
           <span className={`h-2 w-2 rounded-full ${SEVERITY_STYLES[i.severity]?.dot ?? "bg-ink/30"}`} />
           {severityLabel(i.severity)}
-          {i.status === "acknowledged" && <span className="text-violet-700">· {t.someoneOnIt}</span>}
+          {i.status === "acknowledged" && (
+            <span className="text-violet-700">· {i.status_updated_by ? t.isOnIt(i.status_updated_by.split(" ")[0]) : t.someoneOnIt}</span>
+          )}
         </span>
         <Link to={link} className="mt-1 font-display text-lg leading-snug font-semibold text-ink hover:text-amber-700">
           {incidentTitle(i)}
         </Link>
-        <span className="text-sm text-ink/55">
+        <span className="text-sm text-ink/65">
           {joinParts([place ?? i.camera_id, timeAgo(i.received_at)])}
-          {others.length > 0 && <span className="text-ink/45"> {t.moreLikeIt(others.length)}</span>}
+          {others.length > 0 && <span className="text-ink/60"> {t.moreLikeIt(others.length)}</span>}
         </span>
         {step && (
           <p className="mt-3 rounded-lg bg-paper px-3 py-2 text-sm leading-snug text-ink/75">
@@ -405,7 +478,7 @@ function Recent({ incidents }: { incidents: Incident[] }) {
             <span className={`h-9 w-1 shrink-0 rounded-full ${SEVERITY_STYLES[i.severity]?.bar ?? "bg-ink/30"}`} aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="truncate font-display font-semibold text-ink group-hover:text-amber-700">{incidentTitle(i)}</p>
-              <p className="truncate text-sm text-ink/50">
+              <p className="truncate text-sm text-ink/65">
                 {joinParts([plugin.location(i.location, i.metadata.zone_id) ?? i.camera_id, timeAgo(i.received_at)])}
               </p>
             </div>
@@ -476,6 +549,7 @@ export function Overview() {
         )}
       </div>
 
+      <SinceLastVisit />
       <Welcome />
 
       {open.isPending || urgent.isPending || onIt.isPending ? (

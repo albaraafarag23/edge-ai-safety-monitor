@@ -133,6 +133,8 @@ services:
       # reports are written in English and Arabic ("en" = English only); emails go out in EMAIL_LANGUAGE
       REPORT_LANGUAGES: ${REPORT_LANGUAGES:-en,ar}
       EMAIL_LANGUAGE: ${EMAIL_LANGUAGE:-en}
+      # end-of-day summary email at this site time, e.g. "18:00"; empty = off
+      DIGEST_TIME: ${DIGEST_TIME:-}
     volumes:
       - ./plugins:/app/plugins:ro
       - ./media:/media:ro

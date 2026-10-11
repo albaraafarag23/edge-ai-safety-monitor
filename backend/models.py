@@ -46,6 +46,7 @@ class Incident(Base):
     status: Mapped[str] = mapped_column(String, default="open", index=True)
     status_note: Mapped[str | None] = mapped_column(Text)
     status_updated_at: Mapped[datetime | None] = mapped_column(DateTime)
+    status_updated_by: Mapped[str | None] = mapped_column(String)  # name of who last changed it ("Omar is on it")
 
     @classmethod
     def from_contract(cls, payload: dict) -> "Incident":
@@ -57,6 +58,7 @@ class Incident(Base):
         d["status"] = self.status
         d["status_note"] = self.status_note
         d["status_updated_at"] = iso(self.status_updated_at)
+        d["status_updated_by"] = self.status_updated_by
         d["report"] = report.summary() if report else None
         return d
 
@@ -108,6 +110,17 @@ class RuleSetting(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     overrides: Mapped[dict] = mapped_column(JSONB, default=dict)  # changed fields only, see RULE_SETTINGS
     changed_by: Mapped[str | None] = mapped_column(String)         # name of the user who last changed it
+    changed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class ZoneSetting(Base):
+    """A plugin zone redrawn in the console (backend/zone_settings.py). No row = the plugin's own polygon."""
+    __tablename__ = "zone_settings"
+
+    plugin_id: Mapped[str] = mapped_column(String, primary_key=True)
+    zone_id: Mapped[str] = mapped_column(String, primary_key=True)
+    polygon: Mapped[list] = mapped_column(JSONB)                   # [[x, y], ...] as fractions of the picture (0-1)
+    changed_by: Mapped[str | None] = mapped_column(String)
     changed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 

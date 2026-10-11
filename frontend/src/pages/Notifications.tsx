@@ -9,7 +9,7 @@ import { Card, EmptyState, ErrorState, SeverityBadge, Spinner, StatusBadge } fro
 import { formatDateTime, timeAgo } from "../lib/format";
 import { bilingual, plural, useText } from "../lib/i18n";
 import { desktopSupported, enableDesktop, isUnread, updatePrefs, useNotificationPrefs } from "../lib/notifications";
-import { incidentTitle, itemLabel, joinList, usePluginText } from "../lib/terms";
+import { incidentTitle, usePluginText } from "../lib/terms";
 
 const VIEWS = ["all", "unread", "urgent"] as const;
 type View = (typeof VIEWS)[number];
@@ -29,8 +29,8 @@ const TEXT = bilingual(
       sent: "Emailed to supervisors",
       retrying: "Email not sent yet, retrying",
       failed: "Email failed",
-      not_configured: "Email not configured",
-      suppressed_duplicate: "Repeat, not re-emailed",
+      not_configured: "Email is switched off",
+      suppressed_duplicate: "Same as one a moment ago, not emailed again",
     } as Record<string, string>,
     alertSettings: "Alert settings",
     desktop: "Desktop notifications",
@@ -63,8 +63,8 @@ const TEXT = bilingual(
       sent: "أُرسل إلى المشرفين بالبريد",
       retrying: "لم يُرسل البريد بعد، جارٍ إعادة المحاولة",
       failed: "فشل إرسال البريد",
-      not_configured: "البريد غير مُعدّ",
-      suppressed_duplicate: "تكرار، لم يُعد إرساله",
+      not_configured: "البريد متوقف",
+      suppressed_duplicate: "مثل حادثة قبل لحظات، لم تُرسل مرة أخرى",
     },
     alertSettings: "إعدادات التنبيه",
     desktop: "إشعارات سطح المكتب",
@@ -171,7 +171,6 @@ function NotificationItem({ incident: i, unread }: { incident: Incident; unread:
   const t = useText(TEXT);
   const plugin = usePluginText();
   const status = i.report?.delivery_status ?? "";
-  const missing = i.metadata.missing_equipment?.length ? joinList(i.metadata.missing_equipment.map(itemLabel)) : "";
   const location = plugin.location(i.location, i.metadata.zone_id);
   return (
     <li>
@@ -190,9 +189,7 @@ function NotificationItem({ incident: i, unread }: { incident: Incident; unread:
             <StatusBadge status={i.status} />
           </span>
           <span className="mt-1 block text-sm text-slate-600">
-            {i.camera_id}
-            {location ? ` · ${location}` : ""}
-            {missing ? t.missing(missing) : ""}
+            {location ?? i.camera_id}
           </span>
           <span className="mt-1 flex flex-wrap gap-x-3 text-xs text-slate-500">
             <span title={formatDateTime(i.received_at)}>{timeAgo(i.received_at)}</span>

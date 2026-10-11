@@ -13,6 +13,7 @@ export const keys = {
   cameras: ["cameras"] as const,
   users: ["users"] as const,
   rules: ["rules"] as const,
+  zones: ["zones"] as const,
   analytics: (days: number) => ["analytics", days] as const,
 };
 
@@ -73,6 +74,20 @@ export function useUserMutations() {
 }
 
 export const useRules = () => useQuery({ queryKey: keys.rules, queryFn: api.rules });
+
+export const useZones = () => useQuery({ queryKey: keys.zones, queryFn: api.zones });
+
+export function useZoneMutations() {
+  const qc = useQueryClient();
+  const done = () => qc.invalidateQueries({ queryKey: keys.zones });
+  return {
+    draw: useMutation({
+      mutationFn: ({ zoneId, polygon }: { zoneId: string; polygon: [number, number][] }) => api.drawZone(zoneId, polygon),
+      onSettled: done,
+    }),
+    reset: useMutation({ mutationFn: (zoneId: string) => api.resetZone(zoneId), onSettled: done }),
+  };
+}
 
 export function useChangeRule() {
   const qc = useQueryClient();

@@ -18,6 +18,7 @@ import anthropic
 import httpx
 import redis
 
+import digest
 import notify
 import outbox
 from report import (LANGUAGES, MODEL, approved_actions, arabic_names, generate_from_template,
@@ -238,7 +239,8 @@ def main():
     client = claude_client()
     print(f"[AI] Ready. Plugins: {list(plugins)}. Reports by: {MODEL if client else 'template (no API key)'}, "
           f"in {', '.join(REPORT_LANGUAGES)}; email in {EMAIL_LANGUAGE}. "
-          f"Email: {'to ' + ', '.join(notify.RECIPIENTS) if notify.configured() else 'not configured'}.", flush=True)
+          f"Email: {'to ' + ', '.join(notify.RECIPIENTS) if notify.configured() else 'not configured'}. "
+          f"Daily summary: {'at ' + digest.DIGEST_TIME + ' site time' if digest.DIGEST_TIME else 'off'}.", flush=True)
 
     # A Redis restart must not restart this service: that would forget which alerts were just sent
     # (last_notified) and send repeats. redis-py reconnects on the next command, so wait and retry.
@@ -270,6 +272,13 @@ def run(r, plugins: dict, client, last_notified: dict):
             process_outbox(r)
         except Exception as e:  # a broken queued job must not stop new incidents
             print(f"[AI] Retry queue error: {e}", flush=True)
+        try:
+            # one plugin per site; the summary uses its Arabic names
+            digest.maybe_send(r, BACKEND_URL, INTERNAL_API_TOKEN, EMAIL_LANGUAGE, next(iter(plugins.values()), {}))
+        except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
+            raise
+        except Exception as e:  # the summary must never stop incident alerts
+            print(f"[AI] Daily summary error: {e}", flush=True)
         messages = r.xreadgroup(CONSUMER_GROUP, CONSUMER_NAME, {INCIDENT_STREAM: ">"}, count=5, block=2000)
         for _, entries in messages or []:
             for msg_id, data in entries:

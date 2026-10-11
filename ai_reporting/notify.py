@@ -67,6 +67,12 @@ def send(incident: dict, report_md: str, snapshot: Path | None, clip: Path | Non
         return {"status": "not_configured", "recipients": [], "attachments": [],
                 "error": "Set SMTP_HOST, SMTP_FROM/SMTP_USER and SUPERVISOR_EMAILS to send email"}
     msg, attached = build_email(incident, report_md, snapshot, clip, actions, lang, names)
+    error = deliver(msg)
+    return {"status": "failed" if error else "sent", "recipients": RECIPIENTS, "attachments": attached, "error": error}
+
+
+def deliver(msg: EmailMessage) -> str | None:
+    """Sends one message through the SMTP server. None when sent, otherwise the error."""
     try:
         if SMTP_TLS == "ssl":
             server = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, context=ssl.create_default_context(), timeout=30)
@@ -79,5 +85,5 @@ def send(incident: dict, report_md: str, snapshot: Path | None, clip: Path | Non
                 server.login(SMTP_USER, SMTP_PASSWORD)
             server.send_message(msg)
     except (smtplib.SMTPException, OSError) as e:
-        return {"status": "failed", "recipients": RECIPIENTS, "attachments": attached, "error": str(e)}
-    return {"status": "sent", "recipients": RECIPIENTS, "attachments": attached, "error": None}
+        return str(e)
+    return None

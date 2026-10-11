@@ -45,8 +45,17 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const source = new EventSource(`${API_BASE}/events`);
-    source.onopen = () => setConnection("live");
-    source.onerror = () => setConnection(source.readyState === EventSource.CLOSED ? "offline" : "connecting");
+    let dropped = false;
+    source.onopen = () => {
+      setConnection("live");
+      // back after a drop (server restart, network): refresh everything instead of waiting for the next poll
+      if (dropped) qc.invalidateQueries();
+      dropped = false;
+    };
+    source.onerror = () => {
+      dropped = true;
+      setConnection(source.readyState === EventSource.CLOSED ? "offline" : "connecting");
+    };
 
     source.addEventListener("incident", (e) => {
       const incident = JSON.parse((e as MessageEvent).data) as Incident;

@@ -48,6 +48,16 @@ const TEXT = bilingual(
     byCamera: "By camera",
     noZone: "No zone",
     units: { s: "s", min: "min", h: "h" },
+    inShort: "In short",
+    unitsLong: { s: "seconds", min: "minutes", h: "hours" },
+    trend: (more: boolean | null, pct: number, days: number): string =>
+      more === null ? `About the same number of incidents as the ${days} days before.`
+        : more ? `More incidents than the ${days} days before (up ${pct}%).` : `Fewer incidents than the ${days} days before (down ${pct}%).`,
+    mostCommon: (what: string, where: string | null) => `Most common: ${what.toLowerCase()}${where ? `, mostly at ${where}` : ""}.`,
+    busiestAt: (day: string, hour: string) => `Busiest time: ${day}s around ${hour}.`,
+    handledIn: (time: string) => `Half of all incidents are picked up within ${time}.`,
+    nobodyHandled: "None of these incidents have been picked up yet.",
+    quiet: (days: number) => `No incidents in the last ${days} days.`,
   },
   {
     total: "المجموع",
@@ -85,6 +95,16 @@ const TEXT = bilingual(
     byCamera: "حسب الكاميرا",
     noZone: "بلا منطقة",
     units: { s: "ث", min: "د", h: "س" },
+    inShort: "باختصار",
+    unitsLong: { s: "ثانية", min: "دقيقة", h: "ساعة" },
+    trend: (more: boolean | null, pct: number, days: number): string =>
+      more === null ? `عدد الحوادث قريب من الأيام الـ${days} السابقة.`
+        : more ? `حوادث أكثر من الأيام الـ${days} السابقة (بزيادة ${pct}٪).` : `حوادث أقل من الأيام الـ${days} السابقة (بانخفاض ${pct}٪).`,
+    mostCommon: (what: string, where: string | null) => `الأكثر شيوعًا: ${what}${where ? `، وأغلبها في ${where}` : ""}.`,
+    busiestAt: (day: string, hour: string) => `أكثر الأوقات ازدحامًا: يوم ${day} نحو ${hour}.`,
+    handledIn: (time: string) => `نصف الحوادث يتولّاها أحد خلال ${time}.`,
+    nobodyHandled: "لم يتولَّ أحد أيًّا من هذه الحوادث بعد.",
+    quiet: (days: number) => `لا حوادث خلال آخر ${days} يومًا.`,
   },
 );
 // one-hue sequential ramp (light -> dark) for the heatmap
@@ -165,7 +185,7 @@ function DailyChart({ data }: { data: Data }) {
       </div>
       {/* time runs left to right in both languages */}
       <div className="flex gap-3" dir="ltr">
-        <div className="flex h-52 flex-col justify-between pb-0 text-end text-xs text-slate-400 tabular-nums" aria-hidden>
+        <div className="flex h-52 flex-col justify-between pb-0 text-end text-xs text-slate-500 tabular-nums" aria-hidden>
           {[...ticks].reverse().map((t) => (
             <span key={t} className="-translate-y-1/2 first:translate-y-0 last:translate-y-1/2">{t}</span>
           ))}
@@ -209,7 +229,7 @@ function DailyChart({ data }: { data: Data }) {
               </div>
             ))}
           </div>
-          <div className="mt-2 flex text-xs text-slate-400" aria-hidden>
+          <div className="mt-2 flex text-xs text-slate-500" aria-hidden>
             {days.map((d, i) => (
               <span key={d.day} className="flex-1 text-center whitespace-nowrap">
                 {i % labelEvery === 0 ? dayLabel(d.day) : ""}
@@ -262,7 +282,7 @@ function Heatmap({ data }: { data: Data }) {
             aria-label={t.byWeekdayHour(busiest.count ? `${WEEKDAYS[busiest.weekday - 1]} ${hourLabel(busiest.hour)}` : t.none)}>
             {WEEKDAYS.map((w, wi) => (
               <div key={w} className="contents">
-                <span className="truncate pe-2 text-end text-[11px] leading-6 text-slate-400">{w}</span>
+                <span className="truncate pe-2 text-end text-[11px] leading-6 text-slate-500">{w}</span>
                 {Array.from({ length: 24 }, (_, h) => {
                   const n = counts.get(`${wi + 1}-${h}`) ?? 0;
                   return (
@@ -277,7 +297,7 @@ function Heatmap({ data }: { data: Data }) {
             ))}
             <span />
             {Array.from({ length: 24 }, (_, h) => (
-              <span key={h} className="pt-1 text-center text-[10px] text-slate-400">{h % 3 === 0 ? h : ""}</span>
+              <span key={h} className="pt-1 text-center text-[10px] text-slate-500">{h % 3 === 0 ? h : ""}</span>
             ))}
           </div>
         </div>
@@ -358,8 +378,35 @@ function AnalyticsBody({ data, dim }: { data: Data; dim: boolean }) {
   const t = useText(TEXT);
   const plugin = usePluginText();
 
+  // the same numbers as the tiles and charts below, said in plain sentences
+  const busiest = data.heatmap.reduce((a, b) => (b.count > a.count ? b : a), { weekday: 0, hour: 0, count: 0 });
+  // weekday 1 = Monday; full names ("Mondays"), the short ones are for the heatmap
+  const weekdayName = (d: number) => new Date(2024, 0, d).toLocaleDateString(LOCALES[currentLang()], { weekday: "long" });
+  const hourLabel = (h: number) => new Date(2000, 0, 1, h).toLocaleTimeString(LOCALES[currentLang()], { hour: "numeric", hour12: true });
+  const topZone = data.by_zone.find((z) => z.key !== "No zone");
+  const pct = change === null ? 0 : Math.round(Math.abs(change) * 100);
+  const summary = data.total
+    ? [
+        change === null ? null : t.trend(pct < 5 ? null : change > 0, pct, data.days),
+        top ? t.mostCommon(eventTypeLabel(top.key), topZone ? plugin.location(topZone.key) : null) : null,
+        busiest.count ? t.busiestAt(weekdayName(busiest.weekday), hourLabel(busiest.hour)) : null,
+        data.median_minutes_to_handle !== null ? t.handledIn(formatMinutes(data.median_minutes_to_handle, t.unitsLong)) : handled ? null : t.nobodyHandled,
+      ].filter(Boolean)
+    : [t.quiet(data.days)];
+
   return (
     <div className={dim ? "opacity-60 transition" : "transition"}>
+      <section className="mb-10 rounded-2xl bg-white p-6 ring-1 ring-ink/[0.08]">
+        <h2 className="font-serif text-2xl text-ink">{t.inShort}</h2>
+        <ul className="mt-3 space-y-2">
+          {summary.map((line) => (
+            <li key={line} className="flex gap-3 text-lg leading-snug text-ink/80">
+              <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+              {line}
+            </li>
+          ))}
+        </ul>
+      </section>
       <div className="mb-4 grid grid-cols-2 gap-x-8 gap-y-8 lg:grid-cols-4">
         <StatTile
           label={t.tiles.incidents}

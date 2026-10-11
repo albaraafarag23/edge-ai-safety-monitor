@@ -1,95 +1,80 @@
-import { useNavigate } from "react-router-dom";
+import { Check, Hand } from "lucide-react";
+import { Link } from "react-router-dom";
+import { mediaUrl } from "../api/client";
+import { useSetStatus } from "../api/queries";
 import type { Incident } from "../api/types";
-import { formatDateTime, formatDuration, timeAgo } from "../lib/format";
+import { useAuth } from "../lib/auth";
+import { formatDateTime, SEVERITY_STYLES, timeAgo } from "../lib/format";
 import { bilingual, useText } from "../lib/i18n";
-import { incidentTitle, itemLabel, joinList, usePluginText } from "../lib/terms";
-import { SeverityBadge, StatusBadge } from "./ui";
+import { incidentTitle, joinParts, severityLabel, usePluginText } from "../lib/terms";
+import { StatusBadge } from "./ui";
 
 const TEXT = bilingual(
   {
-    head: { severity: "Severity", incident: "Incident", camera: "Camera", duration: "Duration", status: "Status", report: "Report", when: "When" },
-    delivery: {
-      sent: "Emailed",
-      retrying: "Email retrying",
-      failed: "Email failed",
-      not_configured: "Email off",
-      suppressed_duplicate: "Repeat",
-    } as Record<string, string>,
-    written: "Written",
-    pending: "Pending",
-    noZone: "No zone",
-    missing: (items: string) => ` · missing ${items.toLowerCase()}`,
+    onIt: "I'm on it",
+    done: "Done",
+    isOnIt: (who: string) => `${who} is on it`,
+    closedBy: (who: string) => `closed by ${who}`,
   },
   {
-    head: { severity: "الخطورة", incident: "الحادثة", camera: "الكاميرا", duration: "المدة", status: "الحالة", report: "التقرير", when: "الوقت" },
-    delivery: {
-      sent: "أُرسل بالبريد",
-      retrying: "إعادة محاولة الإرسال",
-      failed: "فشل الإرسال",
-      not_configured: "البريد متوقف",
-      suppressed_duplicate: "تكرار",
-    },
-    written: "مكتوب",
-    pending: "قيد الكتابة",
-    noZone: "بلا منطقة",
-    missing: (items: string) => ` · ينقصه: ${items}`,
+    onIt: "أتولّى الأمر",
+    done: "تم",
+    isOnIt: (who: string) => `${who} يتولّى الأمر`,
+    closedBy: (who: string) => `أغلقها ${who}`,
   },
 );
 
-export function IncidentTable({ incidents, compact = false }: { incidents: Incident[]; compact?: boolean }) {
-  const navigate = useNavigate();
+function Row({ incident: i, canHandle }: { incident: Incident; canHandle: boolean }) {
   const t = useText(TEXT);
   const plugin = usePluginText();
+  const setStatus = useSetStatus(i.event_id);
+  const thumb = mediaUrl(i.snapshot_url);
+  const who = i.status_updated_by?.split(" ")[0];
+  const by = who && i.status === "acknowledged" ? t.isOnIt(who) : who && i.status === "resolved" ? t.closedBy(who) : null;
+  const next = i.status === "open" ? "acknowledged" : i.status === "acknowledged" ? "resolved" : null;
+
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full text-sm">
-        <thead>
-          <tr className="border-b border-slate-200 text-start text-xs font-medium uppercase tracking-wide text-slate-500">
-            <th className="py-2 pe-4">{t.head.severity}</th>
-            <th className="py-2 pe-4">{t.head.incident}</th>
-            <th className="py-2 pe-4">{t.head.camera}</th>
-            {!compact && <th className="py-2 pe-4">{t.head.duration}</th>}
-            <th className="py-2 pe-4">{t.head.status}</th>
-            {!compact && <th className="py-2 pe-4">{t.head.report}</th>}
-            <th className="py-2 text-end">{t.head.when}</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {incidents.map((i) => (
-            <tr
-              key={i.event_id}
-              onClick={() => navigate(`/app/incidents/${i.event_id}`)}
-              onKeyDown={(e) => e.key === "Enter" && navigate(`/app/incidents/${i.event_id}`)}
-              tabIndex={0}
-              className="cursor-pointer hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
-            >
-              <td className="py-3 pe-4">
-                <SeverityBadge severity={i.severity} />
-              </td>
-              <td className="py-3 pe-4">
-                <p className="font-medium text-slate-900">{incidentTitle(i)}</p>
-                <p className="text-xs text-slate-500">
-                  {plugin.location(i.location, i.metadata.zone_id) ?? t.noZone}
-                  {i.metadata.missing_equipment?.length ? t.missing(joinList(i.metadata.missing_equipment.map(itemLabel))) : ""}
-                </p>
-              </td>
-              <td className="py-3 pe-4 text-slate-600">{i.camera_id}</td>
-              {!compact && <td className="py-3 pe-4 tabular-nums text-slate-600">{formatDuration(i.duration_seconds)}</td>}
-              <td className="py-3 pe-4">
-                <StatusBadge status={i.status} />
-              </td>
-              {!compact && (
-                <td className="py-3 pe-4 text-xs text-slate-500">
-                  {i.report ? (t.delivery[i.report.delivery_status ?? ""] ?? t.written) : t.pending}
-                </td>
-              )}
-              <td className="py-3 text-end text-slate-500" title={formatDateTime(i.received_at)}>
-                {timeAgo(i.received_at)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <li className="flex items-center gap-4 py-3">
+      <span className={`h-12 w-1 shrink-0 rounded-full ${SEVERITY_STYLES[i.severity]?.bar ?? "bg-ink/30"}`} aria-hidden />
+      <Link to={`/app/incidents/${i.event_id}`} className="group flex min-w-0 flex-1 items-center gap-4">
+        <span className="relative hidden aspect-[4/3] w-20 shrink-0 overflow-hidden rounded-lg bg-ink/10 sm:block">
+          {thumb && (
+            <img src={thumb} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover"
+              onError={(e) => (e.currentTarget.style.display = "none")} />
+          )}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate font-display font-semibold text-ink group-hover:text-amber-700">{incidentTitle(i)}</span>
+          <span className="block truncate text-sm text-ink/65" title={formatDateTime(i.received_at)}>
+            {joinParts([severityLabel(i.severity), plugin.location(i.location, i.metadata.zone_id) ?? i.camera_id, timeAgo(i.received_at), by])}
+          </span>
+        </span>
+      </Link>
+      <StatusBadge status={i.status} />
+      {canHandle && next && (
+        <button
+          disabled={setStatus.isPending}
+          onClick={() => setStatus.mutate({ status: next })}
+          className={`hidden shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-semibold disabled:opacity-50 sm:inline-flex ${
+            next === "acknowledged" ? "bg-ink text-paper hover:bg-ink/85" : "text-ink ring-1 ring-ink/20 hover:bg-paper"
+          }`}
+        >
+          {next === "acknowledged" ? <Hand className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+          {next === "acknowledged" ? t.onIt : t.done}
+        </button>
+      )}
+    </li>
+  );
+}
+
+/** Incidents one per line: what, where, when, who is on it, and the next step in one tap. */
+export function IncidentList({ incidents }: { incidents: Incident[] }) {
+  const canHandle = useAuth().user?.role !== "viewer";
+  return (
+    <ul className="divide-y divide-ink/[0.07]">
+      {incidents.map((i) => (
+        <Row key={i.event_id} incident={i} canHandle={canHandle} />
+      ))}
+    </ul>
   );
 }

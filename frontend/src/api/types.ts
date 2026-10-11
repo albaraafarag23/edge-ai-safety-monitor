@@ -39,6 +39,7 @@ export interface Incident {
   status: IncidentStatus;
   status_note: string | null;
   status_updated_at: string | null;
+  status_updated_by?: string | null; // name of who last changed the status
   report: { generated_by: string; delivery_status: DeliveryStatus | null } | null;
 }
 
@@ -116,6 +117,18 @@ export interface Analytics {
   median_minutes_to_handle: number | null;
 }
 
+/** GET /zones: a plugin zone and, when redrawn in the console, its polygon as fractions of the picture (0-1). */
+export interface Zone {
+  zone_id: string;
+  name: string;
+  camera_id: string | null;
+  plugin_polygon: [number, number][]; // the plugin's own, in pixels of the camera's frame
+  polygon: [number, number][] | null;
+  rules: { rule_id: string; name: string }[]; // the rules that use this zone
+  changed_by: string | null;
+  changed_at: string | null;
+}
+
 export interface Camera {
   camera_id: string;
   online: boolean;
@@ -126,6 +139,8 @@ export interface Camera {
   fps: number | null;
   width: number | null;
   height: number | null;
+  frame_width?: number | null; // the detector's frame (boxes and zone polygons are in these pixels)
+  frame_height?: number | null;
   updated_at: string | null;
 }
 

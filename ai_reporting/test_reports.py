@@ -62,5 +62,38 @@ check("Arabic durations", email_template.lasted(3.4, "ar") == "استمرت 3 ث
 check("English email is unchanged in shape", email_template.subject(INCIDENT) == "High: Worker without a hard hat · cam_01"
       and 'dir="rtl"' not in email_template.html_body(INCIDENT, en, en_actions, "cid", False))
 
+# ---------- end-of-day summary email ----------
+import digest
+from datetime import datetime
+
+SUMMARY = {
+    "tz": "Africa/Cairo", "total": 12, "by_status": {"open": 3, "acknowledged": 2, "resolved": 7},
+    "top_type": {"key": "PPE_MISSING", "count": 7}, "top_zone": {"key": "Excavation Edge", "count": 5},
+    "busiest_hour": 10, "median_minutes_to_handle": 4.2, "open_total": 4,
+    "open": [{**INCIDENT, "received_at": INCIDENT["timestamp"]}],
+}
+check("Summary is due once the time has passed, once a day",
+      digest.due(datetime(2026, 10, 11, 18, 5), None, "18:00")
+      and not digest.due(datetime(2026, 10, 11, 17, 59), None, "18:00")
+      and not digest.due(datetime(2026, 10, 11, 19, 0), "2026-10-11", "18:00")
+      and not digest.due(datetime(2026, 10, 11, 19, 0), None, ""))
+lines = digest.sentences(SUMMARY, "en", PLUGIN)
+check("Summary in plain sentences", lines == [
+    "12 incidents today, 3 still waiting for someone.",
+    "Most common: missing safety gear (7), mostly at Excavation Edge.",
+    "Busiest time: around 10 AM.",
+    "Half were picked up within 4 minutes."])
+check("Summary subject", digest.subject(SUMMARY, "en") == "Today on site: 12 incidents, 3 still open")
+summary_html = digest.html_body(SUMMARY, "en", PLUGIN)
+check("Summary lists what is still open, and how many more", "Worker without a hard hat" in summary_html and "and 3 more" in summary_html)
+quiet = {**SUMMARY, "total": 0, "by_status": {"open": 0}, "open": [], "open_total": 0}
+check("A quiet day says so", digest.sentences(quiet, "en", PLUGIN) == ["No incidents in the last 24 hours."]
+      and digest.subject(quiet, "en") == "Today on site: a quiet day")
+ar_lines = digest.sentences(SUMMARY, "ar", PLUGIN)
+ar_html = digest.html_body(SUMMARY, "ar", PLUGIN)
+check("Arabic summary: right-to-left, Arabic names and times",
+      'dir="rtl"' in ar_html and "letter-spacing" not in ar_html and "حافة الحفرة" in ar_lines[1]
+      and ar_lines[2] == "أكثر الأوقات ازدحامًا: نحو الساعة 10 صباحًا." and "عامل بدون خوذة" in ar_html)
+
 print(f"\n{sum(results)}/{len(results)} passed")
 raise SystemExit(0 if all(results) else 1)

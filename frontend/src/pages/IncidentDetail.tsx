@@ -1,15 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Markdown from "react-markdown";
 import { Link, useParams } from "react-router-dom";
 import { ApiError, mediaUrl } from "../api/client";
-import { useIncident, useReport, useSetStatus } from "../api/queries";
+import { useIncident, useIncidents, useReport, useSetStatus } from "../api/queries";
 import type { Incident, IncidentStatus } from "../api/types";
 import { PageHeader } from "../components/Layout";
 import { Card, ErrorState, SeverityBadge, Spinner, StatusBadge } from "../components/ui";
 import { useAuth } from "../lib/auth";
 import { formatDateTime, formatDuration, timeAgo } from "../lib/format";
 import { bilingual, useLang, useText } from "../lib/i18n";
-import { classLabel, incidentTitle, itemLabel, joinList, joinParts, usePluginText } from "../lib/terms";
+import { classLabel, incidentTitle, itemLabel, joinList, joinParts, severityLabel, usePluginText } from "../lib/terms";
 
 const TEXT = bilingual(
   {
@@ -39,8 +39,24 @@ const TEXT = bilingual(
     original: (id: string) => `Original: ${id}`,
     nextTry: (when: string, attempt: number) => `Next try ${when} (attempt ${attempt})`,
     englishOnly: "",
-    actions: { acknowledged: "Acknowledge", resolved: "Resolve", open: "Reopen" },
+    actions: { acknowledged: "I'm on it", resolved: "Done", open: "Reopen" },
     status: "Status",
+    whatNow: "What to do now",
+    state: {
+      open: "Nobody is on this yet.",
+      acknowledged: (who: string | null, when: string) => (who ? `${who} is on it (${when}).` : `Someone is on it (${when}).`),
+      resolved: (who: string | null, when: string) => (who ? `Done. Closed by ${who} ${when}.` : `Done. Closed ${when}.`),
+    },
+    noSteps: "Check the snapshot and the clip, then deal with it as your site rules say.",
+    addNote: "Add a note",
+    keys: "Keys: A I'm on it · D Done · R Reopen",
+    print: "Print",
+    printedFrom: (when: string) => `Printed from the SiteSentry console on ${when}`,
+    pattern: (n: number) => `This has happened ${n} times in the last 24 hours on this camera.`,
+    firstToday: "First time in the last 24 hours on this camera.",
+    seeThem: "See them",
+    technical: "Technical details",
+    report_hint: "The formal record of this incident, written for the site file.",
     updated: (when: string) => `updated ${when}`,
     note: "Note (optional)",
     notePlaceholder: "e.g. Worker given a hard hat at 14:05",
@@ -62,6 +78,7 @@ const TEXT = bilingual(
     },
     rulesViolated: "Rules violated",
     raw: "Raw incident JSON",
+    lasted: (d: string) => `lasted ${d}`,
   },
   {
     evidence: "الأدلة",
@@ -90,8 +107,24 @@ const TEXT = bilingual(
     original: (id: string) => `الأصلية: ${id}`,
     nextTry: (when: string, attempt: number) => `المحاولة التالية ${when} (المحاولة ${attempt})`,
     englishOnly: "كُتب هذا التقرير بالإنجليزية فقط.",
-    actions: { acknowledged: "استلام", resolved: "تم الحل", open: "إعادة فتح" },
+    actions: { acknowledged: "أتولّى الأمر", resolved: "تم", open: "إعادة فتح" },
     status: "الحالة",
+    whatNow: "ما العمل الآن",
+    state: {
+      open: "لم يتولَّ أحد هذه الحادثة بعد.",
+      acknowledged: (who: string | null, when: string) => (who ? `${who} يتولّى الأمر (${when}).` : `هناك من يتولّى الأمر (${when}).`),
+      resolved: (who: string | null, when: string) => (who ? `تم. أغلقها ${who} ${when}.` : `تم. أُغلقت ${when}.`),
+    },
+    noSteps: "راجع اللقطة والمقطع، ثم تعامل مع الأمر وفق قواعد الموقع.",
+    addNote: "إضافة ملاحظة",
+    keys: "المفاتيح: A أتولّى الأمر · D تم · R إعادة فتح",
+    print: "طباعة",
+    printedFrom: (when: string) => `طُبع من لوحة تحكم SiteSentry في ${when}`,
+    pattern: (n: number) => `تكرر هذا ${n} مرة خلال آخر 24 ساعة على هذه الكاميرا.`,
+    firstToday: "أول مرة خلال آخر 24 ساعة على هذه الكاميرا.",
+    seeThem: "عرضها",
+    technical: "التفاصيل التقنية",
+    report_hint: "السجل الرسمي لهذه الحادثة، مكتوب لملف الموقع.",
     updated: (when: string) => `حُدّثت ${when}`,
     note: "ملاحظة (اختيارية)",
     notePlaceholder: "مثال: سُلّم العامل خوذة الساعة 14:05",
@@ -113,6 +146,7 @@ const TEXT = bilingual(
     },
     rulesViolated: "القواعد المخالَفة",
     raw: "بيانات الحادثة الخام (JSON)",
+    lasted: (d: string) => `استمرت ${d}`,
   },
 );
 
@@ -139,7 +173,7 @@ function Evidence({ incident }: { incident: Incident }) {
           )}
           <figcaption className="mt-1.5 text-xs text-slate-500">{t.snapshotCaption}</figcaption>
         </figure>
-        <figure>
+        <figure className="print:hidden">
           {clip && !videoFailed ? (
             <video controls preload="metadata" onError={() => setVideoFailed(true)}
               className="aspect-video w-full rounded-lg border border-slate-200 bg-slate-900">
@@ -187,6 +221,7 @@ function ReportCard({ id }: { id: string }) {
   const arabic = lang === "ar" && r.markdown_ar ? r.markdown_ar : null;
   return (
     <Card title={t.report} action={<span className="text-xs text-slate-400">{t.by(t.authors[r.generated_by] ?? r.generated_by, timeAgo(r.created_at))}</span>}>
+      <p className="-mt-1 mb-3 text-sm text-ink/65">{t.report_hint}</p>
       <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600">
         <span className="font-medium text-slate-800">{t.delivery[d.status ?? ""] ?? t.notSent}</span>
         {d.recipients?.length ? <span>{t.to(d.recipients.join(", "))}</span> : null}
@@ -209,58 +244,132 @@ function ReportCard({ id }: { id: string }) {
   );
 }
 
-const ACTIONS: { status: IncidentStatus; style: string }[] = [
-  { status: "acknowledged", style: "bg-violet-600 hover:bg-violet-700 text-white" },
-  { status: "resolved", style: "bg-emerald-600 hover:bg-emerald-700 text-white" },
-  { status: "open", style: "border border-slate-300 text-slate-700 hover:bg-slate-50" },
-];
+/** "This has happened 12 times in the last 24 hours on this camera": a one-off or a pattern. */
+function Pattern({ incident }: { incident: Incident }) {
+  const t = useText(TEXT);
+  const same = useIncidents({ camera_id: incident.camera_id, event_type: incident.event_type, hours: 24, limit: 1 });
+  if (!same.data) return null;
+  const n = same.data.total;
+  return (
+    <p className="mt-5 border-t border-ink/10 pt-4 text-sm text-ink/70">
+      {n > 1 ? t.pattern(n) : t.firstToday}
+      {n > 1 && (
+        <Link
+          to={`/app/incidents?camera_id=${encodeURIComponent(incident.camera_id)}&event_type=${encodeURIComponent(incident.event_type)}`}
+          className="ms-2 font-semibold text-amber-700 hover:underline print:hidden"
+        >
+          {t.seeThem}
+        </Link>
+      )}
+    </p>
+  );
+}
 
-function StatusCard({ incident }: { incident: Incident }) {
+/** The top of the page: who's on it, the site-approved steps, and the buttons to handle it. */
+function WhatNow({ incident }: { incident: Incident }) {
   const [note, setNote] = useState("");
+  const [noteOpen, setNoteOpen] = useState(false);
   const setStatus = useSetStatus(incident.event_id);
   const canHandle = useAuth().user?.role !== "viewer";
   const t = useText(TEXT);
+  const plugin = usePluginText();
+  const steps = plugin.ruleActions(incident.metadata?.rule_id);
+  const when = timeAgo(incident.status_updated_at);
+  const who = incident.status_updated_by ?? null;
+  const state =
+    incident.status === "open" ? t.state.open : incident.status === "acknowledged" ? t.state.acknowledged(who, when) : t.state.resolved(who, when);
+  const next: IncidentStatus[] =
+    incident.status === "open" ? ["acknowledged", "resolved"] : incident.status === "acknowledged" ? ["resolved", "open"] : ["open"];
+  const act = (status: IncidentStatus) =>
+    setStatus.mutate({ status, note }, { onSuccess: () => { setNote(""); setNoteOpen(false); } });
+
+  // A = I'm on it, D = Done, R = Reopen, for desk users; ignored while typing a note
+  useEffect(() => {
+    if (!canHandle) return;
+    const keys: Record<string, IncidentStatus> = { a: "acknowledged", d: "resolved", r: "open" };
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (e.ctrlKey || e.metaKey || e.altKey || target.closest("input, textarea, select, [contenteditable]")) return;
+      const status = keys[e.key.toLowerCase()];
+      if (status && next.includes(status) && !setStatus.isPending) {
+        e.preventDefault();
+        act(status);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   return (
-    <Card title={t.status}>
-      <div className="flex items-center justify-between">
-        <StatusBadge status={incident.status} />
-        {incident.status_updated_at && (
-          <span className="text-xs text-slate-400">{t.updated(timeAgo(incident.status_updated_at))}</span>
-        )}
-      </div>
-      {incident.status_note && (
-        <p className="mt-3 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700">{incident.status_note}</p>
-      )}
-      {canHandle ? (
-        <>
-          <label className="mt-4 block text-xs font-medium text-slate-500">
-            {t.note}
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              rows={2}
-              placeholder={t.notePlaceholder}
-              className="mt-1 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm text-slate-900 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 focus:outline-none"
-            />
-          </label>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {ACTIONS.filter((a) => a.status !== incident.status).map((a) => (
-              <button
-                key={a.status}
-                disabled={setStatus.isPending}
-                onClick={() => setStatus.mutate({ status: a.status, note }, { onSuccess: () => setNote("") })}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium disabled:opacity-50 ${a.style}`}
-              >
-                {t.actions[a.status]}
-              </button>
+    <section className="mb-8 grid gap-6 rounded-2xl bg-white p-6 ring-1 ring-ink/[0.08] lg:grid-cols-[1.4fr_1fr]">
+      <div>
+        <h2 className="font-serif text-3xl text-ink">{t.whatNow}</h2>
+        {steps.length ? (
+          <ol className="mt-4 space-y-3">
+            {steps.map((step, n) => (
+              <li key={n} className="flex gap-3 text-[15px] leading-relaxed text-ink/80">
+                <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${n === 0 ? "bg-amber-400 text-ink" : "bg-ink/[0.07] text-ink/60"}`}>
+                  {n + 1}
+                </span>
+                <span className={n === 0 ? "font-semibold text-ink" : ""}>{step}</span>
+              </li>
             ))}
+          </ol>
+        ) : (
+          <p className="mt-4 text-ink/70">{t.noSteps}</p>
+        )}
+        <Pattern incident={incident} />
+      </div>
+      <div className="flex flex-col gap-4 rounded-xl bg-paper p-5">
+        <div className="flex items-center gap-2">
+          <StatusBadge status={incident.status} />
+        </div>
+        <p className="text-lg leading-snug text-ink">{state}</p>
+        {incident.status_note && <p className="rounded-lg bg-white px-3 py-2 text-sm text-ink/70">“{incident.status_note}”</p>}
+        {canHandle ? (
+          <div className="flex flex-col gap-4 print:hidden">
+            <div className="flex flex-wrap gap-2">
+              {next.map((status, n) => (
+                <button
+                  key={status}
+                  disabled={setStatus.isPending}
+                  onClick={() => act(status)}
+                  className={`rounded-full px-5 py-2.5 text-sm font-semibold disabled:opacity-50 ${
+                    n === 0 ? "bg-ink text-paper hover:bg-ink/85" : "text-ink ring-1 ring-ink/20 hover:bg-white"
+                  }`}
+                >
+                  {t.actions[status]}
+                </button>
+              ))}
+            </div>
+            <p className="hidden text-xs text-ink/50 lg:block">{t.keys}</p>
+            {noteOpen ? (
+              <label className="block text-xs font-medium text-ink/60">
+                {t.note}
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  rows={2}
+                  autoFocus
+                  placeholder={t.notePlaceholder}
+                  className="mt-1 w-full rounded-lg border border-ink/15 bg-white px-3 py-2 text-sm text-ink focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none"
+                />
+              </label>
+            ) : (
+              <button onClick={() => setNoteOpen(true)} className="self-start text-sm font-medium text-amber-700 hover:underline">
+                + {t.addNote}
+              </button>
+            )}
+            {setStatus.isError && <p className="text-sm text-red-700">{t.couldntUpdate(setStatus.error.message)}</p>}
           </div>
-          {setStatus.isError && <p className="mt-2 text-sm text-red-700">{t.couldntUpdate(setStatus.error.message)}</p>}
-        </>
-      ) : (
-        <p className="mt-4 text-xs text-slate-500">{t.viewOnly}</p>
-      )}
-    </Card>
+        ) : (
+          <p className="text-sm text-ink/65 print:hidden">{t.viewOnly}</p>
+        )}
+        <button onClick={() => window.print()} className="self-start text-sm font-medium text-ink/65 hover:text-ink print:hidden">
+          {t.print}
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -314,18 +423,28 @@ export function IncidentDetail() {
         title={incidentTitle(i)}
         image={mediaUrl(i.snapshot_url)}
         back={back}
-        subtitle={joinParts([i.camera_id, location, formatDateTime(i.timestamp)])}
+        subtitle={joinParts([location ?? i.camera_id, timeAgo(i.received_at), t.lasted(formatDuration(i.duration_seconds))])}
         actions={<SeverityBadge severity={i.severity} />}
       />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <Evidence incident={i} />
+      {/* on paper: a compact header instead of the photo opener */}
+      <header className="mb-6 hidden border-b border-ink/20 pb-4 print:block">
+        <p className="text-sm">{t.printedFrom(formatDateTime(new Date().toISOString()))}</p>
+        <h1 className="mt-2 font-display text-3xl font-semibold">{incidentTitle(i)}</h1>
+        <p className="mt-1 text-sm">
+          {joinParts([severityLabel(i.severity), location, i.camera_id, formatDateTime(i.timestamp), formatDuration(i.duration_seconds), i.event_id])}
+        </p>
+      </header>
+      <WhatNow incident={i} />
+
+      <div className="space-y-6">
+        <Evidence incident={i} />
+        <div className="print:break-inside-avoid">
           <ReportCard id={i.event_id} />
         </div>
-        <div className="space-y-6">
-          <StatusCard incident={i} />
-          <Card title={t.details}>
+        <details className="group rounded-2xl bg-white p-5 ring-1 ring-ink/[0.08] print:hidden">
+          <summary className="cursor-pointer font-display font-semibold text-ink/70 group-open:text-ink">{t.technical}</summary>
+          <div className="mt-4 grid gap-6 lg:grid-cols-2">
             <dl className="divide-y divide-slate-100">
               <Row label={t.rows.eventId}><span className="font-mono text-xs">{i.event_id}</span></Row>
               <Row label={t.rows.detected}>{formatDateTime(i.timestamp)}</Row>
@@ -339,19 +458,18 @@ export function IncidentDetail() {
               <Row label={t.rows.objects}>{(m.detected_entities?.length ? joinList(m.detected_entities.map(classLabel)) : "—")}</Row>
               <Row label={t.rows.model}>{m.model ?? "—"}</Row>
             </dl>
-          </Card>
-          <Card title={t.rulesViolated}>
-            <ul className="space-y-2 text-sm text-slate-700">
-              {i.rules_violated.map((r) => <li key={r}>{ruleText(r)}</li>)}
-            </ul>
-          </Card>
-          <details className="rounded-lg bg-white ring-1 ring-ink/10 p-4 text-sm shadow-sm">
-            <summary className="cursor-pointer font-medium text-slate-700">{t.raw}</summary>
-            <pre dir="ltr" className="mt-3 max-h-96 overflow-auto rounded bg-slate-900 p-3 text-xs text-slate-100">
-              {JSON.stringify(i, null, 2)}
-            </pre>
-          </details>
-        </div>
+            <div>
+              <p className="text-sm font-medium text-slate-500">{t.rulesViolated}</p>
+              <ul className="mt-2 space-y-2 text-sm text-slate-700">
+                {i.rules_violated.map((r) => <li key={r}>{ruleText(r)}</li>)}
+              </ul>
+              <p className="mt-6 text-sm font-medium text-slate-500">{t.raw}</p>
+              <pre dir="ltr" className="mt-2 max-h-72 overflow-auto rounded-lg bg-slate-900 p-3 text-xs text-slate-100">
+                {JSON.stringify(i, null, 2)}
+              </pre>
+            </div>
+          </div>
+        </details>
       </div>
     </>
   );

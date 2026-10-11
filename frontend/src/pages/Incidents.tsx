@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useFilterOptions, useIncidents } from "../api/queries";
-import { IncidentTable } from "../components/IncidentTable";
+import { IncidentList } from "../components/IncidentTable";
 import { PageHeader } from "../components/Layout";
 import { Card, EmptyState, ErrorState, Spinner } from "../components/ui";
 import { bilingual, plural, useText } from "../lib/i18n";
-import { eventTypeLabel, severityLabel, statusLabel } from "../lib/terms";
+import { eventTypeLabel, severityLabel } from "../lib/terms";
 
 const TEXT = bilingual(
   {
@@ -24,6 +25,9 @@ const TEXT = bilingual(
     noIncidents: "No incidents yet",
     noMatchHint: "Try clearing a filter.",
     noIncidentsHint: "New incidents appear here as soon as they're detected.",
+    tabs: { open: "Waiting", acknowledged: "On it", resolved: "Done", all: "All" } as Record<string, string>,
+    show: "Show",
+    moreFilters: "More filters",
   },
   {
     title: "الحوادث",
@@ -42,6 +46,9 @@ const TEXT = bilingual(
     noIncidents: "لا توجد حوادث بعد",
     noMatchHint: "جرّب إزالة أحد عوامل التصفية.",
     noIncidentsHint: "تظهر الحوادث الجديدة هنا فور رصدها.",
+    tabs: { open: "بانتظارك", acknowledged: "قيد المتابعة", resolved: "تمت", all: "الكل" },
+    show: "عرض",
+    moreFilters: "عوامل تصفية أخرى",
   },
 );
 
@@ -91,6 +98,8 @@ export function Incidents() {
     setParams(next);
   };
   const active = FILTERS.some((f) => filters[f]);
+  const [showFilters, setShowFilters] = useState(false);
+  const filtersOpen = showFilters || ["severity", "event_type", "camera_id"].some((f) => filters[f as Filter]);
   const total = incidents.data?.total ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -98,11 +107,29 @@ export function Incidents() {
     <>
       <PageHeader title={t.title} subtitle={incidents.data ? t.count(total) : undefined} />
       <Card>
-        <div className="mb-5 flex flex-wrap items-end gap-3">
+        <div className="mb-4 inline-flex flex-wrap rounded-full bg-paper p-1 text-sm ring-1 ring-ink/10" role="group" aria-label={t.show}>
+          {["open", "acknowledged", "resolved", ""].map((s) => (
+            <button
+              key={s || "all"}
+              onClick={() => update({ status: s })}
+              aria-pressed={filters.status === s}
+              className={`rounded-full px-4 py-1.5 font-medium ${filters.status === s ? "bg-ink text-paper" : "text-ink/60 hover:text-ink"}`}
+            >
+              {t.tabs[s || "all"]}
+            </button>
+          ))}
+        </div>
+        {/* on phones the extra filters fold away behind one button (open by itself when one is in use) */}
+        <button
+          onClick={() => setShowFilters((v) => !v)}
+          aria-expanded={filtersOpen}
+          className="mb-4 ms-2 rounded-full px-3 py-1.5 text-sm font-medium text-ink/65 ring-1 ring-ink/15 sm:hidden"
+        >
+          {t.moreFilters}
+        </button>
+        <div className={`mb-5 flex-wrap items-end gap-3 ${filtersOpen ? "flex" : "hidden"} sm:flex`}>
           <Select label={t.severity} value={filters.severity} onChange={(v) => update({ severity: v })}
             options={(options.data?.severities ?? []).map((s) => ({ value: s, label: severityLabel(s) }))} />
-          <Select label={t.status} value={filters.status} onChange={(v) => update({ status: v })}
-            options={(options.data?.statuses ?? []).map((s) => ({ value: s, label: statusLabel(s) }))} />
           <Select label={t.type} value={filters.event_type} onChange={(v) => update({ event_type: v })}
             options={(options.data?.event_types ?? []).map((e) => ({ value: e, label: eventTypeLabel(e) }))} />
           <Select label={t.camera} value={filters.camera_id} onChange={(v) => update({ camera_id: v })}
@@ -124,7 +151,7 @@ export function Incidents() {
         ) : incidents.data.items.length ? (
           <>
             <div className={incidents.isPlaceholderData ? "opacity-60" : ""}>
-              <IncidentTable incidents={incidents.data.items} />
+              <IncidentList incidents={incidents.data.items} />
             </div>
             <nav className="mt-4 flex items-center justify-between text-sm text-slate-600" aria-label={t.pagination}>
               <span>{t.page(page, pages)}</span>

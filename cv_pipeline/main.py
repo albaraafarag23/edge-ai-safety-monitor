@@ -120,6 +120,7 @@ def run_test_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder, live: L
     cfg = build_config(plugin, [dict(enumerate(spec.get("classes", {}))) for spec in model_specs(plugin)])
     log_config(cfg)
     live.set_model("synthetic")
+    live.set_frame_size(*SYNTHETIC_FRAME_SIZE)
     print(f"[CV] TEST MODE — synthetic detections at {SYNTHETIC_FPS} fps, "
           f"each scene held for {SCENARIO_SECONDS} s", flush=True)
     frame_id = 0
@@ -169,6 +170,7 @@ def run_live_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder, live: L
     # e.g. "construction_ppe.engine+smoking.engine" when an extra model runs too
     model_name = "+".join(os.path.basename(m.model_path) for m in cfg.models)
     live.set_model(model_name)
+    live.set_frame_size(*camera.frame_size)
     last = {}   # model path -> its latest detections, reused on frames it skips (every_n_frames)
     for frame_id, frame in enumerate(camera.frames(), start=1):
         detections = []

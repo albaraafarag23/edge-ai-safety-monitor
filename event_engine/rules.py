@@ -169,6 +169,9 @@ class RuleEngine:
         self._active = {}       # (camera, rule_id) -> {"start": ts, "last": ts}
         self._last_fired = {}   # (camera, rule_id) -> ts
         self.settings = {}      # plugin_id -> {rule_id: {"enabled": bool, <RULE_SETTINGS>...}} from the console
+        # plugin_id -> {zone_id: [[x, y], ...]}: zones redrawn in the console, as fractions of the picture (0-1),
+        # so they fit any camera resolution; turned into pixels with each detection's frame_size
+        self.zones = {}
         for plugin in plugins.values():
             for rule in plugin.get("rules", []):
                 if rule.get("planned"):
@@ -200,7 +203,7 @@ class RuleEngine:
                 # forget any running timer, so the rule starts from zero when it's active again
                 self._active.pop((camera, rule["rule_id"]), None)
                 continue
-            zone = plugin.get("zones", {}).get(rule.get("zone")) if rule.get("zone") else None
+            zone = self._zone(plugin, rule.get("zone"), event.get("frame_size")) if rule.get("zone") else None
             if zone and zone.get("camera_id") not in (None, camera):
                 continue
 
@@ -216,6 +219,15 @@ class RuleEngine:
             self._last_fired[key] = now
             incidents.append(self._incident(plugin, rule, zone, event, involved, duration))
         return incidents
+
+    def _zone(self, plugin: dict, zone_id: str, frame_size) -> dict | None:
+        """The plugin's zone, with the console's redrawn polygon when there is one (and the frame size is known)."""
+        zone = plugin.get("zones", {}).get(zone_id)
+        drawn = self.zones.get(plugin["plugin_id"], {}).get(zone_id)
+        if not zone or not drawn or not frame_size or len(frame_size) != 2:
+            return zone
+        width, height = frame_size
+        return {**zone, "polygon": [[x * width, y * height] for x, y in drawn]}
 
     def _track(self, key, active, now, grace_s):
         """Returns how long the condition has held, or None if it isn't active."""

@@ -170,6 +170,22 @@ results.append(check("Hours: night shift past midnight counts for the day it sta
                      len(run([bad] * 10, rules=["RULE_PPE_01"], settings=night, start=thu_2am_cairo,
                              site_tz="Africa/Cairo")) == 1))
 
+# --- zones redrawn in the console (fractions of the picture, scaled with the detection's frame_size) ---
+def run_zones(objects, zones, frame_size=(640, 480)):
+    engine = RuleEngine({PLUGIN["plugin_id"]: dict(PLUGIN, rules=[r for r in PLUGIN["rules"] if r["rule_id"] == "RULE_ZONE_01"])})
+    engine.zones[PLUGIN["plugin_id"]] = zones
+    event = {"timestamp": T0.isoformat(), "camera_id": "cam_01", "frame_id": 0, "plugin_id": PLUGIN["plugin_id"],
+             "detections": objects, "frame_size": list(frame_size) if frame_size else None}
+    return engine.process(event)
+
+top_right = {"excavation_edge": [[0.75, 0.0], [1.0, 0.0], [1.0, 0.4], [0.75, 0.4]]}   # 480-640 x, 0-192 y at 640x480
+results.append(check("Redrawn zone: a person inside the new area fires", len(run_zones([person_at(540, 150)], top_right)) == 1))
+results.append(check("Redrawn zone: the old area no longer fires", not run_zones([person_at(50, 420)], top_right)))
+results.append(check("Redrawn zone: scales to the camera's resolution",
+                     len(run_zones([person_at(1620, 400)], top_right, frame_size=(1920, 1080))) == 1))
+results.append(check("Redrawn zone: without a frame size the plugin's polygon is used",
+                     len(run_zones([person_at(50, 420)], top_right, frame_size=None)) == 1))
+
 # --- plugin errors ---
 for name, broken in [("unknown rule type", {**PLUGIN, "rules": [{"rule_id": "X", "type": "magic"}]}),
                      ("unknown zone", {**PLUGIN, "rules": [{**PLUGIN["rules"][1], "zone": "nowhere"}]})]:

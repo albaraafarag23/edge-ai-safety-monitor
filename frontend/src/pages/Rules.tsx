@@ -309,10 +309,9 @@ function RuleRow({ rule, canEdit, onSettings }: { rule: SafetyRule; canEdit: boo
           <SeverityBadge severity={rule.severity} />
         </div>
         <p className="mt-0.5 text-sm text-slate-600">{plugin.ruleDescription(rule.rule_id, rule.description)}</p>
-        <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-400">
-          <span>{rule.rule_id}</span>
-          {zone && <span>· {zone}</span>}
-          <span>· {rule.min_duration_s > 0 ? t.alertsAfter(formatDuration(rule.min_duration_s)) : t.alertsAtOnce}</span>
+        <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
+          {zone && <span>{zone} ·</span>}
+          <span>{rule.min_duration_s > 0 ? t.alertsAfter(formatDuration(rule.min_duration_s)) : t.alertsAtOnce}</span>
           {rule.max_count !== null && <span>· {t.moreThan(rule.max_count)}</span>}
           {rule.active_hours && (
             <span className="inline-flex items-center gap-1 text-sky-700">

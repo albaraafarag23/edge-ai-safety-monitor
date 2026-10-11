@@ -282,11 +282,11 @@ export function Users() {
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 text-start text-xs font-medium tracking-wide text-slate-500 uppercase">
-                  <th className="px-5 py-3">{t.head.user}</th>
-                  <th className="px-5 py-3">{t.head.role}</th>
-                  <th className="px-5 py-3">{t.head.status}</th>
-                  <th className="px-5 py-3">{t.head.lastSignIn}</th>
-                  <th className="px-5 py-3 text-end">{t.head.actions}</th>
+                  <th className="px-3 py-3 sm:px-5">{t.head.user}</th>
+                  <th className="px-3 py-3 sm:px-5">{t.head.role}</th>
+                  <th className="hidden px-3 py-3 sm:px-5 md:table-cell">{t.head.status}</th>
+                  <th className="hidden px-3 py-3 sm:px-5 md:table-cell">{t.head.lastSignIn}</th>
+                  <th className="px-3 py-3 sm:px-5 text-end">{t.head.actions}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -294,13 +294,17 @@ export function Users() {
                   const isMe = u.id === me.id;
                   return (
                     <tr key={u.id} className={u.active ? "" : "bg-slate-50/60 text-slate-400"}>
-                      <td className="px-5 py-3">
+                      <td className="px-3 py-3 sm:px-5">
                         <p className={`font-medium ${u.active ? "text-slate-900" : ""}`}>
                           {u.name} {isMe && <span className="text-xs font-normal text-slate-400">{t.you}</span>}
                         </p>
                         <p className="text-xs text-slate-500">{u.email}</p>
+                        {/* on phones, status and last sign-in live here instead of their own columns */}
+                        <p className="mt-0.5 text-xs text-slate-500 md:hidden">
+                          {u.active ? t.active : t.disabled} · {u.last_login_at ? timeAgo(u.last_login_at) : t.never}
+                        </p>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-3 py-3 sm:px-5">
                         <select
                           value={u.role}
                           disabled={isMe || update.isPending}
@@ -316,7 +320,7 @@ export function Users() {
                           ))}
                         </select>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="hidden px-3 py-3 sm:px-5 md:table-cell">
                         <span
                           className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${
                             u.active ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20" : "bg-slate-100 text-slate-500 ring-slate-500/20"
@@ -325,8 +329,8 @@ export function Users() {
                           {u.active ? t.active : t.disabled}
                         </span>
                       </td>
-                      <td className="px-5 py-3 text-slate-500">{u.last_login_at ? timeAgo(u.last_login_at) : t.never}</td>
-                      <td className="px-5 py-3">
+                      <td className="hidden px-3 py-3 sm:px-5 text-slate-500 md:table-cell">{u.last_login_at ? timeAgo(u.last_login_at) : t.never}</td>
+                      <td className="px-3 py-3 sm:px-5">
                         <div className="flex justify-end gap-2">
                           {isMe ? (
                             <Link to="/app/account" className={BUTTON_SECONDARY} title={t.changePassword}>

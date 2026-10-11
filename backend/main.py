@@ -17,6 +17,7 @@ import analytics
 import auth
 import cameras
 import rule_settings
+import zone_settings
 import users
 from live import broadcaster
 from models import STATUSES, Base, Incident, Report, SessionLocal, User, engine
@@ -112,20 +113,24 @@ async def lifespan(app: FastAPI):
         # create_all never alters an existing table; until there are migrations (Alembic), columns added
         # later are added here. IF NOT EXISTS makes it safe on every start.
         await conn.execute(text("ALTER TABLE reports ADD COLUMN IF NOT EXISTS markdown_ar TEXT"))
+        await conn.execute(text("ALTER TABLE incidents ADD COLUMN IF NOT EXISTS status_updated_by VARCHAR"))
     await auth.ensure_admin()
 
     r = aioredis.from_url(REDIS_URL, decode_responses=True)
     cameras.init(REDIS_URL)
     task = asyncio.create_task(consume_incidents(r))
     switches_task = asyncio.create_task(rule_settings.keep_synced(REDIS_URL))
+    zones_task = asyncio.create_task(zone_settings.keep_synced(REDIS_URL))
 
     yield
 
     task.cancel()
     switches_task.cancel()
+    zones_task.cancel()
     await r.aclose()
     await cameras.close()
     await rule_settings.close()
+    await zone_settings.close()
 
 
 app = FastAPI(title="Safety Monitor API", version="1.2.0", lifespan=lifespan)
@@ -238,7 +243,7 @@ async def get_incident(event_id: str):
 
 
 @protected.patch("/incidents/{event_id}/status", dependencies=[Depends(auth.can_handle_incidents)])
-async def set_status(event_id: str, body: StatusIn):
+async def set_status(event_id: str, body: StatusIn, user: User = Depends(auth.current_user)):
     async with SessionLocal() as session:
         incident = await session.get(Incident, event_id)
         if not incident:
@@ -246,9 +251,10 @@ async def set_status(event_id: str, body: StatusIn):
         incident.status = body.status
         incident.status_note = body.note
         incident.status_updated_at = datetime.utcnow()
+        incident.status_updated_by = user.name
         await session.commit()
         result = incident.to_dict(await session.get(Report, event_id))
-    broadcaster.publish("status", {"event_id": event_id, "status": body.status})
+    broadcaster.publish("status", {"event_id": event_id, "status": body.status, "by": user.name})
     return result
 
 
@@ -333,7 +339,10 @@ async def events(request: Request):
 
 
 protected.include_router(cameras.router)
+protected.include_router(zone_settings.router)
 protected.include_router(analytics.router)
+# for the summary email (ai_reporting); internal services only, like POST /reports
+app.include_router(analytics.internal_router, dependencies=[Depends(auth.internal_service)])
 protected.include_router(rule_settings.router)
 protected.include_router(users.router)
 app.include_router(users.account)

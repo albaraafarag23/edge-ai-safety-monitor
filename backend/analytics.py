@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import Integer, case, cast, func, select, text
 
-from models import Incident, SessionLocal
+from models import Incident, SessionLocal, iso
 
 router = APIRouter(tags=["analytics"])
 
@@ -85,4 +85,45 @@ async def analytics(days: int = Query(30, ge=1, le=365), tz: str = Query("UTC", 
         "missing_equipment": [{"key": k, "count": c} for k, c in missing],
         "by_status": {s: by_status.get(s, 0) for s in ("open", "acknowledged", "resolved")},
         "median_minutes_to_handle": round(median_minutes, 1) if median_minutes is not None else None,
+    }
+
+
+# ---------- end-of-day summary email (ai_reporting/digest.py) ----------
+
+internal_router = APIRouter(tags=["internal"])
+SEVERITY_RANK = case({"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}, value=Incident.severity, else_=4)
+
+
+@internal_router.get("/internal/daily-summary")
+async def daily_summary(tz: str = Query("UTC", max_length=64), limit: int = Query(5, ge=0, le=20)):
+    """The last 24 hours for the summary email: the analytics figures, plus what is still open (all of it, not only
+    today's), the same thing on the same camera and zone grouped with a count, most serious first.
+    Only for internal services (X-Internal-Token)."""
+    day = await analytics(days=1, tz=tz)
+    missing = Incident.meta["missing_equipment"]
+    async with SessionLocal() as session:
+        open_total = await session.scalar(select(func.count()).select_from(Incident).where(Incident.status == "open"))
+        groups = (await session.execute(
+            select(Incident.event_type, Incident.severity, Incident.camera_id, Incident.location, missing,
+                   func.count(), func.max(Incident.created_at))
+            .where(Incident.status == "open")
+            .group_by(Incident.event_type, Incident.severity, Incident.camera_id, Incident.location, missing)
+            .order_by(func.min(SEVERITY_RANK), func.max(Incident.created_at).desc())
+            .limit(limit))).all()
+    busiest = max(day["heatmap"], key=lambda c: c["count"], default=None)
+    zones = [z for z in day["by_zone"] if z["key"] != "No zone"]
+    return {
+        "tz": tz,
+        "total": day["total"],
+        "by_status": day["by_status"],
+        "top_type": day["by_type"][0] if day["by_type"] else None,
+        "top_zone": zones[0] if zones else None,
+        "busiest_hour": busiest["hour"] if busiest and busiest["count"] else None,
+        "median_minutes_to_handle": day["median_minutes_to_handle"],
+        "open_total": open_total,
+        "open": [
+            {"event_type": t, "severity": sev, "camera_id": cam, "location": loc,
+             "metadata": {"missing_equipment": items or []}, "count": n, "received_at": iso(latest)}
+            for t, sev, cam, loc, items, n, latest in groups
+        ],
     }

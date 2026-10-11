@@ -19,6 +19,8 @@ SITE_TIMEZONE = os.getenv("SITE_TIMEZONE", "Africa/Cairo")
 # rule settings from the console: a Redis hash per plugin, rule_id -> JSON, written by the backend
 # (backend/rule_settings.py)
 SETTINGS_KEY = "rules:settings:{plugin_id}"
+# zones redrawn in the console: a Redis hash per plugin, zone_id -> {"polygon": [[x, y], ...]} as fractions (0-1)
+ZONES_KEY = "zones:settings:{plugin_id}"
 SETTINGS_REFRESH_S = 2.0
 # wait between attempts while Redis is unreachable (doubles up to the maximum)
 RECONNECT_MIN_S, RECONNECT_MAX_S = 1.0, 10.0
@@ -45,6 +47,15 @@ def refresh_settings(r, engine: RuleEngine):
         if settings != engine.settings.get(plugin_id, {}):
             print(f"[EE] {plugin_id}: rule settings changed: {settings or 'none'}", flush=True)
         engine.settings[plugin_id] = settings
+        zones = {}
+        for zone_id, raw in r.hgetall(ZONES_KEY.format(plugin_id=plugin_id)).items():
+            try:
+                zones[zone_id] = json.loads(raw)["polygon"]
+            except (json.JSONDecodeError, KeyError, TypeError):
+                print(f"[EE] Ignoring unreadable zone {zone_id}", flush=True)
+        if zones != engine.zones.get(plugin_id, {}):
+            print(f"[EE] {plugin_id}: zones redrawn in the console: {sorted(zones) or 'none'}", flush=True)
+        engine.zones[plugin_id] = zones
 
 
 def ensure_group(r):

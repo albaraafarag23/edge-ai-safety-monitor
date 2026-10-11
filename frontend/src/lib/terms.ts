@@ -12,8 +12,8 @@ import { currentLang, type Lang } from "./i18n";
 
 const SEVERITY_AR: Record<Severity, string> = { CRITICAL: "حرج", HIGH: "مرتفع", MEDIUM: "متوسط", LOW: "منخفض" };
 const STATUS: Record<Lang, Record<IncidentStatus, string>> = {
-  en: { open: "Open", acknowledged: "Acknowledged", resolved: "Resolved" },
-  ar: { open: "مفتوحة", acknowledged: "تم الاستلام", resolved: "تم الحل" },
+  en: { open: "Open", acknowledged: "On it", resolved: "Done" },
+  ar: { open: "مفتوحة", acknowledged: "قيد المتابعة", resolved: "تمت" },
 };
 const ROLE: Record<Lang, Record<Role, string>> = {
   en: { admin: "Admin", supervisor: "Supervisor", viewer: "Viewer" },
@@ -98,7 +98,9 @@ export const eventTypeLabel = (code: string | null | undefined) =>
 export function incidentTitle(i: { event_type: string; metadata?: { missing_equipment?: string[] } }): string {
   const missing = i.metadata?.missing_equipment ?? [];
   if (i.event_type === "PPE_MISSING" && missing.length) {
-    const items = joinList(missing.map(itemLabel));
+    // "No hard hat or safety vest": "or" before the last item reads better than a list
+    const names = missing.map(itemLabel);
+    const items = names.length > 1 ? `${joinList(names.slice(0, -1))}${ar() ? " أو " : " or "}${names[names.length - 1]}` : names[0];
     return ar() ? `بدون ${items}` : `No ${items.toLowerCase()}`;
   }
   return INCIDENT_TITLE[currentLang()][i.event_type] ?? eventTypeLabel(i.event_type);
