@@ -35,6 +35,21 @@ run the command again. It prints the public address, e.g. `https://sitesentry.ta
 `--bg` keeps it on across reboots. Check with `tailscale funnel status`; stop with
 `sudo tailscale funnel --https=443 off`.
 
+### Keeping it reachable after a reboot
+`--bg` is not always enough: after a reboot the console can run fine and `tailscale funnel status` can say "on"
+while the public address no longer exists (public DNS answers "no such name"), so the product page shows
+"Live demo offline". Running `tailscale funnel --bg 3000` again brings it back. `scripts/funnel-watchdog.sh` does
+this by itself. Every 5 minutes it checks the address over the public internet, and after two failed checks in
+a row it switches Funnel on again. It does nothing if the console itself or the internet is down. Set it up once:
+
+    sudo tailscale set --operator=$USER      # so Funnel can be changed without sudo
+    (crontab -l 2>/dev/null; echo "*/5 * * * * $PWD/scripts/funnel-watchdog.sh") | crontab -
+
+It only logs failures and recoveries, to `~/.local/state/sitesentry/funnel-watchdog.log`. Remove it with
+`crontab -e`. A check from this machine itself proves nothing: its DNS goes through Tailscale. To check from
+outside, run `dig +short @1.1.1.1 <your ts.net address>`. Visitors who looked the address up while it was missing
+can keep getting "server can't be found" for up to about an hour. Airplane mode on and off clears it on a phone.
+
 ## 2. Product page: Cloudflare Pages
 
     npx wrangler@4 login                                           # once, opens the browser (free account)
