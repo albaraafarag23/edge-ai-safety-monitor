@@ -9,7 +9,7 @@ import { Card, ErrorState, SeverityBadge, Spinner, StatusBadge } from "../compon
 import { useAuth } from "../lib/auth";
 import { formatDateTime, formatDuration, timeAgo } from "../lib/format";
 import { bilingual, useLang, useText } from "../lib/i18n";
-import { classLabel, eventTypeLabel, itemLabel, joinList, joinParts, usePluginText } from "../lib/terms";
+import { classLabel, incidentTitle, itemLabel, joinList, joinParts, usePluginText } from "../lib/terms";
 
 const TEXT = bilingual(
   {
@@ -311,7 +311,7 @@ export function IncidentDetail() {
   return (
     <>
       <PageHeader
-        title={eventTypeLabel(i.event_type)}
+        title={incidentTitle(i)}
         image={mediaUrl(i.snapshot_url)}
         back={back}
         subtitle={joinParts([i.camera_id, location, formatDateTime(i.timestamp)])}

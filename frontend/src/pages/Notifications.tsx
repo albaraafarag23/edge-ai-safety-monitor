@@ -9,7 +9,7 @@ import { Card, EmptyState, ErrorState, SeverityBadge, Spinner, StatusBadge } fro
 import { formatDateTime, timeAgo } from "../lib/format";
 import { bilingual, plural, useText } from "../lib/i18n";
 import { desktopSupported, enableDesktop, isUnread, updatePrefs, useNotificationPrefs } from "../lib/notifications";
-import { eventTypeLabel, itemLabel, joinList, usePluginText } from "../lib/terms";
+import { incidentTitle, itemLabel, joinList, usePluginText } from "../lib/terms";
 
 const VIEWS = ["all", "unread", "urgent"] as const;
 type View = (typeof VIEWS)[number];
@@ -185,7 +185,7 @@ function NotificationItem({ incident: i, unread }: { incident: Incident; unread:
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-semibold text-slate-900">{eventTypeLabel(i.event_type)}</span>
+            <span className="text-sm font-semibold text-slate-900">{incidentTitle(i)}</span>
             <SeverityBadge severity={i.severity} />
             <StatusBadge status={i.status} />
           </span>

@@ -152,6 +152,7 @@ export interface SafetyRule extends RuleSettings {
   event_type: string;
   zone_id: string | null;
   zone_name: string | null;
+  recommended_actions?: string[]; // site-approved steps, most important first
   available: boolean; // false: not usable yet, see requires
   planned: boolean;
   requires: string | null;
@@ -165,7 +166,7 @@ export interface SafetyRule extends RuleSettings {
 /** A plugin's text in another language (the plugin's `translations` block, docs/plugins.md). */
 export interface PluginTranslation {
   plugin_name?: string;
-  rules?: Record<string, { name?: string; description?: string; requires?: string }>;
+  rules?: Record<string, { name?: string; description?: string; requires?: string; recommended_actions?: string[] }>;
   zones?: Record<string, string>;
 }
 

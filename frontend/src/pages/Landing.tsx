@@ -539,7 +539,17 @@ function TopBar({ surface }: { surface: "dark" | "light" }) {
           onDark ? "text-paper" : "bg-paper/80 text-ink backdrop-blur-md"
         }`}
       >
-        <Link to="/" className="flex items-center gap-2.5">
+        <Link
+          to="/"
+          className="flex items-center gap-2.5"
+          onClick={(e) => {
+            // already on this page, so the link alone does nothing: go back to the start
+            e.preventDefault();
+            if (window.location.hash) window.history.replaceState(null, "", window.location.pathname);
+            const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+            window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+          }}
+        >
           <LogoMark className="h-7 w-7" />
           <span className="font-display text-[15px] font-semibold tracking-tight">{P}</span>
           <span className={`hidden font-display text-[15px] sm:inline ${onDark ? "text-paper/55" : "text-ink/45"}`}>

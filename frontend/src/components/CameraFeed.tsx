@@ -28,10 +28,11 @@ const TEXT = bilingual(
  * The stream holds a connection open, so it's only mounted while visible and is reconnected
  * when the camera comes back online.
  */
-export function CameraFeed({ camera, className = "", showFullscreen = true }: {
+export function CameraFeed({ camera, className = "", showFullscreen = true, showFps = true }: {
   camera: Camera;
   className?: string;
   showFullscreen?: boolean;
+  showFps?: boolean;
 }) {
   const t = useText(TEXT);
   const box = useRef<HTMLDivElement>(null);
@@ -96,7 +97,7 @@ export function CameraFeed({ camera, className = "", showFullscreen = true }: {
         </div>
         <div className="flex items-center gap-2 text-[11px] text-white/80">
           {camera.mode === "test" && <span className="rounded bg-amber-400/90 px-1.5 py-0.5 font-semibold text-slate-950">{t.testMode}</span>}
-          {live && camera.fps !== null && <span className="tabular-nums">{camera.fps.toFixed(1)} fps</span>}
+          {live && showFps && camera.fps !== null && <span className="tabular-nums">{camera.fps.toFixed(1)} fps</span>}
         </div>
       </div>
 

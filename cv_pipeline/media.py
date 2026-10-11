@@ -37,6 +37,9 @@ except Exception:
 COLORS = {"Person": (255, 160, 0), "Hardhat": (0, 200, 0), "Safety Vest": (0, 200, 0),
           "NO-Hardhat": (0, 0, 255), "NO-Safety Vest": (0, 0, 255)}
 DEFAULT_COLOR = (0, 215, 255)
+# what a box says, in plain words (no confidence score: supervisors and email readers don't need it)
+LABELS = {"NO-Hardhat": "No hard hat", "NO-Safety Vest": "No safety vest", "Hardhat": "Hard hat",
+          "Safety Vest": "Safety vest", "machinery": "Machinery", "vehicle": "Vehicle", "cigarette": "Cigarette"}
 
 
 def annotate(image, detections, scale):
@@ -44,7 +47,7 @@ def annotate(image, detections, scale):
         x1, y1, x2, y2 = (int(v * scale) for v in d["bbox"])
         color = COLORS.get(d["class_name"], DEFAULT_COLOR)
         cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
-        label = f"{d['class_name']} {d['confidence']:.2f}"
+        label = LABELS.get(d["class_name"], d["class_name"])
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         cv2.rectangle(image, (x1, max(y1 - th - 6, 0)), (x1 + tw + 4, max(y1, th + 6)), color, -1)
         cv2.putText(image, label, (x1 + 2, max(y1 - 4, th + 2)), cv2.FONT_HERSHEY_SIMPLEX, 0.5,

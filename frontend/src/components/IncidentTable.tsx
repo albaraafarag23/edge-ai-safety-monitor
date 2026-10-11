@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import type { Incident } from "../api/types";
 import { formatDateTime, formatDuration, timeAgo } from "../lib/format";
 import { bilingual, useText } from "../lib/i18n";
-import { eventTypeLabel, itemLabel, joinList, usePluginText } from "../lib/terms";
+import { incidentTitle, itemLabel, joinList, usePluginText } from "../lib/terms";
 import { SeverityBadge, StatusBadge } from "./ui";
 
 const TEXT = bilingual(
@@ -67,7 +67,7 @@ export function IncidentTable({ incidents, compact = false }: { incidents: Incid
                 <SeverityBadge severity={i.severity} />
               </td>
               <td className="py-3 pe-4">
-                <p className="font-medium text-slate-900">{eventTypeLabel(i.event_type)}</p>
+                <p className="font-medium text-slate-900">{incidentTitle(i)}</p>
                 <p className="text-xs text-slate-500">
                   {plugin.location(i.location, i.metadata.zone_id) ?? t.noZone}
                   {i.metadata.missing_equipment?.length ? t.missing(joinList(i.metadata.missing_equipment.map(itemLabel))) : ""}

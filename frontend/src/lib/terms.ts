@@ -1,7 +1,7 @@
 /**
  * Words the whole console shares: severities, statuses, roles, incident types, detected classes and missing
- * items. English falls back to a readable version of the code (PPE_MISSING -> "PPE missing"), so a new code
- * still shows something sensible before it has an Arabic name.
+ * items, and an incident's title in plain words (incidentTitle). Unknown codes fall back to a readable version of
+ * the code (PPE_MISSING -> "PPE missing"), so a new code still shows something sensible.
  *
  * Plugin text (rule names, zone names) comes from the plugin's own `translations.ar` block, see usePluginText.
  */
@@ -32,6 +32,44 @@ const EVENT_TYPE_AR: Record<string, string> = {
   SLEEPING_ON_SITE: "النوم في الموقع",
 };
 const ITEM_AR: Record<string, string> = { hard_hat: "خوذة", safety_vest: "سترة عاكسة" };
+// Short plain names for filters and charts (the codes are for machines)
+const EVENT_TYPE_EN: Record<string, string> = {
+  PPE_MISSING: "Missing safety gear",
+  RESTRICTED_ZONE_ENTRY: "Restricted area entry",
+  LOITERING_HAZARD_ZONE: "Staying in a danger zone",
+  ZONE_OVER_CAPACITY: "Area over capacity",
+  PERSON_NEAR_MACHINERY: "Too close to machinery",
+  SMOKING: "Smoking",
+  VAPING: "Vaping",
+  FOOD_IN_RESTRICTED_ZONE: "Food or drink in a restricted area",
+  PERSON_DOWN: "Person down",
+  SLEEPING_ON_SITE: "Sleeping on site",
+};
+// What happened, as a person would say it: the title of one incident
+const INCIDENT_TITLE: Record<Lang, Record<string, string>> = {
+  en: {
+    RESTRICTED_ZONE_ENTRY: "Someone entered a restricted area",
+    LOITERING_HAZARD_ZONE: "Someone staying in a danger zone",
+    ZONE_OVER_CAPACITY: "Too many people in one area",
+    PERSON_NEAR_MACHINERY: "Someone too close to machinery",
+    SMOKING: "Someone smoking",
+    VAPING: "Someone vaping",
+    FOOD_IN_RESTRICTED_ZONE: "Food or drink in a restricted area",
+    PERSON_DOWN: "Someone may have fallen",
+    SLEEPING_ON_SITE: "Someone may be asleep on site",
+  },
+  ar: {
+    RESTRICTED_ZONE_ENTRY: "شخص دخل منطقة محظورة",
+    LOITERING_HAZARD_ZONE: "شخص يبقى في منطقة خطرة",
+    ZONE_OVER_CAPACITY: "عدد كبير من الأشخاص في منطقة واحدة",
+    PERSON_NEAR_MACHINERY: "شخص قريب جدًا من آلة",
+    SMOKING: "شخص يدخّن",
+    VAPING: "شخص يستخدم سيجارة إلكترونية",
+    FOOD_IN_RESTRICTED_ZONE: "طعام أو شراب في منطقة محظورة",
+    PERSON_DOWN: "ربما سقط شخص",
+    SLEEPING_ON_SITE: "ربما ينام شخص في الموقع",
+  },
+};
 const CLASS_AR: Record<string, string> = {
   Person: "شخص",
   Hardhat: "خوذة",
@@ -55,7 +93,16 @@ export const severityLabel = (s: Severity | string) =>
 export const statusLabel = (s: IncidentStatus | string) => STATUS[currentLang()][s as IncidentStatus] ?? humanize(s);
 export const roleLabel = (r: Role | string) => ROLE[currentLang()][r as Role] ?? humanize(r);
 export const eventTypeLabel = (code: string | null | undefined) =>
-  (ar() && code && EVENT_TYPE_AR[code]) || humanize(code);
+  (code && (ar() ? EVENT_TYPE_AR[code] : EVENT_TYPE_EN[code])) || humanize(code);
+/** One incident in plain words: "No hard hat", "Someone too close to machinery". */
+export function incidentTitle(i: { event_type: string; metadata?: { missing_equipment?: string[] } }): string {
+  const missing = i.metadata?.missing_equipment ?? [];
+  if (i.event_type === "PPE_MISSING" && missing.length) {
+    const items = joinList(missing.map(itemLabel));
+    return ar() ? `بدون ${items}` : `No ${items.toLowerCase()}`;
+  }
+  return INCIDENT_TITLE[currentLang()][i.event_type] ?? eventTypeLabel(i.event_type);
+}
 export const itemLabel = (item: string) => (ar() && ITEM_AR[item]) || humanizeItem(item);
 /** A detector class name as shown to people (the model's own name in English). */
 export const classLabel = (name: string) => (ar() && CLASS_AR[name]) || name;
@@ -74,6 +121,11 @@ export function usePluginText() {
     ruleName: (ruleId: string | undefined, english: string) => (ruleId && t.rules?.[ruleId]?.name) || english,
     ruleDescription: (ruleId: string, english: string) => t.rules?.[ruleId]?.description || english,
     ruleRequires: (ruleId: string, english: string | null) => t.rules?.[ruleId]?.requires || english,
+    /** The site-approved steps for a rule (plugin recommended_actions), in the current language. */
+    ruleActions: (ruleId: string | undefined): string[] => {
+      const rule = rules.data?.rules.find((r) => r.rule_id === ruleId);
+      return (ruleId && t.rules?.[ruleId]?.recommended_actions) || rule?.recommended_actions || [];
+    },
     zoneName: (zoneId: string | null | undefined, english: string | null) => (zoneId && t.zones?.[zoneId]) || english,
     /** An incident's location: a zone name (translated through its zone id) or NOT SPECIFIED. */
     location: (location: string | null | undefined, zoneId?: string | null) => {

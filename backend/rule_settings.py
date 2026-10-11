@@ -132,6 +132,7 @@ def _rule_dict(plugin: dict, rule: dict, row: RuleSetting | None) -> dict:
         "available": available,
         "planned": bool(rule.get("planned")),
         "requires": rule.get("requires"),
+        "recommended_actions": rule.get("recommended_actions", []),
         "enabled": available and (row.enabled if row else True),
         **{k: overrides.get(k, base[k]) for k in RULE_SETTINGS},
         "defaults": base,

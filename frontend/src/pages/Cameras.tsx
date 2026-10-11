@@ -8,7 +8,7 @@ import { PageHeader } from "../components/Layout";
 import { Card, EmptyState, ErrorState, SeverityBadge, Spinner } from "../components/ui";
 import { humanize, timeAgo } from "../lib/format";
 import { bilingual, useText } from "../lib/i18n";
-import { eventTypeLabel, usePluginText } from "../lib/terms";
+import { incidentTitle, usePluginText } from "../lib/terms";
 
 const TEXT = bilingual(
   {
@@ -85,7 +85,7 @@ function CameraIncidents({ cameraId }: { cameraId: string }) {
                 {thumb && <img src={thumb} alt="" loading="lazy" className="h-full w-full object-cover" />}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium text-slate-900">{eventTypeLabel(i.event_type)}</span>
+                <span className="block truncate text-sm font-medium text-slate-900">{incidentTitle(i)}</span>
                 <span className="block text-xs text-slate-500">{timeAgo(i.received_at)}</span>
               </span>
               <SeverityBadge severity={i.severity} />

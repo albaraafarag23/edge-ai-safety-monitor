@@ -7,7 +7,7 @@ import { SEVERITY_STYLES, timeAgo } from "../lib/format";
 import { bilingual, LanguageSwitch, useText } from "../lib/i18n";
 import { LiveProvider, useLive } from "../lib/live";
 import { isUnread, useNotificationPrefs } from "../lib/notifications";
-import { eventTypeLabel, roleLabel, severityLabel, usePluginText } from "../lib/terms";
+import { incidentTitle, roleLabel, severityLabel, usePluginText } from "../lib/terms";
 import { Logo } from "./Brand";
 import { SeverityBadge } from "./ui";
 
@@ -74,7 +74,6 @@ const NAV = [
 ];
 const ADMIN_NAV = [{ to: "/app/users", key: "users" as NavKey, icon: Users, end: false, photo: "how" }];
 const OTHER_PAGES: Record<string, string> = { "/app/account": "hero" };
-const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"];
 
 function useNav() {
   const { user } = useAuth();
@@ -112,7 +111,7 @@ function Toasts() {
               ×
             </button>
           </div>
-          <p className="mt-2 text-sm font-medium text-slate-900">{eventTypeLabel(incident.event_type)}</p>
+          <p className="mt-2 text-sm font-medium text-slate-900">{incidentTitle(incident)}</p>
           <p className="text-xs text-slate-500">
             {incident.camera_id}
             {plugin.location(incident.location, incident.metadata?.zone_id) ? ` · ${plugin.location(incident.location, incident.metadata?.zone_id)}` : ""}
@@ -200,7 +199,7 @@ function NotificationBell() {
                 >
                   <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${SEVERITY_STYLES[i.severity]?.dot ?? "bg-slate-400"}`} />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-slate-900">{eventTypeLabel(i.event_type)}</span>
+                    <span className="block truncate text-sm font-medium text-slate-900">{incidentTitle(i)}</span>
                     <span className="block truncate text-xs text-slate-500">
                       {severityLabel(i.severity)} · {i.camera_id}
                       {plugin.location(i.location, i.metadata?.zone_id) ? ` · ${plugin.location(i.location, i.metadata?.zone_id)}` : ""}
@@ -284,11 +283,11 @@ function SideNav() {
       <div className="px-5 py-5">
         <Logo to="/app" dark subtitle={t.consoleName} />
       </div>
-      {/* the product page's chapter index: name, a dotted leader on the current page, Roman numeral */}
+      {/* the product page's chapter index, without the numerals: name, and a dotted leader on the current page */}
       <nav className="flex flex-1 flex-col justify-end px-5 pb-8">
         <p className="pb-3 font-serif text-lg text-amber-400/90 italic">{t.monitoring}</p>
         <ol className="space-y-1">
-          {nav.map(({ to, label, end }, i) => (
+          {nav.map(({ to, label, end }) => (
             <li key={to}>
               <NavLink
                 to={to}
@@ -303,7 +302,7 @@ function SideNav() {
                   <>
                     <span className="whitespace-nowrap">{label}</span>
                     <span className={`mb-1 h-px flex-1 border-b border-dotted ${isActive ? "border-amber-400" : "border-transparent"}`} />
-                    <span className={`font-serif text-sm font-normal ${isActive ? "text-amber-400" : ""}`}>{ROMAN[i]}</span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${isActive ? "bg-amber-400" : "bg-transparent"}`} />
                   </>
                 )}
               </NavLink>
@@ -375,7 +374,7 @@ export function AppShell() {
 }
 
 /**
- * A page opens like a chapter of the product page: a full-width photo with the page's Roman numeral and a
+ * A page opens like a chapter of the product page: a full-width photo with a
  * huge title, then a rounded sheet of paper that overlaps it, carrying the subtitle and the page's actions.
  * `image` replaces the photo (e.g. an incident's own snapshot); `back` is a link shown above the title.
  */
@@ -410,7 +409,6 @@ export function PageHeader({ title, subtitle, actions, image, back }: {
         <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/20 to-black/70" aria-hidden />
         <div className="relative flex h-full flex-col justify-end px-4 pb-16 sm:px-6 lg:px-10">
           {back && <div className="mb-auto pt-6 text-sm text-paper/75 [&_a:hover]:text-paper">{back}</div>}
-          {index >= 0 && <p className="font-serif text-xl text-amber-300 italic">{ROMAN[index]}</p>}
           <h1 className="font-display text-[clamp(2.8rem,7.5vw,7rem)] leading-[0.9] font-semibold tracking-[-0.045em] text-balance text-paper">
             {title}
           </h1>
