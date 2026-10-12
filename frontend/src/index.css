@@ -108,6 +108,14 @@ html {
   background-image: radial-gradient(rgb(21 19 15 / 0.05) 1px, transparent 1px);
   background-size: 3px 3px;
 }
+/* Phones held sideways: the photo is cropped to a wide strip, so a top-to-bottom shade darkens the
+   subject (e.g. the hand and cigarette) and a full-width line runs into it. Shade only the text side
+   and keep the line to the text side. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .opener-shade { background-image: linear-gradient(rgb(0 0 0 / 0.5), transparent 28%), linear-gradient(to right, rgb(0 0 0 / 0.7), rgb(0 0 0 / 0.35) 45%, transparent 70%); }
+  [dir="rtl"] .opener-shade { background-image: linear-gradient(rgb(0 0 0 / 0.5), transparent 28%), linear-gradient(to left, rgb(0 0 0 / 0.7), rgb(0 0 0 / 0.35) 45%, transparent 70%); }
+  .opener-kicker { max-width: 55%; }
+}
 /* Scroll-driven motion, only where the browser supports it and the visitor hasn't asked for less motion */
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) and (timeline-scope: none) {

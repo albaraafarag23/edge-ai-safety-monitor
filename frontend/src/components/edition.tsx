@@ -14,11 +14,13 @@ export interface ChapterInfo {
 }
 
 /** A photo in public/edition/<name>-{1200,2400}.webp; phones load the small one. */
-export function Photo({ name, className = "", alt = "", eager = false }: {
+export function Photo({ name, className = "", alt = "", eager = false, focus }: {
   name: string;
   className?: string;
   alt?: string;
   eager?: boolean;
+  /** CSS object-position: the part of the photo to keep when it is cropped (default: the centre) */
+  focus?: string;
 }) {
   return (
     <img
@@ -29,6 +31,7 @@ export function Photo({ name, className = "", alt = "", eager = false }: {
       loading={eager ? "eager" : "lazy"}
       decoding="async"
       className={className}
+      style={focus ? { objectPosition: focus } : undefined}
     />
   );
 }
@@ -112,19 +115,21 @@ export function AutoVideo({ name, label, className = "" }: { name: string; label
  * A numbered chapter: a full-screen photo with a huge title stays pinned while the chapter's
  * content (on paper) slides up over it.
  */
-export function Chapter({ id, n, title, kicker, photo, children }: {
+export function Chapter({ id, n, title, kicker, photo, focus, children }: {
   id: string;
   n: number;
   title: string;
   kicker: string;
   photo: string;
+  /** passed to Photo: keeps the subject in view when a phone crops the photo */
+  focus?: string;
   children: ReactNode;
 }) {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="chapter relative scroll-mt-0">
       <div className="sticky top-0 -mb-[100svh] h-[100svh] overflow-hidden bg-ink" data-surface="dark">
-        <Photo name={photo} className="opener-photo absolute inset-0 h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 to-black/70" aria-hidden />
+        <Photo name={photo} focus={focus} className="opener-photo absolute inset-0 h-full w-full object-cover" />
+        <div className="opener-shade absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 to-black/70" aria-hidden />
         <div className="opener-title relative flex h-full flex-col justify-between px-5 pt-24 pb-14 sm:px-8 lg:ps-[17rem]">
           <h2
             id={`${id}-title`}
@@ -132,7 +137,7 @@ export function Chapter({ id, n, title, kicker, photo, children }: {
           >
             {title}
           </h2>
-          <p className="flex max-w-2xl items-baseline gap-4 font-serif text-2xl leading-snug text-paper sm:text-4xl">
+          <p className="opener-kicker flex max-w-2xl items-baseline gap-4 font-serif text-2xl leading-snug text-paper sm:text-4xl">
             <span className="font-display text-sm font-semibold tracking-widest text-amber-300">{ROMAN[n - 1]}</span>
             <span className="text-balance">{kicker}</span>
           </p>

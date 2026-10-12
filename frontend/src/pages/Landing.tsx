@@ -696,7 +696,7 @@ function PpeChapter() {
 function SmokingChapter() {
   const t = useText(TEXT).smoking;
   return (
-    <Chapter id="smoking" n={2} title={t.title} kicker={t.kicker} photo="smoking">
+    <Chapter id="smoking" n={2} title={t.title} kicker={t.kicker} photo="smoking" focus="80% 50%">
       <Lead title={t.leadTitle}>{t.lead}</Lead>
       <Stats items={t.stats} className="mt-16 grid gap-10 sm:grid-cols-3" />
       <DenseList items={t.list} />
