@@ -56,14 +56,53 @@ const TEXT = bilingual(
   },
 );
 
-const COLORS = ["#f59e0b", "#ef4444", "#3b82f6", "#10b981", "#a855f7", "#ec4899"];
+export const COLORS = ["#f59e0b", "#ef4444", "#3b82f6", "#10b981", "#a855f7", "#ec4899"];
 
 /** The zone's polygon as fractions: the console's drawing, or the plugin's pixels divided by the frame size. */
-function fractions(zone: Zone, camera: Camera): Point[] {
+export function fractions(zone: Zone, camera: Camera): Point[] {
   if (zone.polygon) return zone.polygon;
   const w = camera.frame_width ?? camera.width ?? 640;
   const h = camera.frame_height ?? camera.height ?? 480;
   return zone.plugin_polygon.map(([x, y]) => [Math.min(1, Math.max(0, x / w)), Math.min(1, Math.max(0, y / h))]);
+}
+
+/** The zones drawn over the live picture (read-only), in the same colours as the editor. */
+export function ZoneOverlay({ camera }: { camera: Camera }) {
+  const plugin = usePluginText();
+  const zones = useZones();
+  const mine = (zones.data ?? []).filter((z) => !z.camera_id || z.camera_id === camera.camera_id);
+  if (!mine.length) return null;
+  return (
+    <div dir="ltr" className="pointer-events-none absolute inset-0">
+      <svg viewBox="0 0 1 1" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+        {mine.map((z, n) => (
+          <polygon
+            key={z.zone_id}
+            points={fractions(z, camera).map((p) => p.join(",")).join(" ")}
+            fill={COLORS[n % COLORS.length]}
+            fillOpacity={0.14}
+            stroke={COLORS[n % COLORS.length]}
+            strokeWidth={2}
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+      </svg>
+      {mine.map((z, n) => {
+        const pts = fractions(z, camera);
+        const left = Math.min(...pts.map(([x]) => x));
+        const top = Math.max(Math.min(...pts.map(([, y]) => y)), 0.07);   // below the LIVE bar
+        return (
+          <span
+            key={z.zone_id}
+            className="absolute ms-2 mt-2 max-w-[45%] truncate rounded px-1.5 py-0.5 text-[11px] font-semibold text-white shadow"
+            style={{ left: `${left * 100}%`, top: `${top * 100}%`, background: COLORS[n % COLORS.length] }}
+          >
+            {plugin.zoneName(z.zone_id, z.name)}
+          </span>
+        );
+      })}
+    </div>
+  );
 }
 
 export function ZoneEditor({ camera, onClose }: { camera: Camera; onClose: () => void }) {

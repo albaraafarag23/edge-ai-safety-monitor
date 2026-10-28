@@ -1,5 +1,5 @@
 import { CameraOff, Maximize2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cameraStreamUrl } from "../api/client";
 import type { Camera } from "../api/types";
 import { bilingual, useText } from "../lib/i18n";
@@ -28,8 +28,9 @@ const TEXT = bilingual(
  * The stream holds a connection open, so it's only mounted while visible and is reconnected
  * when the camera comes back online.
  */
-export function CameraFeed({ camera, className = "", showFullscreen = true, showFps = true }: {
+export function CameraFeed({ camera, className = "", showFullscreen = true, showFps = true, overlay }: {
   camera: Camera;
+  overlay?: ReactNode;   // drawn over the live picture, e.g. the zones
   className?: string;
   showFullscreen?: boolean;
   showFps?: boolean;
@@ -81,6 +82,8 @@ export function CameraFeed({ camera, className = "", showFullscreen = true, show
           <p className="text-xs">{t.waiting}</p>
         </div>
       )}
+
+      {live && overlay}
 
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between bg-gradient-to-b from-black/60 to-transparent p-3 text-white">
         <div className="flex items-center gap-2">

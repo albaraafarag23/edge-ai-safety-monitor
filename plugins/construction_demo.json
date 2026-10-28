@@ -1,0 +1,376 @@
+{
+  "plugin_id": "construction_demo",
+  "name": "Construction Site Safety (two-zone demo)",
+  "version": "0.2.0",
+  "report": {
+    "audience": "the site safety supervisor",
+    "tone": "formal and compliance-oriented, suitable for a construction site safety record"
+  },
+  "detection": {
+    "model": "construction_ppe.pt",
+    "imgsz": 960,
+    "default_confidence": 0.4,
+    "classes": {
+      "Person": {
+        "confidence": 0.5
+      },
+      "Hardhat": {},
+      "NO-Hardhat": {
+        "confidence": 0.45
+      },
+      "Safety Vest": {},
+      "NO-Safety Vest": {
+        "confidence": 0.45
+      },
+      "machinery": {},
+      "vehicle": {},
+      "bottle": {},
+      "cup": {}
+    },
+    "extra_models": [
+      {
+        "model": "smoking.pt",
+        "every_n_frames": 3,
+        "imgsz": 640,
+        "default_confidence": 0.5,
+        "classes": {
+          "cigarette": {},
+          "vape": {}
+        }
+      }
+    ]
+  },
+  "zones": {
+    "work_area": {
+      "name": "Work area (hard hat and vest)",
+      "camera_id": "cam_01",
+      "polygon": [
+        [
+          1056,
+          0
+        ],
+        [
+          1920,
+          0
+        ],
+        [
+          1920,
+          1080
+        ],
+        [
+          1056,
+          1080
+        ]
+      ]
+    },
+    "no_entry": {
+      "name": "No-entry area",
+      "camera_id": "cam_01",
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          672,
+          0
+        ],
+        [
+          672,
+          1080
+        ],
+        [
+          0,
+          1080
+        ]
+      ]
+    }
+  },
+  "rules": [
+    {
+      "rule_id": "RULE_PPE_01",
+      "type": "ppe",
+      "description": "Hard hat required in the work area",
+      "subject_classes": [
+        "Person"
+      ],
+      "required": [
+        {
+          "name": "hard_hat",
+          "present_classes": [
+            "Hardhat"
+          ],
+          "absent_classes": [
+            "NO-Hardhat"
+          ]
+        }
+      ],
+      "min_duration_s": 3,
+      "event_type": "PPE_MISSING",
+      "severity": "HIGH",
+      "recommended_actions": [
+        "Stop the worker and require a hard hat before they continue work.",
+        "Check that hard hats are available at the site entrance.",
+        "Record the violation and repeat the PPE briefing at the next toolbox talk."
+      ],
+      "name": "Hard hat",
+      "zone": "work_area"
+    },
+    {
+      "rule_id": "RULE_PPE_02",
+      "type": "ppe",
+      "description": "High-visibility safety vest required in the work area",
+      "subject_classes": [
+        "Person"
+      ],
+      "required": [
+        {
+          "name": "safety_vest",
+          "present_classes": [
+            "Safety Vest"
+          ],
+          "absent_classes": [
+            "NO-Safety Vest"
+          ]
+        }
+      ],
+      "min_duration_s": 3,
+      "event_type": "PPE_MISSING",
+      "severity": "HIGH",
+      "recommended_actions": [
+        "Stop the worker and require a high-visibility vest before they continue work.",
+        "Check that high-visibility vests are available at the site entrance.",
+        "Record the violation and repeat the PPE briefing at the next toolbox talk."
+      ],
+      "name": "Safety vest",
+      "zone": "work_area"
+    },
+    {
+      "rule_id": "RULE_ZONE_01",
+      "name": "No-entry area",
+      "type": "zone",
+      "description": "Someone entered the no-entry area",
+      "zone": "no_entry",
+      "subject_classes": [
+        "Person"
+      ],
+      "min_duration_s": 0,
+      "event_type": "RESTRICTED_ZONE_ENTRY",
+      "severity": "HIGH",
+      "recommended_actions": [
+        "Move the person out of the no-entry area at once.",
+        "Check the barriers and signs around the area for gaps.",
+        "Confirm whether the person was authorised to be there."
+      ]
+    },
+    {
+      "rule_id": "RULE_PROX_01",
+      "name": "Too close to machinery",
+      "type": "proximity",
+      "description": "Worker too close to moving machinery",
+      "subject_classes": [
+        "Person"
+      ],
+      "near_classes": [
+        "machinery",
+        "vehicle"
+      ],
+      "max_gap_ratio": 0.5,
+      "min_duration_s": 1,
+      "event_type": "PERSON_NEAR_MACHINERY",
+      "severity": "CRITICAL",
+      "recommended_actions": [
+        "Stop the machine and separate the worker from it immediately.",
+        "Re-establish the exclusion zone around operating machinery.",
+        "Brief the operator and nearby workers on safe distances and a banksman's role."
+      ]
+    },
+    {
+      "rule_id": "RULE_SMOKE_01",
+      "name": "Smoking",
+      "type": "presence",
+      "description": "Smoking on site (cigarette visible)",
+      "subject_classes": [
+        "cigarette"
+      ],
+      "min_duration_s": 2,
+      "event_type": "SMOKING",
+      "severity": "MEDIUM",
+      "recommended_actions": [
+        "Ask the worker to put out the cigarette and use the designated smoking area.",
+        "Check that no fuel, gas cylinders or flammable materials are near where they were smoking.",
+        "Remind workers of the site smoking policy at the next toolbox talk."
+      ]
+    },
+    {
+      "rule_id": "RULE_SMOKE_02",
+      "name": "Vaping",
+      "type": "presence",
+      "enabled": false,
+      "requires": "A detection model trained to recognise vapes",
+      "description": "Vaping on site (vape visible)",
+      "subject_classes": [
+        "vape"
+      ],
+      "min_duration_s": 2,
+      "event_type": "VAPING",
+      "severity": "LOW",
+      "recommended_actions": [
+        "Ask the worker to stop vaping and use the designated smoking area.",
+        "Remind workers that the site smoking policy also covers vapes."
+      ]
+    },
+    {
+      "rule_id": "RULE_FOOD_01",
+      "name": "Food or drink in a restricted zone",
+      "type": "zone",
+      "description": "Food or drink inside the no-entry area",
+      "zone": "no_entry",
+      "subject_classes": [
+        "bottle",
+        "cup"
+      ],
+      "min_duration_s": 5,
+      "event_type": "FOOD_IN_RESTRICTED_ZONE",
+      "severity": "LOW",
+      "recommended_actions": [
+        "Remove the food or drink from the restricted zone.",
+        "Remind workers to eat and drink only in the designated welfare area."
+      ],
+      "enabled": false,
+      "requires": "A detection model trained to recognise bottles and cups"
+    },
+    {
+      "rule_id": "RULE_POSE_01",
+      "name": "Person down",
+      "type": "pose",
+      "planned": true,
+      "requires": "A pose model that tracks body position",
+      "description": "A worker has fallen or is lying on the ground",
+      "subject_classes": [
+        "Person"
+      ],
+      "min_duration_s": 5,
+      "event_type": "PERSON_DOWN",
+      "severity": "CRITICAL",
+      "recommended_actions": [
+        "Send someone to the worker immediately and call the site first aider.",
+        "Do not move the worker if a fall from height or a head injury is possible; call emergency services.",
+        "Secure the area and record what happened for the accident report."
+      ]
+    },
+    {
+      "rule_id": "RULE_POSE_02",
+      "name": "Sleeping on site",
+      "type": "pose",
+      "planned": true,
+      "requires": "A pose model that tracks body position",
+      "description": "A worker lying still on site for a long time",
+      "subject_classes": [
+        "Person"
+      ],
+      "min_duration_s": 300,
+      "event_type": "SLEEPING_ON_SITE",
+      "severity": "MEDIUM",
+      "recommended_actions": [
+        "Check on the worker first: lying still can also be a medical emergency.",
+        "Remind the worker to rest only in the welfare area.",
+        "Review shift lengths and break times for the crew."
+      ]
+    }
+  ],
+  "translations": {
+    "ar": {
+      "plugin_name": "مراقبة سلامة مواقع البناء (عرض بمنطقتين)",
+      "zones": {
+        "no_entry": "منطقة ممنوع الدخول",
+        "work_area": "منطقة العمل (خوذة وسترة)"
+      },
+      "rules": {
+        "RULE_PPE_01": {
+          "name": "الخوذة",
+          "description": "ارتداء الخوذة إلزامي في منطقة العمل",
+          "recommended_actions": [
+            "أوقف العامل واطلب منه ارتداء الخوذة قبل متابعة العمل.",
+            "تأكد من توفر الخوذات عند مدخل الموقع.",
+            "سجّل المخالفة وأعد شرح تعليمات معدات الوقاية في اجتماع السلامة القادم."
+          ]
+        },
+        "RULE_PPE_02": {
+          "name": "السترة العاكسة",
+          "description": "ارتداء السترة العاكسة إلزامي في منطقة العمل",
+          "recommended_actions": [
+            "أوقف العامل واطلب منه ارتداء السترة العاكسة قبل متابعة العمل.",
+            "تأكد من توفر السترات العاكسة عند مدخل الموقع.",
+            "سجّل المخالفة وأعد شرح تعليمات معدات الوقاية في اجتماع السلامة القادم."
+          ]
+        },
+        "RULE_ZONE_01": {
+          "name": "منطقة ممنوع الدخول",
+          "description": "دخل شخص منطقة ممنوع الدخول",
+          "recommended_actions": [
+            "أخرج الشخص من منطقة ممنوع الدخول فورًا.",
+            "افحص الحواجز واللافتات حول المنطقة بحثًا عن ثغرات.",
+            "تأكد مما إذا كان الشخص مصرحًا له بالوجود هناك."
+          ]
+        },
+        "RULE_PROX_01": {
+          "name": "الاقتراب من الآليات",
+          "description": "عامل قريب جدًا من آلة تعمل",
+          "recommended_actions": [
+            "أوقف الآلة وأبعد العامل عنها فورًا.",
+            "أعد تحديد منطقة الحظر حول الآلات العاملة.",
+            "اشرح للمشغل والعمال القريبين مسافات الأمان ودور الموجّه."
+          ]
+        },
+        "RULE_SMOKE_01": {
+          "name": "التدخين",
+          "description": "التدخين في الموقع (سيجارة ظاهرة)",
+          "recommended_actions": [
+            "اطلب من العامل إطفاء السيجارة واستخدام منطقة التدخين المخصصة.",
+            "تأكد من عدم وجود وقود أو أسطوانات غاز أو مواد قابلة للاشتعال قرب مكان التدخين.",
+            "ذكّر العمال بسياسة التدخين في الموقع في اجتماع السلامة القادم."
+          ]
+        },
+        "RULE_SMOKE_02": {
+          "name": "السجائر الإلكترونية",
+          "description": "استخدام السجائر الإلكترونية في الموقع (سيجارة إلكترونية ظاهرة)",
+          "requires": "نموذج رصد مدرَّب على التعرف على السجائر الإلكترونية",
+          "recommended_actions": [
+            "اطلب من العامل التوقف عن استخدام السيجارة الإلكترونية واستخدام منطقة التدخين المخصصة.",
+            "ذكّر العمال بأن سياسة التدخين في الموقع تشمل السجائر الإلكترونية أيضًا."
+          ]
+        },
+        "RULE_FOOD_01": {
+          "name": "طعام أو شراب في منطقة محظورة",
+          "description": "طعام أو شراب داخل منطقة ممنوع الدخول",
+          "requires": "نموذج رصد مدرَّب على التعرف على الزجاجات والأكواب",
+          "recommended_actions": [
+            "أخرج الطعام أو الشراب من المنطقة المحظورة.",
+            "ذكّر العمال بأن الأكل والشرب في منطقة الاستراحة المخصصة فقط."
+          ]
+        },
+        "RULE_POSE_01": {
+          "name": "سقوط شخص",
+          "description": "عامل سقط أو ممدد على الأرض",
+          "requires": "نموذج لوضعيات الجسم يتتبع حركة الجسم",
+          "recommended_actions": [
+            "أرسل أحدًا إلى العامل فورًا واستدعِ مسعف الموقع.",
+            "لا تحرّك العامل إذا كان السقوط من ارتفاع أو احتمال إصابة الرأس واردًا؛ اتصل بالإسعاف.",
+            "أمّن المنطقة وسجّل ما حدث لتقرير الحادث."
+          ]
+        },
+        "RULE_POSE_02": {
+          "name": "النوم في الموقع",
+          "description": "عامل ممدد بلا حركة في الموقع لفترة طويلة",
+          "requires": "نموذج لوضعيات الجسم يتتبع حركة الجسم",
+          "recommended_actions": [
+            "اطمئن على العامل أولًا: البقاء بلا حركة قد يكون حالة طبية طارئة.",
+            "ذكّر العامل بأن الراحة في منطقة الاستراحة فقط.",
+            "راجع مدة الورديات وأوقات الاستراحة للفريق."
+          ]
+        }
+      }
+    }
+  }
+}

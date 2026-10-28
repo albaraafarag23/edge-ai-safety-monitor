@@ -5,7 +5,7 @@ import { cameraFrameUrl, mediaUrl } from "../api/client";
 import { useCameras, useIncidents } from "../api/queries";
 import type { Camera } from "../api/types";
 import { CameraFeed } from "../components/CameraFeed";
-import { ZoneEditor } from "../components/ZoneEditor";
+import { ZoneEditor, ZoneOverlay } from "../components/ZoneEditor";
 import { useAuth } from "../lib/auth";
 import { PageHeader } from "../components/Layout";
 import { Card, EmptyState, ErrorState, SeverityBadge, Spinner } from "../components/ui";
@@ -241,7 +241,8 @@ export function Cameras() {
       ) : (
         <div className="grid gap-6 xl:grid-cols-[1fr_20rem]">
           <div className="min-w-0 space-y-4">
-            <CameraFeed camera={selected} showFps={false} className="w-full shadow-lg shadow-slate-900/10" />
+            <CameraFeed camera={selected} showFps={false} className="w-full shadow-lg shadow-slate-900/10"
+              overlay={editing ? null : <ZoneOverlay camera={selected} />} />
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
               <p>
                 {t.boxesBefore}
