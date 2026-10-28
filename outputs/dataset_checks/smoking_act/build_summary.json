@@ -1,0 +1,114 @@
+{
+  "out": "data/smoking_act",
+  "settings": {
+    "out": "data/smoking_act",
+    "person_model": "yolo11s-pose.pt",
+    "person_conf": "0.35",
+    "face_conf": "0.5",
+    "min_person": "48",
+    "in_crop": "0.5",
+    "max_per_type": "2000",
+    "max_css": "3000",
+    "max_per_source": "['stelar=400']",
+    "seed": "0"
+  },
+  "by_label_and_type": {
+    "not_smoking/none": {
+      "train": 2992,
+      "test": 401,
+      "val": 390,
+      "total": 3783
+    },
+    "smoking/cigar": {
+      "train": 161,
+      "val": 10,
+      "test": 19,
+      "total": 190
+    },
+    "smoking/cigarette": {
+      "test": 202,
+      "train": 1546,
+      "val": 183,
+      "total": 1931
+    },
+    "smoking/pipe": {
+      "train": 189,
+      "val": 15,
+      "test": 18,
+      "total": 222
+    },
+    "smoking/shisha": {
+      "train": 125,
+      "val": 11,
+      "test": 18,
+      "total": 154
+    },
+    "smoking/unspecified": {
+      "test": 165,
+      "train": 1276,
+      "val": 161,
+      "total": 1602
+    },
+    "smoking/vape": {
+      "train": 1162,
+      "test": 129,
+      "val": 152,
+      "total": 1443
+    }
+  },
+  "by_source": {
+    "cig_vape_5k": 1661,
+    "mendeley_2400": 1914,
+    "cps_v4": 224,
+    "css_workers": 2004,
+    "miprivado": 940,
+    "cigdet": 109,
+    "stelar": 312,
+    "smoketrack": 185,
+    "vnf3r": 401,
+    "mendeley_1120": 1009,
+    "cps_v3": 566
+  },
+  "by_split": {
+    "test/smoking": 551,
+    "train/not_smoking": 2992,
+    "train/smoking": 4459,
+    "test/not_smoking": 401,
+    "val/smoking": 532,
+    "val/not_smoking": 390
+  },
+  "skipped": {
+    "cig_vape_5k: smoking person with no visible face (hand close-up, not used)": 1522,
+    "cig_vape_5k: no person found (object close-up or product photo)": 586,
+    "cig_vape_5k: person with no smoking box (not used)": 1486,
+    "cig_vape_5k: smoking box not near any person": 354,
+    "stelar: smoking box not near any person": 249,
+    "stelar: person with no smoking box (not used)": 355,
+    "stelar: smoking person with no visible face (hand close-up, not used)": 159,
+    "stelar: no person found (object close-up or product photo)": 9,
+    "stelar: over the source cap of 400": 529,
+    "miprivado: smoking person with no visible face (hand close-up, not used)": 595,
+    "miprivado: person with no smoking box (not used)": 1198,
+    "miprivado: no person found (object close-up or product photo)": 524,
+    "miprivado: smoking box not near any person": 203,
+    "smoketrack: smoking box not near any person": 11,
+    "smoketrack: person with no smoking box (not used)": 175,
+    "smoketrack: smoking person with no visible face (hand close-up, not used)": 5,
+    "vnf3r: smoking person with no visible face (hand close-up, not used)": 341,
+    "vnf3r: person with no smoking box (not used)": 693,
+    "vnf3r: no person found (object close-up or product photo)": 151,
+    "vnf3r: smoking box not near any person": 81,
+    "cigdet: smoking person with no visible face (hand close-up, not used)": 23,
+    "cigdet: person with no smoking box (not used)": 57,
+    "cigdet: smoking box not near any person": 5,
+    "cps_v3: no person found, whole photo used": 172,
+    "cps_v3: rotated / flipped copies dropped": 1142,
+    "cps_v4: no person found, whole photo used": 36,
+    "cps_v4: rotated / flipped copies dropped": 448,
+    "mendeley_1120: rotated / flipped copies dropped": 0,
+    "mendeley_2400: no person found, whole photo used": 1,
+    "mendeley_2400: rotated / flipped copies dropped": 0,
+    "type cigarette: over the cap of 2000": 5056,
+    "duplicate crop": 314
+  }
+}

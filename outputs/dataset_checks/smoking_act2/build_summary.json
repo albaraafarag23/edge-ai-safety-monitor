@@ -1,0 +1,214 @@
+{
+  "out": "data/smoking_act2",
+  "settings": {
+    "out": "data/smoking_act2",
+    "person_model": "yolo11s-pose.pt",
+    "person_conf": "0.35",
+    "min_person": "48",
+    "in_crop": "0.5",
+    "at_mouth": "0.25",
+    "smoke_at_mouth": "0.5",
+    "in_hand": "0.8",
+    "max_per_type": "2000",
+    "max_css": "3000",
+    "max_stanford_general": "1500",
+    "max_per_source": "['stelar=400']",
+    "seed": "0"
+  },
+  "by_label_and_type": {
+    "holding/cigarette": {
+      "train": 1546,
+      "test": 203,
+      "val": 185,
+      "total": 1934
+    },
+    "holding/unspecified": {
+      "val": 5,
+      "train": 40,
+      "test": 2,
+      "total": 47
+    },
+    "holding/vape": {
+      "train": 543,
+      "test": 74,
+      "val": 47,
+      "total": 664
+    },
+    "not_smoking/general_mendeley": {
+      "test": 100,
+      "val": 87,
+      "train": 809,
+      "total": 996
+    },
+    "not_smoking/general_stanford": {
+      "train": 1204,
+      "val": 145,
+      "test": 151,
+      "total": 1500
+    },
+    "not_smoking/lookalike_blowing_bubbles": {
+      "test": 21,
+      "train": 209,
+      "val": 29,
+      "total": 259
+    },
+    "not_smoking/lookalike_brushing_teeth": {
+      "train": 159,
+      "val": 20,
+      "test": 20,
+      "total": 199
+    },
+    "not_smoking/lookalike_cps": {
+      "test": 20,
+      "train": 176,
+      "val": 20,
+      "total": 216
+    },
+    "not_smoking/lookalike_drinking": {
+      "test": 26,
+      "train": 201,
+      "val": 29,
+      "total": 256
+    },
+    "not_smoking/lookalike_mendeley": {
+      "train": 462,
+      "val": 45,
+      "test": 52,
+      "total": 559
+    },
+    "not_smoking/lookalike_phoning": {
+      "train": 207,
+      "test": 24,
+      "val": 27,
+      "total": 258
+    },
+    "not_smoking/lookalike_taking_photos": {
+      "train": 157,
+      "test": 22,
+      "val": 18,
+      "total": 197
+    },
+    "not_smoking/lookalike_texting_message": {
+      "train": 156,
+      "test": 18,
+      "val": 19,
+      "total": 193
+    },
+    "not_smoking/worker": {
+      "train": 2349,
+      "val": 327,
+      "test": 323,
+      "total": 2999
+    },
+    "smoking/cigarette": {
+      "train": 1418,
+      "test": 194,
+      "val": 172,
+      "total": 1784
+    },
+    "smoking/unspecified": {
+      "train": 76,
+      "test": 13,
+      "val": 8,
+      "total": 97
+    },
+    "smoking/vape": {
+      "train": 376,
+      "test": 35,
+      "val": 65,
+      "total": 476
+    },
+    "unsure/cigar": {
+      "unsure": 150,
+      "total": 150
+    },
+    "unsure/pipe": {
+      "unsure": 199,
+      "total": 199
+    },
+    "unsure/shisha": {
+      "unsure": 128,
+      "total": 128
+    },
+    "unsure/unspecified": {
+      "unsure": 1305,
+      "total": 1305
+    }
+  },
+  "by_source": {
+    "stanford40": 3095,
+    "cigdet": 187,
+    "cig_vape_5k": 1974,
+    "css_workers": 2999,
+    "stelar": 394,
+    "miprivado": 1752,
+    "smoketrack": 220,
+    "mendeley_2400": 1756,
+    "vnf3r": 475,
+    "mendeley_1120": 871,
+    "cps_v3": 477,
+    "cps_v4": 216
+  },
+  "by_split": {
+    "train/not_smoking": 6089,
+    "train/holding": 2129,
+    "train/smoking": 1870,
+    "val/not_smoking": 766,
+    "test/smoking": 242,
+    "test/not_smoking": 777,
+    "val/holding": 237,
+    "unsure/unsure": 1782,
+    "test/holding": 279,
+    "val/smoking": 245
+  },
+  "skipped": {
+    "cig_vape_5k: item between mouth and hand (unclear, not used)": 439,
+    "cig_vape_5k: item not near any person": 348,
+    "cig_vape_5k: no person found (object close-up or product photo)": 583,
+    "cig_vape_5k: person with item, face not visible or not upright": 1874,
+    "cig_vape_5k: person with no item near them (not used)": 1478,
+    "cig_vape_5k: rotated / flipped copies dropped": 282,
+    "cigdet: item between mouth and hand (unclear, not used)": 66,
+    "cigdet: item not near any person": 5,
+    "cigdet: person with item, face not visible or not upright": 60,
+    "cigdet: person with no item near them (not used)": 57,
+    "cps_v3: no person found": 31,
+    "cps_v3: rotated / flipped copies dropped": 1142,
+    "cps_v3: smoking photo, face not visible or not upright": 57,
+    "cps_v4: no person found": 8,
+    "cps_v4: rotated / flipped copies dropped": 448,
+    "css_workers: over the cap of 3000": 396,
+    "css_workers: rotated / flipped copies dropped": 2101,
+    "duplicate crop": 798,
+    "general_stanford: over the cap of 1500": 6389,
+    "holding/cigarette: over the cap of 2000": 888,
+    "mendeley_1120: smoking photo, face not visible or not upright": 60,
+    "mendeley_2400: no person found": 1,
+    "mendeley_2400: smoking photo, face not visible or not upright": 95,
+    "miprivado: item between mouth and hand (unclear, not used)": 244,
+    "miprivado: item not near any person": 112,
+    "miprivado: no person found (object close-up or product photo)": 314,
+    "miprivado: person with item, face not visible or not upright": 746,
+    "miprivado: person with no item near them (not used)": 1266,
+    "miprivado: rotated / flipped copies dropped": 13573,
+    "smoketrack: item between mouth and hand (unclear, not used)": 27,
+    "smoketrack: item not near any person": 11,
+    "smoketrack: person with item, face not visible or not upright": 18,
+    "smoketrack: person with no item near them (not used)": 174,
+    "smoketrack: rotated / flipped copies dropped": 395,
+    "smoking/cigarette: over the cap of 2000": 886,
+    "stanford40: Stanford person not found by the pose model": 40,
+    "stanford40: smoking photo, face not visible or not upright": 8,
+    "stelar: item between mouth and hand (unclear, not used)": 78,
+    "stelar: item not near any person": 249,
+    "stelar: no person found (object close-up or product photo)": 9,
+    "stelar: over the cap of 400": 366,
+    "stelar: person with item, face not visible or not upright": 244,
+    "stelar: person with no item near them (not used)": 355,
+    "vnf3r: item between mouth and hand (unclear, not used)": 154,
+    "vnf3r: item not near any person": 81,
+    "vnf3r: no person found (object close-up or product photo)": 151,
+    "vnf3r: person with item, face not visible or not upright": 750,
+    "vnf3r: person with no item near them (not used)": 693
+  }
+}
