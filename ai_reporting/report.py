@@ -93,7 +93,7 @@ SEVERITY_AR = {"CRITICAL": "حرجة", "HIGH": "مرتفعة", "MEDIUM": "متو
 ITEM_AR = {"hard_hat": "خوذة", "safety_vest": "سترة عاكسة"}
 CLASS_AR = {
     "Person": "شخص", "Hardhat": "خوذة", "NO-Hardhat": "بدون خوذة", "Safety Vest": "سترة عاكسة",
-    "NO-Safety Vest": "بدون سترة", "machinery": "آلات", "vehicle": "مركبة", "cigarette": "سيجارة",
+    "NO-Safety Vest": "بدون سترة", "machinery": "آلات", "vehicle": "مركبة", "cigarette": "سيجارة", "smoking": "تدخين",
     "vape": "سيجارة إلكترونية", "bottle": "زجاجة", "cup": "كوب",
 }
 EVIDENCE_AR = {"snapshot": "لقطة", "video_clip": "مقطع فيديو"}

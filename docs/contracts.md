@@ -1,5 +1,8 @@
 # Interface contracts
 
+Version 2.5 (2026-10-29): new detection class `smoking` from the smoking-act classifier (`smoking_act.pt`),
+replacing `cigarette` / `vape` from `smoking.pt`. Its `bbox` is the person's head and upper body (the region that
+was classified), not the cigarette. `SMOKING` incidents now cover cigarettes, vapes, pipes and shisha. Fields unchanged.
 Version 2.4 (2026-10-10): adds the optional report field `markdown_ar` (the report in Arabic).
 Additive only: detections, incidents and the other report fields are unchanged.
 Version 2.3 (2026-10-10): adds the report delivery status `retrying` (with `attempts`, `next_attempt_at`).

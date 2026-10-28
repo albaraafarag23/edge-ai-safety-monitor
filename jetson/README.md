@@ -30,7 +30,8 @@ docker run --rm --ipc=host -v ~/sitesentry/models:/models ultralytics/ultralytic
   yolo export model=/models/construction_ppe.pt format=engine half=True imgsz=960 device=0 batch=1 workspace=4
 ```
 
-Same for `smoking.pt` (imgsz 640). Takes 7–11 minutes per model. Close the browser and other apps first: with
+Same for the smoking-act classifier: `model=/models/smoking_act.pt imgsz=320` (it classifies one person crop
+at a time, so `batch=1` fits). Takes 7–11 minutes per model. Close the browser and other apps first: with
 too little free memory TensorRT skips its faster options. With `MODEL_FORMAT=engine` the detector uses
 `<model>.engine` next to each `<model>.pt` named in the plugin.
 

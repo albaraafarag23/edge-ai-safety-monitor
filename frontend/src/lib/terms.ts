@@ -79,6 +79,7 @@ const CLASS_AR: Record<string, string> = {
   machinery: "آلات",
   vehicle: "مركبة",
   cigarette: "سيجارة",
+  smoking: "تدخين",
   vape: "سيجارة إلكترونية",
   bottle: "زجاجة",
   cup: "كوب",

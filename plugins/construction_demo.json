@@ -29,13 +29,14 @@
     },
     "extra_models": [
       {
-        "model": "smoking.pt",
+        "model": "smoking_act.pt",
+        "crop_from": "Person",
+        "crop": 384,
+        "imgsz": 320,
         "every_n_frames": 3,
-        "imgsz": 640,
         "default_confidence": 0.5,
         "classes": {
-          "cigarette": {},
-          "vape": {}
+          "smoking": {}
         }
       }
     ]
@@ -155,6 +156,7 @@
         "Person"
       ],
       "min_duration_s": 0,
+      "grace_s": 3,
       "event_type": "RESTRICTED_ZONE_ENTRY",
       "severity": "HIGH",
       "recommended_actions": [
@@ -189,9 +191,9 @@
       "rule_id": "RULE_SMOKE_01",
       "name": "Smoking",
       "type": "presence",
-      "description": "Smoking on site (cigarette visible)",
+      "description": "Someone is smoking (cigarette, vape, pipe or shisha at the mouth)",
       "subject_classes": [
-        "cigarette"
+        "smoking"
       ],
       "min_duration_s": 2,
       "event_type": "SMOKING",
@@ -325,7 +327,7 @@
         },
         "RULE_SMOKE_01": {
           "name": "التدخين",
-          "description": "التدخين في الموقع (سيجارة ظاهرة)",
+          "description": "شخص يدخن (سيجارة أو سيجارة إلكترونية أو غليون أو شيشة عند الفم)",
           "recommended_actions": [
             "اطلب من العامل إطفاء السيجارة واستخدام منطقة التدخين المخصصة.",
             "تأكد من عدم وجود وقود أو أسطوانات غاز أو مواد قابلة للاشتعال قرب مكان التدخين.",

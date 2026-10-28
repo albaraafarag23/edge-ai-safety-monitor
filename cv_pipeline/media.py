@@ -35,11 +35,12 @@ except Exception:
     FFMPEG = None
 
 COLORS = {"Person": (255, 160, 0), "Hardhat": (0, 200, 0), "Safety Vest": (0, 200, 0),
-          "NO-Hardhat": (0, 0, 255), "NO-Safety Vest": (0, 0, 255)}
+          "NO-Hardhat": (0, 0, 255), "NO-Safety Vest": (0, 0, 255), "smoking": (0, 0, 255)}
 DEFAULT_COLOR = (0, 215, 255)
 # what a box says, in plain words (no confidence score: supervisors and email readers don't need it)
 LABELS = {"NO-Hardhat": "No hard hat", "NO-Safety Vest": "No safety vest", "Hardhat": "Hard hat",
-          "Safety Vest": "Safety vest", "machinery": "Machinery", "vehicle": "Vehicle", "cigarette": "Cigarette"}
+          "Safety Vest": "Safety vest", "machinery": "Machinery", "vehicle": "Vehicle", "cigarette": "Cigarette",
+          "smoking": "Smoking"}
 
 
 def annotate(image, detections, scale):

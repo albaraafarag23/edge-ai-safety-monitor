@@ -10,6 +10,7 @@ import redis
 from camera import Camera
 from live_view import LiveView
 from media import MediaRecorder
+from person_crops import cut, upper_body_box
 from plugin_config import (DetectionConfig, PluginError, build_config, check_main_model, load_plugin,
                            model_paths, model_specs)
 
@@ -45,7 +46,7 @@ SYNTHETIC_SCENARIOS = [
     [{"class_name": "Person", "confidence": 0.89, "bbox": [60.0, 200.0, 140.0, 420.0]}],  # in excavation zone
     [_WORKER, {"class_name": "Hardhat", "confidence": 0.88, "bbox": [325.0, 120.0, 375.0, 160.0]},
      {"class_name": "Safety Vest", "confidence": 0.84, "bbox": [310.0, 180.0, 390.0, 280.0]},
-     {"class_name": "cigarette", "confidence": 0.77, "bbox": [382.0, 196.0, 398.0, 203.0]}],  # smoking
+     {"class_name": "smoking", "confidence": 0.93, "bbox": [278.0, 98.0, 422.0, 242.0]}],  # head and upper body
     [],  # empty frame — no detections
 ]
 
@@ -53,6 +54,11 @@ SYNTHETIC_SCENARIOS = [
 SYNTHETIC_FRAME_SIZE = [640, 480]
 SYNTHETIC_FPS = 2
 SCENARIO_SECONDS = 5  # long enough for rules with min_duration_s (PPE needs 3 s)
+
+# Person classifiers (crop_from): people shorter than this in the frame the model sees are skipped (same
+# limit as the training crops), and at most this many people per frame are classified, tallest first.
+MIN_PERSON_PX = 48
+MAX_PEOPLE = 8
 
 
 def utc_now() -> str:
@@ -155,12 +161,32 @@ def detect(model, cfg_model, boxes, scale: float = 1.0) -> list[dict]:
     ]
 
 
+def classify_people(model, cfg_model, frame, detections: list[dict], scale: float = 1.0) -> list[dict]:
+    """Classifier with crop_from (e.g. the smoking-act model): classify each person's head and upper body,
+    and report that region as a box of each class over its threshold (e.g. "smoking")."""
+    h, w = frame.shape[:2]
+    people = [[v / scale for v in d["bbox"]] for d in detections if d["class_name"] == cfg_model.crop_from]
+    people = [b for b in people if b[3] - b[1] >= MIN_PERSON_PX]
+    found = []
+    for box in sorted(people, key=lambda b: b[3] - b[1], reverse=True)[:MAX_PEOPLE]:
+        region = upper_body_box(box, w, h)
+        # one crop at a time: the TensorRT build takes a batch of 1
+        probs = model.predict(cut(frame, region, cfg_model.crop), imgsz=cfg_model.imgsz,
+                              verbose=False)[0].probs.data.tolist()
+        x1, y1, x2, y2 = max(region[0], 0), max(region[1], 0), min(region[2], w), min(region[3], h)
+        found += [{"class_name": model.names[i], "confidence": round(p, 3),
+                   "bbox": [round(v * scale, 1) for v in (x1, y1, x2, y2)]}
+                  for i, p in enumerate(probs) if cfg_model.keep(model.names[i], p)]
+    return found
+
+
 def run_live_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder, live: LiveView):
     from ultralytics import YOLO
 
     check_main_model(plugin, MODELS_DIR, MODEL_OVERRIDE, USE_ENGINE)
     paths = model_paths(plugin, MODELS_DIR, MODEL_OVERRIDE, USE_ENGINE)
-    loaded = {p: YOLO(p, task="detect") for p in paths if os.path.exists(p)}   # extra models are optional
+    loaded = {p: YOLO(p, task="classify" if spec.get("crop_from") else "detect")   # extra models are optional
+              for p, spec in zip(paths, model_specs(plugin)) if os.path.exists(p)}
     cfg = build_config(plugin, [loaded[p].names if p in loaded else None for p in paths], MODELS_DIR,
                        MODEL_OVERRIDE, USE_ENGINE)
     log_config(cfg)
@@ -177,9 +203,12 @@ def run_live_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder, live: L
         for m in cfg.models:   # main model, then each extra model (e.g. smoking) on the same frame
             if (frame_id - 1) % m.every_n_frames == 0:
                 model = loaded[m.model_path]
-                boxes = model.predict(frame, conf=m.min_confidence, classes=m.class_ids, imgsz=m.imgsz,
-                                      verbose=False)[0].boxes
-                last[m.model_path] = detect(model, m, boxes, camera.scale)
+                if m.crop_from:   # the main model's people are already in detections
+                    last[m.model_path] = classify_people(model, m, frame, detections, camera.scale)
+                else:
+                    boxes = model.predict(frame, conf=m.min_confidence, classes=m.class_ids, imgsz=m.imgsz,
+                                          verbose=False)[0].boxes
+                    last[m.model_path] = detect(model, m, boxes, camera.scale)
             detections += last[m.model_path]
 
         message = detection_message(frame_id, detections, model_name, camera.frame_size)

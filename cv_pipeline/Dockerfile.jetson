@@ -12,6 +12,6 @@ RUN pip install --no-cache-dir "redis>=5.0.0"
 COPY requirements-media.txt .
 RUN pip install --no-cache-dir -r requirements-media.txt
 
-COPY main.py plugin_config.py media.py live_view.py camera.py .
+COPY main.py plugin_config.py media.py live_view.py camera.py person_crops.py .
 
 CMD ["python3", "main.py"]

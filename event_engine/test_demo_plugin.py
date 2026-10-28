@@ -64,7 +64,7 @@ results.append(check("Work area: under 3 s doesn't fire yet", not run(person(RIG
 results.append(check("Between the zones: nothing fires, even without PPE",
                      not run(person(MIDDLE, hardhat=False, vest=False))))
 
-f = run([{"class_name": "cigarette", "confidence": 0.9, "bbox": [900, 400, 930, 410]}] + person(MIDDLE))
+f = run([{"class_name": "smoking", "confidence": 0.9, "bbox": [840, 300, 1000, 460]}] + person(MIDDLE))
 results.append(check("Other rules as usual: smoking fires anywhere", f == ["RULE_SMOKE_01"], f))
 
 # zones redrawn on the website: swap the two sides

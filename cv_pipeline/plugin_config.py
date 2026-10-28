@@ -21,6 +21,8 @@ class ModelConfig:
     class_ids: list[int]             # model class ids passed to YOLO
     thresholds: dict[str, float]     # class_name -> min confidence
     every_n_frames: int = 1          # run on every n-th frame only, reuse the last result in between
+    crop_from: str | None = None     # classifier: runs on a crop of each box of this class (e.g. Person)
+    crop: int = 384                  # crop size the classifier was trained on
 
     @property
     def min_confidence(self) -> float:
@@ -54,7 +56,7 @@ def rule_classes(rule: dict) -> set[str]:
 
 def model_specs(plugin: dict) -> list[dict]:
     """The main model's section, then each of detection.extra_models (same fields: model, imgsz,
-    default_confidence, classes, plus optional every_n_frames)."""
+    default_confidence, classes, plus optional every_n_frames; a classifier also has crop_from and crop)."""
     det = plugin.get("detection") or {}
     return [det, *det.get("extra_models", [])]
 
@@ -98,10 +100,15 @@ def build_config(plugin: dict, model_names: list[dict[int, str]], models_dir: st
                               f"(model classes: {sorted(name_to_id)})")
         models.append(ModelConfig(model_path=path, imgsz=int(spec.get("imgsz", det.get("imgsz", 640))),
                                   class_ids=sorted(name_to_id[n] for n in thresholds), thresholds=thresholds,
-                                  every_n_frames=max(1, int(spec.get("every_n_frames", 1)))))
+                                  every_n_frames=max(1, int(spec.get("every_n_frames", 1))),
+                                  crop_from=spec.get("crop_from"), crop=int(spec.get("crop", 384))))
 
     if not models or models[0].model_path != model_paths(plugin, models_dir, model_override, engine)[0]:
         raise PluginError(f"[{pid}] the main model is required")
+    for m in models[1:]:
+        if m.crop_from and m.crop_from not in models[0].thresholds:
+            raise PluginError(f"[{pid}] {Path(m.model_path).name} crops '{m.crop_from}' boxes, "
+                              f"but the main model doesn't detect '{m.crop_from}'")
     detectable = {k for m in models for k in m.thresholds}
 
     for rule in plugin.get("rules", []):

@@ -126,13 +126,13 @@ bottle = {"class_name": "bottle", "confidence": 0.9, "bbox": [50, 380, 70, 420]}
 results.append(check("Disabled rule (food) never fires", not run([[bottle]] * 20, rules=["RULE_FOOD_01"])))
 
 # --- presence (smoking) ---
-CIGARETTE = {"class_name": "cigarette", "confidence": 0.8, "bbox": [380, 200, 395, 206]}
-f = run([[WORKER, CIGARETTE]] * 8, rules=["RULE_SMOKE_01"])
-results.append(check("Smoking: cigarette visible for 2 s fires", len(f) == 1 and f[0][0] == 4
+SMOKER = {"class_name": "smoking", "confidence": 0.8, "bbox": [280, 100, 420, 240]}   # head and upper body
+f = run([[WORKER, SMOKER]] * 8, rules=["RULE_SMOKE_01"])
+results.append(check("Smoking: seen for 2 s fires", len(f) == 1 and f[0][0] == 4
                      and f[0][1]["event_type"] == "SMOKING", f"{[i for i, _ in f]}"))
-results.append(check("Smoking: no cigarette, no incident", not run([[WORKER]] * 8, rules=["RULE_SMOKE_01"])))
+results.append(check("Smoking: nobody smoking, no incident", not run([[WORKER]] * 8, rules=["RULE_SMOKE_01"])))
 results.append(check("Vaping: not available yet, never fires",
-                     not run([[{**CIGARETTE, "class_name": "vape"}]] * 8, rules=["RULE_SMOKE_02"])))
+                     not run([[{**SMOKER, "class_name": "vape"}]] * 8, rules=["RULE_SMOKE_02"])))
 lying = {**WORKER, "bbox": [200, 350, 400, 400]}
 results.append(check("Planned rules (pose) are skipped", not run([[lying]] * 700, rules=["RULE_POSE_01", "RULE_POSE_02"])))
 
