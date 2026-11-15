@@ -65,6 +65,9 @@ services:
       FACE_DEVICE: ${FACE_DEVICE:-cpu}
       # 1 = print frames per second and milliseconds per stage every 10 s (for finding slow spots)
       CV_PROFILE: ${CV_PROFILE:-}
+      # live view: pictures a second, and their JPEG quality (lighter = smoother over a slow upload line)
+      LIVE_FPS: ${LIVE_FPS:-}
+      LIVE_QUALITY: ${LIVE_QUALITY:-}
       CAMERA_ID: cam_01
       CAMERA_LOCATION: ${CAMERA_LOCATION:-Main site}
       PLUGIN_ID: ${PLUGIN_ID:-construction_safety}

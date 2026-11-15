@@ -33,7 +33,7 @@ Graduation project, Misr University for Science & Technology (five-year programm
 | Live detection on the Jetson Orin Nano | 28–32 frames a second (camera: 30), 25 W mode, no throttling | `jetson/README.md` |
 | Smoking-act classifier, held-out test set | 88.5% of smokers found, 98% of "smoking" answers right, 0.6% false alarms, 0% of construction workers flagged | `docs/team_notes.md` |
 | Face recognition (LFW) | over 99% named right, no stranger named, down to 28 px faces | `docs/faces.md` |
-| Live view in the console over the internet | up to 20 pictures a second, 0.1–0.3 s behind the camera | `docs/cameras.md` |
+| Live view in the console over the internet | about 20 pictures a second, under 0.1 s behind the camera, no stalls | `docs/cameras.md` |
 | Report citations | 10 of 11 construction rules quote their code-of-practice clause word for word | `docs/regulations.md` |
 
 The test sets are small and were made by the team, so these are checks of this system, not benchmark claims.

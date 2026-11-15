@@ -40,8 +40,8 @@ offline in the console and is retried until it is back.
 
 ## The live view
 
-The detector publishes an annotated picture of each camera up to `LIVE_FPS` (20) times a second; incident clips
-keep 10 a second. The console's live view gets them over a WebSocket (`GET /api/cameras/<id>/live`, same sign-in
+The detector publishes an annotated picture of each camera up to `LIVE_FPS` (30) times a second, as a lighter JPEG
+(`LIVE_QUALITY` 70; snapshots and clips keep quality 85); incident clips keep 10 a second. The console's live view gets them over a WebSocket (`GET /api/cameras/<id>/live`, same sign-in
 and same-site check as the rest of the console): the server pushes each new picture and stops at `LIVE_WINDOW`
 (4) that the browser hasn't shown yet, so pictures can't pile up in network buffers and fall seconds behind; a
 slow link just gets fewer, always the newest. The browser decodes them in the background and paints them on a
@@ -50,6 +50,19 @@ canvas at the screen's refresh. Where WebSockets don't get through, it fetches t
 Measured 2026-11-15: through the public address (Tailscale Funnel) a picture arrives 0.1–0.3 s after the camera
 took it. With a 20 a second camera behind a 0.15 s round trip, the view shows 18.6 pictures a second (all sent),
 evenly spaced (±12 ms); with the earlier window of 2 it was 11 a second (±36 ms).
+
+Measured on the Jetson with the real camera, 2026-11-15, one viewer for 30 s through the public address:
+
+| Live picture | Size | Pictures a second | Behind the camera (median / 95% / worst) | Stalls over 0.2 s |
+|---|---|---|---|---|
+| 20 a second, quality 85 (before) | 60 KB | 12.2 | 0.09 s / 0.89 s / 2.1 s | 15 |
+| 20 a second, quality 70 | 33 KB | 16.6 | 0.07 s / 0.13 s / 0.23 s | 0 |
+| 30 a second, quality 70 (now) | 33 KB | 19.7 | 0.05 s / 0.07 s / 0.19 s | 0 |
+
+Straight to the Jetson (no internet) the heavier picture was already smooth, so the stalls came from the site's
+upload line, not the Jetson: at 60 KB a picture the stream needed about 6 Mbit/s up. The lighter picture needs
+about half. Publishing 30 a second costs the detector nothing (it still handled the camera's full 33 frames a
+second). On a slower line, lower `LIVE_QUALITY` (e.g. 55) before anything else.
 
 ## On the Jetson
 - USB cameras: two 1080p MJPEG cameras fit on the Jetson's USB 3 ports; find each camera's stable name with

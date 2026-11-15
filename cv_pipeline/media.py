@@ -25,8 +25,13 @@ import redis
 BUFFER_SECONDS = 12
 BUFFER_FPS = 10        # frames kept per second for incident clips (camera may run faster)
 # pictures per second for the console's live view (each one JPEG-encoded, ~6 ms on the Jetson's CPU)
-LIVE_FPS = max(BUFFER_FPS, int(os.getenv("LIVE_FPS") or 20))
+LIVE_FPS = max(BUFFER_FPS, int(os.getenv("LIVE_FPS") or 30))
 MAX_WIDTH = 960        # buffered frames are downscaled to this width
+# JPEG quality: the live picture is lighter than the ones kept as evidence. Over the internet the site's upload
+# line is the limit, and a lighter picture means more of them arrive each second, with fewer stalls
+# (measured on the Jetson over Tailscale Funnel, docs/cameras.md).
+KEEP_QUALITY = 85
+LIVE_QUALITY = min(95, max(30, int(os.getenv("LIVE_QUALITY") or 70)))
 PRE_SECONDS = 5
 POST_SECONDS = 3
 INCIDENT_STREAM = "incidents"
@@ -120,14 +125,19 @@ class MediaRecorder:
         scale = min(1.0, MAX_WIDTH / w)
         small = cv2.resize(image, (int(w * scale), int(h * scale))) if scale < 1 else image.copy()
         annotated = annotate(small, detections, scale * box_scale)
-        ok, jpg = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 85])
-        if not ok:
-            return
-        data = jpg.tobytes()
+        data = None
         if self.live_view:
-            self.live_view.publish(data, annotated.shape[1], annotated.shape[0], captured or now)
+            ok, jpg = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, LIVE_QUALITY])
+            if ok:
+                data = jpg.tobytes()
+                self.live_view.publish(data, annotated.shape[1], annotated.shape[0], captured or now)
         if now - self._last_kept < 0.9 / BUFFER_FPS:   # live view gets every frame, clips BUFFER_FPS of them
             return
+        if data is None or LIVE_QUALITY != KEEP_QUALITY:   # evidence (snapshots, clips) keeps the better picture
+            ok, jpg = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, KEEP_QUALITY])
+            if not ok:
+                return
+            data = jpg.tobytes()
         self._last_kept = now
         with self._lock:
             self._frames.append((frame_id, now, data))
@@ -279,6 +289,6 @@ def remove_old_media(media_dir: Path, keep_days: float):
         print(f"[CV] Media: removed {removed} file(s) older than {keep_days:g} days", flush=True)
 
 
-MEDIA_SUMMARY = (f"live view {LIVE_FPS} fps, buffer {BUFFER_SECONDS}s @ {BUFFER_FPS} fps, clips {PRE_SECONDS}s before + {POST_SECONDS}s after, "
+MEDIA_SUMMARY = (f"live view {LIVE_FPS} fps at quality {LIVE_QUALITY}, buffer {BUFFER_SECONDS}s @ {BUFFER_FPS} fps, clips {PRE_SECONDS}s before + {POST_SECONDS}s after, "
                  f"{f'kept {MEDIA_KEEP_DAYS:g} days, ' if MEDIA_KEEP_DAYS else ''}"
                  f"{'H.264 via ffmpeg' if FFMPEG else 'MPEG-4 (ffmpeg not found)'}")
