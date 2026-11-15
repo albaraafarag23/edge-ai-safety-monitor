@@ -52,8 +52,7 @@ export function mediaUrl(path: string | null | undefined): string | null {
   return path ? `${API_BASE}${path}` : null;
 }
 
-/** Live Motion-JPEG stream and latest still frame of a camera. */
-export const cameraStreamUrl = (id: string) => `${API_BASE}/cameras/${encodeURIComponent(id)}/stream`;
+/** Latest still frame of a camera (the live view itself is a WebSocket, components/CameraFeed.tsx). */
 export const cameraFrameUrl = (id: string) => `${API_BASE}/cameras/${encodeURIComponent(id)}/frame`;
 export const personPhotoUrl = (id: string, file: string) =>
   `${API_BASE}/people/${encodeURIComponent(id)}/photos/${encodeURIComponent(file)}`;

@@ -2,7 +2,7 @@
 # One-time hardening of the Jetson, run as root from the laptop:
 #   ssh -t jetson 'sudo bash ~/sitesentry/app/jetson/harden.sh'
 # Safe to run again. What it does, and how to undo each step:
-#   1. Keeps the GPU at its top clock (CPU and memory stay automatic), now and at every boot, so the GPU doesn't
+#   1. Gives the GPU a minimum clock of 714 MHz (CPU and memory stay automatic), now and at every boot, so it doesn't
 #      slow down between frames. Not full jetson_clocks: that trips over-current protection.    Undo: gpu-clock.sh off
 #   2. SSH: keys only, no passwords, no root login.    Undo: rm /etc/ssh/sshd_config.d/10-sitesentry.conf; systemctl reload ssh
 #   3. Turns off rpcbind (port 111, an NFS helper this project doesn't use).    Undo: systemctl enable --now rpcbind
@@ -13,7 +13,14 @@ set -euo pipefail
 say() { echo; echo "== $*"; }
 
 say "1. GPU clock"
-[ -f /root/l4t_dfs.conf ] || jetson_clocks --store   # the automatic settings, for gpu-clock.sh to restore
+# the automatic settings, for gpu-clock.sh to restore. Never stored while clocks are pinned (an old
+# jetson-clocks boot service), or "automatic" would mean "pinned" and the over-current events would go on.
+if [ ! -f /root/l4t_dfs.conf ]; then
+  if systemctl is-active --quiet jetson-clocks.service; then
+    echo "jetson-clocks.service is pinning the clocks: run 'systemctl disable jetson-clocks; reboot' first"; exit 1
+  fi
+  jetson_clocks --store
+fi
 bash "$(dirname "$0")/gpu-clock.sh"
 
 say "2. SSH: keys only"

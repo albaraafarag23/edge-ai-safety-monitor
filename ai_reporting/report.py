@@ -211,12 +211,16 @@ def generate_with_gemini(client, incident: dict, plugin: dict, actions: list[str
     response = client.models.generate_content(
         model=GEMINI_MODEL,
         contents=user,
-        config=types.GenerateContentConfig(system_instruction=system, temperature=0.2, max_output_tokens=4096),
+        # generous: on models that think first, the thinking counts against this limit too, and an Arabic report
+        # cut short would fail the section check and fall back to the template
+        config=types.GenerateContentConfig(system_instruction=system, temperature=0.2, max_output_tokens=16384),
     )
     text = (response.text or "").strip()
+    reason = response.candidates[0].finish_reason if response.candidates else "no candidates"
     if not text:
-        reason = response.candidates[0].finish_reason if response.candidates else "no candidates"
         raise RuntimeError(f"Gemini returned no text ({reason})")
+    if "MAX_TOKENS" in str(reason):
+        raise RuntimeError("Gemini's report was cut off at the token limit")
     return text
 
 

@@ -23,10 +23,13 @@ The whole system runs on the Jetson: camera → detector (GPU, TensorRT) → rul
 
 ## TensorRT models
 
-TensorRT builds are tied to the device and TensorRT version, so they are built on the Jetson, not copied:
+TensorRT builds are tied to the device and TensorRT version, so they are built on the Jetson, not copied, and
+with the same image the detector runs (the digest pinned in `cv_pipeline/Dockerfile.jetson`); an engine built
+with another TensorRT doesn't load:
 
 ```bash
-docker run --rm --ipc=host -v ~/sitesentry/models:/models ultralytics/ultralytics:latest-jetson-jetpack6 \
+docker run --rm --ipc=host -v ~/sitesentry/models:/models \
+  ultralytics/ultralytics:latest-jetson-jetpack6@sha256:ff4f25b3c136c536482ae8001a73fbd44c4d341d5cf031e9553899b1c99c6785 \
   yolo export model=/models/construction_ppe.pt format=engine half=True imgsz=544,960 device=0 batch=1 workspace=4
 ```
 

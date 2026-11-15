@@ -12,7 +12,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, text
-from urllib.parse import urlsplit
 
 import analytics
 import auth
@@ -146,23 +145,9 @@ app = FastAPI(title="Safety Monitor API", version="1.3.0", lifespan=lifespan)
 # The dashboard is served from the same origin (nginx / Vite proxy /api), so no other site needs to call the
 # API from a browser. CORS_ORIGINS (comma-separated) opens it to named origins, e.g. a dashboard on another host.
 CORS_ORIGINS = [o.strip().rstrip("/") for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
-# hosts the console is reached at besides the request's own Host header: its public address (CONSOLE_URL)
-OWN_HOSTS = {urlsplit(o).hostname for o in [os.getenv("CONSOLE_URL", ""), *CORS_ORIGINS] if urlsplit(o).hostname}
 if CORS_ORIGINS:
     app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"],
                        expose_headers=["X-Total-Count"])
-
-
-def same_site(headers) -> bool:
-    """False if the request names another site as its Origin. Browsers always send Origin on changes and on
-    WebSocket connections; requests without one (ai_reporting, curl, scripts) aren't from a browser page."""
-    origin = headers.get("origin")
-    if not origin:
-        return True
-    # host names only: another port on the same host shares the cookie anyway
-    hosts = {urlsplit(f"//{h.strip()}").hostname for name in ("host", "x-forwarded-host")
-             for h in headers.get(name, "").split(",") if h.strip()}
-    return urlsplit(origin).hostname in hosts | OWN_HOSTS
 
 
 @app.middleware("http")
@@ -172,7 +157,7 @@ async def same_site_changes_only(request: Request, call_next):
     Browsers put the page's address in the Origin header of such requests. If it names another site, that site
     is trying to act with the visitor's session (cross-site request forgery): refused, on top of the session
     cookie's SameSite=Lax. Requests without Origin (ai_reporting, curl, scripts) aren't from a browser page."""
-    if request.method not in ("GET", "HEAD", "OPTIONS") and not same_site(request.headers):
+    if request.method not in ("GET", "HEAD", "OPTIONS") and not auth.same_site(request.headers):
         return JSONResponse({"detail": "Request from another site refused"}, status_code=403)
     return await call_next(request)
 
@@ -375,8 +360,7 @@ async def events(request: Request):
 
 
 protected.include_router(cameras.router)
-# the live view's WebSocket checks the session itself (HTTP dependencies don't run on WebSockets)
-cameras.same_site = same_site
+# the live view's WebSocket checks the session and the Origin itself (HTTP dependencies don't run on WebSockets)
 app.include_router(cameras.ws_router)
 protected.include_router(zone_settings.router)
 protected.include_router(analytics.router)

@@ -151,6 +151,23 @@ def check_main_model(plugin: dict, models_dir: str = ".", model_override: str | 
         raise PluginError(f"[{plugin.get('plugin_id', '?')}] model file not found: {path} "
                           f"(train it first, or set MODEL_PATH to use another model)")
 
+def engine_imgsz(path: str) -> list[int] | None:
+    """The input size [height, width] an Ultralytics TensorRT build was made for, from the metadata at the start
+    of the .engine file (4-byte length + JSON). A build for the camera's own shape (e.g. 544x960 for 960x540
+    frames) skips the grey padding a square 960x960 one needs, which is almost half its work. None otherwise."""
+    if not str(path).endswith(".engine"):
+        return None
+    try:
+        with open(path, "rb") as f:
+            n = int.from_bytes(f.read(4), "little")
+            if not 0 < n < 1_000_000:
+                return None
+            size = json.loads(f.read(n)).get("imgsz")
+    except (OSError, ValueError):
+        return None
+    if isinstance(size, list) and len(size) == 2 and all(isinstance(v, int) and v > 0 for v in size):
+        return size
+    return None
 
 if __name__ == "__main__":
     # Check a plugin against a model without starting the pipeline:
@@ -172,22 +189,3 @@ if __name__ == "__main__":
         print("WARNING:", w)
     for m in cfg.models:
         print(f"OK: model={m.model_path} imgsz={m.imgsz} thresholds={m.thresholds} class_ids={m.class_ids}")
-
-
-def engine_imgsz(path: str) -> list[int] | None:
-    """The input size [height, width] an Ultralytics TensorRT build was made for, from the metadata at the start
-    of the .engine file (4-byte length + JSON). A build for the camera's own shape (e.g. 544x960 for 960x540
-    frames) skips the grey padding a square 960x960 one needs, which is almost half its work. None otherwise."""
-    if not str(path).endswith(".engine"):
-        return None
-    try:
-        with open(path, "rb") as f:
-            n = int.from_bytes(f.read(4), "little")
-            if not 0 < n < 1_000_000:
-                return None
-            size = json.loads(f.read(n)).get("imgsz")
-    except (OSError, ValueError):
-        return None
-    if isinstance(size, list) and len(size) == 2 and all(isinstance(v, int) and v > 0 for v in size):
-        return size
-    return None

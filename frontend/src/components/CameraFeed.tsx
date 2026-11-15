@@ -72,7 +72,17 @@ function useLiveFrame(cameraId: string, active: boolean, onFail: () => void) {
     let frame: number | undefined;
     let failures = 0;
     let socket: WebSocket | null = null;
-    let waiting: { picture: Picture; done: () => void } | null = null;   // decoded, not yet painted
+    let waiting: { picture: Picture; done: () => void; n: number } | null = null;   // decoded, not yet painted
+    let newest = 0;      // number of the newest picture painted or waiting: older ones that decode late are dropped
+    let everGot = false; // the WebSocket has worked here: after a dropout, keep trying it rather than polling
+    let owed = 0;        // pictures not answered while the tab was hidden (so the server pauses), answered on return
+    let answerNow: (() => void) | null = null;
+    let newestBase = 0;
+    const onVisible = () => {
+      if (document.hidden || !answerNow) return;
+      for (; owed > 0; owed -= 1) answerNow();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     const controller = new AbortController();
 
     const paint = () => {
@@ -94,17 +104,20 @@ function useLiveFrame(cameraId: string, active: boolean, onFail: () => void) {
       release(next.picture);
       next.done();
     };
-    // the newest picture wins: one still waiting for the screen is skipped (and answered) for it
-    const show = (picture: Picture, done: () => void) => {
-      if (stopped) {
+    // the newest picture wins: one still waiting for the screen is skipped (and answered) for it, and one that
+    // finished decoding after a newer one is dropped
+    const show = (picture: Picture, done: () => void, n: number) => {
+      if (stopped || n <= newest) {
         release(picture);
+        if (!stopped) done();
         return;
       }
+      newest = n;
       if (waiting) {
         release(waiting.picture);
         waiting.done();
       }
-      waiting = { picture, done };
+      waiting = { picture, done, n };
       if (frame === undefined) frame = requestAnimationFrame(paint);
     };
     const failed = () => {
@@ -125,7 +138,7 @@ function useLiveFrame(cameraId: string, active: boolean, onFail: () => void) {
         const res = await fetch(`${cameraFrameUrl(cameraId)}?t=${Date.now()}`, { cache: "no-store", signal: controller.signal });
         if (!res.ok) throw new Error(String(res.status));
         const picture = await decodePicture(await res.blob());
-        await new Promise<void>((resolve) => show(picture, resolve));
+        await new Promise<void>((resolve) => show(picture, resolve, newest + 1));
       } catch {
         if (stopped || !failed()) return;
       }
@@ -134,25 +147,35 @@ function useLiveFrame(cameraId: string, active: boolean, onFail: () => void) {
 
     const connect = () => {
       if (stopped) return;
-      let got = false;
       const proto = window.location.protocol === "https:" ? "wss" : "ws";
       const ws = new WebSocket(`${proto}://${window.location.host}${API_BASE}/cameras/${encodeURIComponent(cameraId)}/live`);
       socket = ws;
       ws.binaryType = "arraybuffer";
+      let sent = 0;
+      const send = () => {
+        if (ws.readyState === WebSocket.OPEN) ws.send("1");
+      };
+      answerNow = send;
+      // painted or skipped: send the next one. In a background tab, answer nothing, so the server stops after a
+      // few pictures instead of streaming to a page nobody sees; the answers go out when the tab is shown again.
       const answer = () => {
-        if (ws.readyState === WebSocket.OPEN) ws.send("1");   // painted or skipped: send the next one
+        if (document.hidden) owed += 1;
+        else send();
       };
       ws.onmessage = async (e) => {
-        got = true;
+        everGot = true;
+        const n = ++sent + newestBase;
         try {
-          show(await decodePicture(new Blob([(e.data as ArrayBuffer).slice(8)], { type: "image/jpeg" })), answer);
+          show(await decodePicture(new Blob([(e.data as ArrayBuffer).slice(8)], { type: "image/jpeg" })), answer, n);
         } catch {
           answer();   // a bad picture: skip it
         }
       };
       ws.onclose = () => {
         if (stopped) return;
-        if (!got) pull();                                       // never worked here: picture by picture
+        newestBase = newest;   // the next connection's pictures count on from here
+        owed = 0;              // those answers belonged to the closed connection
+        if (!everGot) pull();                                    // never worked here: picture by picture
         else if (failed()) timer = window.setTimeout(connect, 1000);   // dropped (e.g. a restart): again
       };
     };
@@ -160,6 +183,7 @@ function useLiveFrame(cameraId: string, active: boolean, onFail: () => void) {
 
     return () => {
       stopped = true;
+      document.removeEventListener("visibilitychange", onVisible);
       controller.abort();
       window.clearTimeout(timer);
       if (frame !== undefined) cancelAnimationFrame(frame);

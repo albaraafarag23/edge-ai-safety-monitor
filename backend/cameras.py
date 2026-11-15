@@ -4,20 +4,19 @@ status hash per camera in Redis. This module reads them for the dashboard.
 Keys (written by cv_pipeline, both expire within seconds when the detector stops):
   cameras                    set of camera ids that have ever published
   camera:<id>:frame          latest annotated JPEG
+  camera:<id>:frame_at       when the camera took it (Unix seconds)
   camera:<id>:info           hash: plugin_id, model, mode, fps, width, height, updated_at
 """
 import asyncio
 import os
 import struct
+import time
 
 import redis.asyncio as aioredis
-from fastapi import APIRouter, HTTPException, Path, Request, Response, WebSocket, WebSocketDisconnect
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, HTTPException, Path, Response, WebSocket, WebSocketDisconnect
 
 import auth
 
-STREAM_FPS = 10          # the detector publishes at most 10 frames per second
-BOUNDARY = "frame"
 
 router = APIRouter(prefix="/cameras", tags=["cameras"])
 ws_router = APIRouter(prefix="/cameras", tags=["cameras"])
@@ -25,8 +24,8 @@ ws_router = APIRouter(prefix="/cameras", tags=["cameras"])
 # LIVE_WINDOW / round trip: 4 lets all 20 a second through at a 0.2 s round trip (Tailscale Funnel ~0.1-0.2 s),
 # and as only the newest picture is ever sent, at most 4 can queue on a slow link
 LIVE_WINDOW = int(os.getenv("LIVE_WINDOW") or 4)
-LIVE_POLL_S = 0.015      # how often the newest picture is checked for (the detector publishes up to ~20 a second)
-same_site = lambda headers: True   # replaced by main.py's Origin check
+LIVE_POLL_S = 0.02       # how often the newest picture's time is checked (the detector publishes up to 20 a second)
+LIVE_RECHECK_S = 30      # how often an open live view checks that its session is still valid
 # camera ids as the detector accepts them (cv_pipeline/main.py); anything else can't be a Redis key of ours
 CameraId = Path(pattern=r"^[A-Za-z0-9_-]{1,40}$")
 _redis: aioredis.Redis | None = None
@@ -99,37 +98,19 @@ async def latest_frame(camera_id: str = CameraId):
     return Response(frame, media_type="image/jpeg", headers=headers)
 
 
-@router.get("/{camera_id}/stream")
-async def stream(request: Request, camera_id: str = CameraId):
-    """Motion JPEG: an <img> pointed here plays the camera live, no player needed."""
-    key = f"camera:{camera_id}:frame"
-
-    async def frames():
-        last = None
-        while not await request.is_disconnected():
-            frame, at = await _redis.mget(key, f"{key}_at")
-            if frame and frame != last:
-                last = frame
-                # X-Captured-At: when the camera took it (Unix seconds), to measure how far behind the view is
-                stamp = f"X-Captured-At: {at.decode()}\r\n" if at else ""
-                yield (f"--{BOUNDARY}\r\nContent-Type: image/jpeg\r\nContent-Length: {len(frame)}\r\n{stamp}\r\n"
-                       .encode() + frame + b"\r\n")
-            await asyncio.sleep(1 / STREAM_FPS)
-
-    return StreamingResponse(frames(), media_type=f"multipart/x-mixed-replace; boundary={BOUNDARY}",
-                             headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"})
-
-
 @ws_router.websocket("/{camera_id}/live")
 async def live(ws: WebSocket, camera_id: str = CameraId):
     """The live view, as fast as the browser's connection allows and never behind. Each message is one picture:
     8 bytes with when the camera took it (big-endian float64, Unix seconds), then the JPEG. The browser answers
     every picture it has put on screen; with LIVE_WINDOW pictures unanswered nothing more is sent, so at most
-    that many can pile up in the network's buffers. On a slow link it simply gets fewer, always the newest."""
-    if not same_site(ws.headers):            # another site's page can't open it with the visitor's cookie
+    that many can pile up in the network's buffers. On a slow link it simply gets fewer, always the newest.
+    The session is checked again every LIVE_RECHECK_S: a user switched off, or whose password changed, loses
+    the view within that time, like every other page."""
+    if not auth.same_site(ws.headers):       # another site's page can't open it with the visitor's cookie
         await ws.close(code=1008)
         return
-    if not await auth.user_from_token(ws.cookies.get(auth.COOKIE_NAME)):
+    token = ws.cookies.get(auth.COOKIE_NAME)
+    if not await auth.user_from_token(token):
         await ws.close(code=1008)
         return
     await ws.accept()
@@ -146,17 +127,25 @@ async def live(ws: WebSocket, camera_id: str = CameraId):
 
     reader = asyncio.create_task(answers())
     last = None
+    checked = time.monotonic()
     try:
         while not reader.done():
+            if time.monotonic() - checked >= LIVE_RECHECK_S:
+                checked = time.monotonic()
+                if not await auth.user_from_token(token):
+                    await ws.close(code=1008)
+                    break
             if unanswered >= LIVE_WINDOW:
                 answered.clear()
                 waiter = asyncio.create_task(answered.wait())
-                await asyncio.wait({reader, waiter}, timeout=10, return_when=asyncio.FIRST_COMPLETED)
+                await asyncio.wait({reader, waiter}, timeout=LIVE_RECHECK_S, return_when=asyncio.FIRST_COMPLETED)
                 waiter.cancel()
-                if unanswered >= LIVE_WINDOW:     # a browser that stopped answering: wait no longer
-                    if reader.done():
-                        break
-                    continue
+                continue
+            # the small capture-time key first: the picture itself is fetched only when there is a new one
+            at = await _redis.get(f"{key}_at")
+            if at is not None and at == last:
+                await asyncio.sleep(LIVE_POLL_S)
+                continue
             frame, at = await _redis.mget(key, f"{key}_at")
             marker = at or frame   # the capture time, or the picture itself from a detector that doesn't send one
             if not frame or marker == last:

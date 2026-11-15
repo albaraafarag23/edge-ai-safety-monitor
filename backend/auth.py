@@ -19,6 +19,7 @@ import json
 import os
 import secrets
 import time
+from urllib.parse import urlsplit
 from datetime import datetime
 
 from fastapi import Depends, HTTPException, Request, Response
@@ -217,6 +218,26 @@ async def ensure_admin():
     print(f"[Auth] Created the first admin account: {email}", flush=True)
     if generated:
         print(f"[Auth] ADMIN_PASSWORD is not set; generated password: {password}  (shown once)", flush=True)
+
+
+# ---------- same-site check (cross-site request forgery) ----------
+
+# hosts the console is reached at besides the request's own Host header: its public address (CONSOLE_URL) and
+# any origins CORS_ORIGINS opens the API to
+_CORS = [o.strip().rstrip("/") for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+OWN_HOSTS = {urlsplit(o).hostname for o in [os.getenv("CONSOLE_URL", ""), *_CORS] if urlsplit(o).hostname}
+
+
+def same_site(headers) -> bool:
+    """False if the request names another site as its Origin. Browsers always send Origin on changes and on
+    WebSocket connections; requests without one (ai_reporting, curl, scripts) aren't from a browser page."""
+    origin = headers.get("origin")
+    if not origin:
+        return True
+    # host names only: another port on the same host shares the cookie anyway
+    hosts = {urlsplit(f"//{h.strip()}").hostname for name in ("host", "x-forwarded-host")
+             for h in headers.get(name, "").split(",") if h.strip()}
+    return urlsplit(origin).hostname in hosts | OWN_HOSTS
 
 
 # ---------- route guards (FastAPI dependencies) ----------
