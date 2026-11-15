@@ -35,6 +35,7 @@ Rules:
 - Where a field is missing, null or empty, write "NOT SPECIFIED".
 - People: metadata.people lists who the cameras' face recognition identified (it may be empty). Name only
   those people, and say the identification is automatic and should be confirmed. Never name anyone else.
+  Copy each name exactly as given, letter for letter.
 - Recommended actions: choose 2-3 from the approved list. You may adjust wording to fit the
   incident, but do not add actions that are not on the list. If the list is empty, write
   "NOT SPECIFIED".
@@ -67,6 +68,7 @@ Rules:
 - People: metadata.people lists who the cameras' face recognition identified (it may be empty). Name only
   those people (use person_name_ar when it is given), and say the identification is automatic and should be
   confirmed. Never name anyone else.
+  Copy each name exactly as given, letter for letter (do not join, split or respell its words).
 - Use the Arabic names you are given. Keep identifiers exactly as they are, in Latin letters:
   event ID, camera ID, rule IDs, model and file names.
 - Use Western digits (0-9). Times are UTC; keep them as given and say they are UTC.
@@ -145,6 +147,12 @@ def people_names(incident: dict, lang: str = "en") -> list[str]:
     people = (incident.get("metadata") or {}).get("people") or []
     return [str((p.get("person_name_ar") if lang == "ar" else None) or p.get("person_name"))
             for p in people if isinstance(p, dict) and p.get("person_name")]
+
+
+def misspelt_names(markdown: str, incident: dict, lang: str = "en") -> list[str]:
+    """The identified people whose name isn't in the report exactly as enrolled. An LLM sometimes respells a
+    name (Gemini wrote "عبدنبي" for "عبد النبي"); a report that names a person must name them right."""
+    return [name for name in people_names(incident, lang) if name not in markdown]
 
 
 def _llm_input(incident: dict) -> dict:

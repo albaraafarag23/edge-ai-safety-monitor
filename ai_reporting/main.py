@@ -24,6 +24,7 @@ import digest
 import notify
 import outbox
 from report import (GEMINI_MODEL, LANGUAGES, MODEL, approved_actions, arabic_names, generate_from_template,
+                    misspelt_names,
                     generate_with_claude, generate_with_gemini, missing_sections, rule_regulations,
                     with_regulations)
 
@@ -196,11 +197,20 @@ def _write_report(writer: Writer | None, incident: dict, plugin: dict, actions: 
     event_id = incident["event_id"]
     if writer:
         try:
-            markdown = writer.generate(writer.client, incident, plugin, actions, evidence, lang)
-            if not missing_sections(markdown, lang):
+            for attempt in (1, 2):   # a second try when a person's name came back respelt
+                markdown = writer.generate(writer.client, incident, plugin, actions, evidence, lang)
+                wrong = misspelt_names(markdown, incident, lang)
+                if not wrong:
+                    break
+                print(f"[AI] {event_id}: {lang} report doesn't have {wrong} exactly as enrolled "
+                      f"(try {attempt})", flush=True)
+            if wrong:
+                print(f"[AI] {event_id}: using the template, which copies names as they are", flush=True)
+            elif not missing_sections(markdown, lang):
                 return markdown, writer.model
-            print(f"[AI] {event_id}: {lang} report missing sections {missing_sections(markdown, lang)}, "
-                  f"using template", flush=True)
+            else:
+                print(f"[AI] {event_id}: {lang} report missing sections {missing_sections(markdown, lang)}, "
+                      f"using template", flush=True)
         except anthropic.AuthenticationError:
             print("[AI] Claude API key rejected, using the template", flush=True)
         except Exception as e:   # network, quota used up (Gemini's free tier), refusal: the template still works

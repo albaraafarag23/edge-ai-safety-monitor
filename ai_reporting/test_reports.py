@@ -167,5 +167,23 @@ try:
 except RuntimeError:
     check("An empty Gemini answer is an error (so the template is used)", True)
 
+
+# ---------- a person's name must be in the report exactly as enrolled ----------
+from report import misspelt_names
+import main as service
+NAMED = {**INCIDENT, "metadata": {**INCIDENT["metadata"], "people": [
+    {"person_id": "omar", "person_name": "Omar Ahmed Abdelnabi", "person_name_ar": "عمر أحمد عبد النبي"}]}}
+check("Names: a respelt Arabic name is caught, the right one passes",
+      misspelt_names("الشخص عمر أحمد عبدنبي", NAMED, "ar") == ["عمر أحمد عبد النبي"]
+      and misspelt_names("الشخص عمر أحمد عبد النبي", NAMED, "ar") == [] and misspelt_names("anything", INCIDENT) == [])
+good = generate_from_template(NAMED, en_actions, EVIDENCE, "en", PLUGIN)
+answers = [good.replace("Abdelnabi", "Abdel Nabi"), good]
+writer = service.Writer("stub-model", None, lambda *a: answers.pop(0))
+md, by = service._write_report(writer, NAMED, PLUGIN, en_actions, EVIDENCE, "en")
+check("Names: a respelt name gets a second try", by == "stub-model" and "Omar Ahmed Abdelnabi" in md and not answers)
+writer = service.Writer("stub-model", None, lambda *a: good.replace("Abdelnabi", "Abdel Nabi"))
+md, by = service._write_report(writer, NAMED, PLUGIN, en_actions, EVIDENCE, "en")
+check("Names: still respelt after two tries, the template is used", by == "template" and "Omar Ahmed Abdelnabi" in md)
+
 print(f"\n{sum(results)}/{len(results)} passed")
 raise SystemExit(0 if all(results) else 1)
