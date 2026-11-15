@@ -10,6 +10,8 @@ outbox.py with growing waits; meanwhile the report shows the email as "retrying"
 import json
 import os
 import time
+from collections.abc import Callable
+from dataclasses import dataclass
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
@@ -21,8 +23,9 @@ import redis
 import digest
 import notify
 import outbox
-from report import (LANGUAGES, MODEL, approved_actions, arabic_names, generate_from_template,
-                    generate_with_claude, missing_sections, rule_regulations, with_regulations)
+from report import (GEMINI_MODEL, LANGUAGES, MODEL, approved_actions, arabic_names, generate_from_template,
+                    generate_with_claude, generate_with_gemini, missing_sections, rule_regulations,
+                    with_regulations)
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
@@ -51,11 +54,26 @@ def load_plugins() -> dict:
     return plugins
 
 
-def claude_client():
-    """None if no credentials are configured; reports then use the template."""
-    if not (os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN")):
-        return None
-    return anthropic.Anthropic()
+@dataclass
+class Writer:
+    """The LLM that writes reports: its model name, its API client, and the function that calls it."""
+    model: str
+    client: object
+    generate: Callable
+
+
+def report_writer() -> Writer | None:
+    """Claude when ANTHROPIC_API_KEY is set, else Gemini when GEMINI_API_KEY is (the key SiteSentry Regs uses);
+    LLM_PROVIDER=claude or gemini picks one. None without a key: reports then use the template."""
+    provider = os.getenv("LLM_PROVIDER", "").strip().lower()
+    claude_key = bool(os.getenv("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_AUTH_TOKEN"))
+    gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if provider in ("", "claude") and claude_key:
+        return Writer(MODEL, anthropic.Anthropic(), generate_with_claude)
+    if provider in ("", "gemini") and gemini_key:
+        from google import genai   # only needed when Gemini writes the reports
+        return Writer(GEMINI_MODEL, genai.Client(api_key=gemini_key), generate_with_gemini)
+    return None
 
 
 def media_path(url: str | None) -> Path | None:
@@ -172,20 +190,22 @@ def write_report(client, incident: dict, plugin: dict, actions: list[str], evide
     return with_regulations(markdown, citations, lang), generated_by
 
 
-def _write_report(client, incident: dict, plugin: dict, actions: list[str], evidence: dict, lang: str) -> tuple[str, str]:
-    """(markdown, generated_by) in one language: Claude, or the template if Claude is unavailable."""
+def _write_report(writer: Writer | None, incident: dict, plugin: dict, actions: list[str], evidence: dict,
+                  lang: str) -> tuple[str, str]:
+    """(markdown, generated_by) in one language: the LLM, or the template if it is unavailable."""
     event_id = incident["event_id"]
-    if client:
+    if writer:
         try:
-            markdown = generate_with_claude(client, incident, plugin, actions, evidence, lang)
+            markdown = writer.generate(writer.client, incident, plugin, actions, evidence, lang)
             if not missing_sections(markdown, lang):
-                return markdown, MODEL
+                return markdown, writer.model
             print(f"[AI] {event_id}: {lang} report missing sections {missing_sections(markdown, lang)}, "
                   f"using template", flush=True)
         except anthropic.AuthenticationError:
             print("[AI] Claude API key rejected, using the template", flush=True)
-        except (anthropic.APIError, RuntimeError) as e:
-            print(f"[AI] {event_id}: Claude unavailable for the {lang} report ({e}), using the template", flush=True)
+        except Exception as e:   # network, quota used up (Gemini's free tier), refusal: the template still works
+            print(f"[AI] {event_id}: {writer.model} unavailable for the {lang} report "
+                  f"({type(e).__name__}: {str(e)[:200]}), using the template", flush=True)
     return generate_from_template(incident, actions, evidence, lang, plugin), "template"
 
 
@@ -246,8 +266,8 @@ def ensure_group(r):
 def main():
     r = redis.from_url(REDIS_URL, decode_responses=True)
     plugins = load_plugins()
-    client = claude_client()
-    print(f"[AI] Ready. Plugins: {list(plugins)}. Reports by: {MODEL if client else 'template (no API key)'}, "
+    client = report_writer()
+    print(f"[AI] Ready. Plugins: {list(plugins)}. Reports by: {client.model if client else 'template (no API key)'}, "
           f"in {', '.join(REPORT_LANGUAGES)}; email in {EMAIL_LANGUAGE}. "
           f"Email: {'to ' + ', '.join(notify.RECIPIENTS) if notify.configured() else 'not configured'}. "
           f"Daily summary: {'at ' + digest.DIGEST_TIME + ' site time' if digest.DIGEST_TIME else 'off'}.", flush=True)

@@ -151,6 +151,10 @@ services:
       PLUGINS_DIR: /app/plugins
       MEDIA_DIR: /media
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # or Gemini (the key SiteSentry Regs uses), when there is no Claude key; LLM_PROVIDER=claude|gemini picks one
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash-lite}
+      LLM_PROVIDER: ${LLM_PROVIDER:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_TLS: ${SMTP_TLS:-}

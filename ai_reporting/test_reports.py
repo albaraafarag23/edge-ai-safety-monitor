@@ -134,5 +134,35 @@ check("Arabic report says when the clause is quoted in English", "(النص ال
 check("No citations, no section; added only once", with_regulations(plain, [], "en") == plain
       and with_regulations(report_en, [CITE], "en") == report_en)
 
+# ---------- Gemini writes the report (stub client: no network) ----------
+from report import generate_with_gemini   # noqa: E402
+
+
+class _Models:
+    def __init__(self, text):
+        self.text, self.calls = text, []
+
+    def generate_content(self, model, contents, config):
+        self.calls.append((model, contents, config))
+        return type("R", (), {"text": self.text, "candidates": []})()
+
+
+class _Gemini:
+    def __init__(self, text):
+        self.models = _Models(text)
+
+
+ok_text = generate_from_template(INCIDENT, en_actions, EVIDENCE, "en", PLUGIN)
+g = _Gemini(ok_text)
+out = generate_with_gemini(g, INCIDENT, PLUGIN, en_actions, EVIDENCE, "en")
+model, contents, config = g.models.calls[0]
+check("Gemini gets the same facts and rules as Claude", out == ok_text and model.startswith("gemini")
+      and "evt_test01" in contents and "Do not invent" in config.system_instruction)
+try:
+    generate_with_gemini(_Gemini(""), INCIDENT, PLUGIN, en_actions, EVIDENCE, "en")
+    check("An empty Gemini answer is an error (so the template is used)", False)
+except RuntimeError:
+    check("An empty Gemini answer is an error (so the template is used)", True)
+
 print(f"\n{sum(results)}/{len(results)} passed")
 raise SystemExit(0 if all(results) else 1)

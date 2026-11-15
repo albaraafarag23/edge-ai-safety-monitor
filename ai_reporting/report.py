@@ -1,18 +1,21 @@
 """Turns an incident payload into a Markdown report for the site supervisor, in English and (optionally) Arabic.
 
 The report uses only the incident's own fields plus the recommended actions the plugin
-approves for that rule, so the LLM has nothing to invent from. If Claude is unavailable
-(no API key, network error, refusal) the same structure is filled from a template.
+approves for that rule, so the LLM has nothing to invent from. Claude writes them (ANTHROPIC_API_KEY), or
+Gemini (GEMINI_API_KEY) when there is no Claude key. If the LLM is unavailable (no key, network error, refusal,
+quota used up) the same structure is filled from a template.
 
 Each language is its own request with the same facts (not a translation of the English report), so each
 can be checked for its sections on its own. Arabic names for rules, zones and approved actions come from the
 plugin's `translations.ar` block (docs/plugins.md).
 """
 import json
+import os
 
 import anthropic
 
 MODEL = "claude-opus-5-5"
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")   # the same model SiteSentry Regs uses
 LANGUAGES = ("en", "ar")
 SECTIONS = {
     "en": ["Summary", "Violations", "Findings", "Recommended Actions"],
@@ -154,8 +157,8 @@ def _llm_input(incident: dict) -> dict:
     return {**incident, "metadata": meta}
 
 
-def generate_with_claude(client: anthropic.Anthropic, incident: dict, plugin: dict,
-                         actions: list[str], evidence: dict, lang: str = "en") -> str:
+def report_prompt(incident: dict, plugin: dict, actions: list[str], evidence: dict, lang: str = "en") -> tuple[str, str]:
+    """(system, user): the same instructions and facts for any LLM."""
     report_cfg = plugin.get("report", {})
     prompt = SYSTEM_PROMPT_AR if lang == "ar" else SYSTEM_PROMPT
     plugin_name = plugin.get("name", plugin.get("plugin_id", "NOT SPECIFIED"))
@@ -174,6 +177,12 @@ def generate_with_claude(client: anthropic.Anthropic, incident: dict, plugin: di
         f"{json.dumps(actions, indent=2, ensure_ascii=False)}\n\n"
         f"Evidence attached: {json.dumps(evidence)}"
     )
+    return system, user
+
+
+def generate_with_claude(client: anthropic.Anthropic, incident: dict, plugin: dict,
+                         actions: list[str], evidence: dict, lang: str = "en") -> str:
+    system, user = report_prompt(incident, plugin, actions, evidence, lang)
     response = client.beta.messages.create(
         model=MODEL,
         max_tokens=16000,
@@ -189,6 +198,25 @@ def generate_with_claude(client: anthropic.Anthropic, incident: dict, plugin: di
     text = "".join(b.text for b in response.content if b.type == "text").strip()
     if not text:
         raise RuntimeError(f"Claude returned no text (stop_reason={response.stop_reason})")
+    return text
+
+
+def generate_with_gemini(client, incident: dict, plugin: dict, actions: list[str], evidence: dict,
+                         lang: str = "en") -> str:
+    """The same report from Google's Gemini (GEMINI_API_KEY; the key SiteSentry Regs uses). `client` is a
+    google.genai.Client. Same prompt, same checks: missing sections fall back to the template."""
+    from google.genai import types   # only needed when Gemini writes the reports
+
+    system, user = report_prompt(incident, plugin, actions, evidence, lang)
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=user,
+        config=types.GenerateContentConfig(system_instruction=system, temperature=0.2, max_output_tokens=4096),
+    )
+    text = (response.text or "").strip()
+    if not text:
+        reason = response.candidates[0].finish_reason if response.candidates else "no candidates"
+        raise RuntimeError(f"Gemini returned no text ({reason})")
     return text
 
 
