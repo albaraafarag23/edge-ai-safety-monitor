@@ -22,7 +22,7 @@ import digest
 import notify
 import outbox
 from report import (LANGUAGES, MODEL, approved_actions, arabic_names, generate_from_template,
-                    generate_with_claude, missing_sections)
+                    generate_with_claude, missing_sections, rule_regulations, with_regulations)
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
@@ -166,6 +166,13 @@ def process_outbox(r):
 
 
 def write_report(client, incident: dict, plugin: dict, actions: list[str], evidence: dict, lang: str) -> tuple[str, str]:
+    """(markdown, generated_by) in one language, with the rule's regulation clauses added."""
+    markdown, generated_by = _write_report(client, incident, plugin, actions, evidence, lang)
+    citations = rule_regulations(plugin, (incident.get("metadata") or {}).get("rule_id"))
+    return with_regulations(markdown, citations, lang), generated_by
+
+
+def _write_report(client, incident: dict, plugin: dict, actions: list[str], evidence: dict, lang: str) -> tuple[str, str]:
     """(markdown, generated_by) in one language: Claude, or the template if Claude is unavailable."""
     event_id = incident["event_id"]
     if client:

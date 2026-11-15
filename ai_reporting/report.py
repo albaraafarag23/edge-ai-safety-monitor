@@ -36,6 +36,7 @@ Rules:
   incident, but do not add actions that are not on the list. If the list is empty, write
   "NOT SPECIFIED".
 - Times are UTC; keep them as given.
+- Do not cite laws, codes or regulations: the system adds the exact clause for the rule after your report.
 
 Output only the report, in Markdown, with exactly this structure:
 # Safety Incident Report: <event_type in plain words>
@@ -66,6 +67,7 @@ Rules:
 - Use the Arabic names you are given. Keep identifiers exactly as they are, in Latin letters:
   event ID, camera ID, rule IDs, model and file names.
 - Use Western digits (0-9). Times are UTC; keep them as given and say they are UTC.
+- Do not cite laws, codes or regulations: the system adds the exact clause for the rule after your report.
 - Recommended actions: choose 2-3 from the approved Arabic list. You may adjust wording to fit the
   incident, but do not add actions that are not on the list. If the list is empty, write "غير محدد".
 
@@ -268,6 +270,52 @@ def _template_ar(incident: dict, actions: list[str], evidence: dict, plugin: dic
         *([f"{i}. {a}" for i, a in enumerate(actions[:3], 1)] or [NOT_SPECIFIED["ar"]]),
     ]
     return "\n".join(lines)
+
+
+REGULATION_HEADING = {"en": "Regulation", "ar": "اللائحة"}
+REGULATION_WORDS = {
+    "en": {"clause": "clause", "page": "page", "source": "Source"},
+    "ar": {"clause": "البند", "page": "صفحة", "source": "المصدر"},
+}
+
+
+def rule_regulations(plugin: dict, rule_id: str | None) -> list[dict]:
+    """The regulation clauses a plugin rule cites (`regulations` in the rule, docs/plugins.md)."""
+    rule = next((r for r in plugin.get("rules", []) if r.get("rule_id") == rule_id), {})
+    return [c for c in rule.get("regulations") or [] if isinstance(c, dict) and c.get("document") and c.get("clause")]
+
+
+def regulation_section(citations: list[dict], lang: str = "en") -> str:
+    """'## Regulation': each clause the rule breaks, word for word as the plugin stores it (looked up once with
+    SiteSentry Regs, see docs/regulations.md). Written by code, never by the LLM, so a clause can't be invented.
+    Arabic reports use the clause's Arabic text where the code of practice has an Arabic edition."""
+    w = REGULATION_WORDS[lang]
+    lines = [f"## {REGULATION_HEADING[lang]}"]
+    for c in citations:
+        heading = (c.get("heading_ar") if lang == "ar" else None) or c.get("heading") or ""
+        text = (c.get("text_ar") if lang == "ar" else None) or c.get("text") or ""
+        if lang == "ar" and text and not c.get("text_ar"):
+            text += " (النص الأصلي بالإنجليزية)"   # the code of practice has no clean Arabic wording
+        where = f"{c['document']}, {w['clause']} {c['clause']}" + (f" «{heading}»" if lang == "ar" and heading
+                                                                    else f' "{heading}"' if heading else "")
+        if c.get("page"):
+            where += f", {w['page']} {c['page']}"
+        lines.append(f"- **{where}**" + (f": {text}" if text else ""))
+        if c.get("url"):
+            lines.append(f"  {w['source']}: {c['url']}")
+    return "\n".join(lines)
+
+
+def with_regulations(markdown: str, citations: list[dict], lang: str = "en") -> str:
+    """The report with its Regulation section after Violations (or at the end), when the rule cites any."""
+    if not citations or f"## {REGULATION_HEADING[lang]}" in markdown:
+        return markdown
+    section = regulation_section(citations, lang)
+    after = f"## {SECTIONS[lang][2]}"    # Findings: the section goes just before it, after Violations
+    if after in markdown:
+        head, tail = markdown.split(after, 1)
+        return f"{head.rstrip()}\n\n{section}\n\n{after}{tail}"
+    return f"{markdown.rstrip()}\n\n{section}\n"
 
 
 def missing_sections(markdown: str, lang: str = "en") -> list[str]:

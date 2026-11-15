@@ -1,5 +1,8 @@
 # Interface contracts
 
+Version 2.7 (2026-11-15): reports (`markdown`, `markdown_ar`) may have a `## Regulation` section (Arabic
+`## اللائحة`) between Violations and Findings: the regulation clauses the rule cites (plugin field
+`regulations`, docs/regulations.md). Optional and written by code, not the LLM; the required sections are unchanged.
 Version 2.6 (2026-11-15): several cameras and face recognition. Additive only: nothing that reads the old
 fields breaks. A detector process may now send detections for more than one `camera_id`. `Person` detections
 carry `attributes.track_id` and, when face recognition knows them, who they are; incidents get

@@ -115,7 +115,18 @@
         "Record the violation and repeat the PPE briefing at the next toolbox talk."
       ],
       "name": "Hard hat",
-      "zone": "work_area"
+      "zone": "work_area",
+      "regulations": [
+        {
+          "document": "OSHJ-CoP-02",
+          "title": "OSH Management in Construction",
+          "clause": "5.13",
+          "heading": "Personal Protective Equipment",
+          "page": 16,
+          "text": "The client shall ensure that the principal contractor provides adequate personal protective equipment to their employees. … The minimum requirements include: … Safety helmets – Provide head protection from dropped objects which cannot be adequately controlled;",
+          "url": "https://mc.spsa.shj.ae/media/documents/8ZTXXGJk0O0HgcHO0bs6g_OSHJ-CoP-02%20OSH%20Management%20in%20Construction%20Version%201%20English.pdf"
+        }
+      ]
     },
     {
       "rule_id": "RULE_PPE_02",
@@ -144,7 +155,18 @@
         "Record the violation and repeat the PPE briefing at the next toolbox talk."
       ],
       "name": "Safety vest",
-      "zone": "work_area"
+      "zone": "work_area",
+      "regulations": [
+        {
+          "document": "OSHJ-CoP-02",
+          "title": "OSH Management in Construction",
+          "clause": "5.13",
+          "heading": "Personal Protective Equipment",
+          "page": 16,
+          "text": "The client shall ensure that the principal contractor provides adequate personal protective equipment to their employees. … The minimum requirements include: … High visibility jackets – High visibility vests to be worn by employees working on construction sites.",
+          "url": "https://mc.spsa.shj.ae/media/documents/8ZTXXGJk0O0HgcHO0bs6g_OSHJ-CoP-02%20OSH%20Management%20in%20Construction%20Version%201%20English.pdf"
+        }
+      ]
     },
     {
       "rule_id": "RULE_ZONE_01",
@@ -163,6 +185,17 @@
         "Move the person out of the no-entry area at once.",
         "Check the barriers and signs around the area for gaps.",
         "Confirm whether the person was authorised to be there."
+      ],
+      "regulations": [
+        {
+          "document": "OSHJ-CoP-02",
+          "title": "OSH Management in Construction",
+          "clause": "5.7",
+          "heading": "Site Rules",
+          "page": 12,
+          "text": "The principal contractor shall ensure that site rules are developed, communicated, implemented and monitored during the time of the project. … The site rules shall consider the following, including but not limited to: … Restricted areas;",
+          "url": "https://mc.spsa.shj.ae/media/documents/8ZTXXGJk0O0HgcHO0bs6g_OSHJ-CoP-02%20OSH%20Management%20in%20Construction%20Version%201%20English.pdf"
+        }
       ]
     },
     {
@@ -185,6 +218,17 @@
         "Stop the machine and separate the worker from it immediately.",
         "Re-establish the exclusion zone around operating machinery.",
         "Brief the operator and nearby workers on safe distances and a banksman's role."
+      ],
+      "regulations": [
+        {
+          "document": "OSHJ-CoP-02",
+          "title": "OSH Management in Construction",
+          "clause": "5.7",
+          "heading": "Site Rules",
+          "page": 12,
+          "text": "The principal contractor shall ensure that site rules are developed, communicated, implemented and monitored during the time of the project. … The site rules shall consider the following, including but not limited to: … Traffic management systems; … Pedestrian routes;",
+          "url": "https://mc.spsa.shj.ae/media/documents/8ZTXXGJk0O0HgcHO0bs6g_OSHJ-CoP-02%20OSH%20Management%20in%20Construction%20Version%201%20English.pdf"
+        }
       ]
     },
     {
@@ -202,6 +246,17 @@
         "Ask the worker to put out the cigarette and use the designated smoking area.",
         "Check that no fuel, gas cylinders or flammable materials are near where they were smoking.",
         "Remind workers of the site smoking policy at the next toolbox talk."
+      ],
+      "regulations": [
+        {
+          "document": "OSHJ-CoP-02",
+          "title": "OSH Management in Construction",
+          "clause": "5.7",
+          "heading": "Site Rules",
+          "page": 12,
+          "text": "The principal contractor shall ensure that site rules are developed, communicated, implemented and monitored during the time of the project. … The site rules shall consider the following, including but not limited to: … Smoking;",
+          "url": "https://mc.spsa.shj.ae/media/documents/8ZTXXGJk0O0HgcHO0bs6g_OSHJ-CoP-02%20OSH%20Management%20in%20Construction%20Version%201%20English.pdf"
+        }
       ]
     },
     {
@@ -220,6 +275,17 @@
       "recommended_actions": [
         "Ask the worker to stop vaping and use the designated smoking area.",
         "Remind workers that the site smoking policy also covers vapes."
+      ],
+      "regulations": [
+        {
+          "document": "OSHJ-CoP-02",
+          "title": "OSH Management in Construction",
+          "clause": "5.7",
+          "heading": "Site Rules",
+          "page": 12,
+          "text": "The principal contractor shall ensure that site rules are developed, communicated, implemented and monitored during the time of the project. … The site rules shall consider the following, including but not limited to: … Smoking;",
+          "url": "https://mc.spsa.shj.ae/media/documents/8ZTXXGJk0O0HgcHO0bs6g_OSHJ-CoP-02%20OSH%20Management%20in%20Construction%20Version%201%20English.pdf"
+        }
       ]
     },
     {
@@ -240,7 +306,18 @@
         "Remind workers to eat and drink only in the designated welfare area."
       ],
       "enabled": false,
-      "requires": "A detection model trained to recognise bottles and cups"
+      "requires": "A detection model trained to recognise bottles and cups",
+      "regulations": [
+        {
+          "document": "OSHJ-CoP-02",
+          "title": "OSH Management in Construction",
+          "clause": "5.7",
+          "heading": "Site Rules",
+          "page": 12,
+          "text": "The principal contractor shall ensure that site rules are developed, communicated, implemented and monitored during the time of the project. … The site rules shall consider the following, including but not limited to: … Food and rest areas; … Restricted areas;",
+          "url": "https://mc.spsa.shj.ae/media/documents/8ZTXXGJk0O0HgcHO0bs6g_OSHJ-CoP-02%20OSH%20Management%20in%20Construction%20Version%201%20English.pdf"
+        }
+      ]
     },
     {
       "rule_id": "RULE_POSE_01",
@@ -259,6 +336,17 @@
         "Send someone to the worker immediately and call the site first aider.",
         "Do not move the worker if a fall from height or a head injury is possible; call emergency services.",
         "Secure the area and record what happened for the accident report."
+      ],
+      "regulations": [
+        {
+          "document": "OSHJ-CoP-02",
+          "title": "OSH Management in Construction",
+          "clause": "7.2",
+          "heading": "First Aid",
+          "page": 19,
+          "text": "There shall be adequate and appropriate equipment, facilities and personnel to provide first aid to employees if they are injured or become ill at work. … An appointed person is someone who will take charge when someone is injured or falls ill and who will telephone for an ambulance if one is required.",
+          "url": "https://mc.spsa.shj.ae/media/documents/8ZTXXGJk0O0HgcHO0bs6g_OSHJ-CoP-02%20OSH%20Management%20in%20Construction%20Version%201%20English.pdf"
+        }
       ]
     },
     {

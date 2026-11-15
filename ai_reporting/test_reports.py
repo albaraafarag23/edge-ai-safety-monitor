@@ -6,7 +6,8 @@ import json
 from pathlib import Path
 
 import email_template
-from report import SECTIONS, approved_actions, arabic_names, generate_from_template, missing_sections
+from report import (SECTIONS, approved_actions, arabic_names, generate_from_template, missing_sections,
+                    rule_regulations, with_regulations)
 
 PLUGIN = json.loads((Path(__file__).parent.parent / "plugins" / "construction_safety.json").read_text())
 INCIDENT = {
@@ -110,6 +111,28 @@ ar_html = digest.html_body(SUMMARY, "ar", PLUGIN)
 check("Arabic summary: right-to-left, Arabic names and times",
       'dir="rtl"' in ar_html and "letter-spacing" not in ar_html and "حافة الحفرة" in ar_lines[1]
       and ar_lines[2] == "أكثر الأوقات ازدحامًا: نحو الساعة 10 صباحًا." and "عامل بدون خوذة" in ar_html)
+
+# ---------- regulation clauses (plugin rule "regulations", added by code after the report) ----------
+CITE = {"document": "OSHJ-CoP-04", "clause": "5.5.3", "heading": "Guard Rail Systems", "page": 10,
+        "text": "Guard rails shall be at least 950 mm high.", "heading_ar": "أنظمة الحواجز", "text_ar": "نص البند",
+        "url": "https://example.org/cop-04.pdf"}
+cited = {"rules": [{"rule_id": "RULE_X", "regulations": [CITE, {"document": "no clause"}]}]}
+check("A rule's citations are read from the plugin, incomplete ones skipped",
+      rule_regulations(cited, "RULE_X") == [CITE] and rule_regulations(cited, "RULE_Y") == [])
+report_en = with_regulations(generate_from_template(INCIDENT, en_actions, EVIDENCE, "en", PLUGIN), [CITE], "en")
+check("Regulation section sits between Violations and Findings, word for word",
+      report_en.index("## Violations") < report_en.index("## Regulation") < report_en.index("## Findings")
+      and '**OSHJ-CoP-04, clause 5.5.3 "Guard Rail Systems", page 10**: Guard rails shall be at least 950 mm high.'
+      in report_en and "Source: https://example.org/cop-04.pdf" in report_en)
+check("A report with a Regulation section still has every required section", not missing_sections(report_en, "en"))
+report_ar = with_regulations(generate_from_template(INCIDENT, ar_actions, EVIDENCE, "ar", PLUGIN), [CITE], "ar")
+check("Arabic report uses the Arabic clause text", "## اللائحة" in report_ar and "البند 5.5.3 «أنظمة الحواجز»" in report_ar
+      and "نص البند" in report_ar and not missing_sections(report_ar, "ar"))
+plain = generate_from_template(INCIDENT, en_actions, EVIDENCE, "en", PLUGIN)
+english_only = with_regulations(plain, [{k: v for k, v in CITE.items() if k != "text_ar"}], "ar")
+check("Arabic report says when the clause is quoted in English", "(النص الأصلي بالإنجليزية)" in english_only)
+check("No citations, no section; added only once", with_regulations(plain, [], "en") == plain
+      and with_regulations(report_en, [CITE], "en") == report_en)
 
 print(f"\n{sum(results)}/{len(results)} passed")
 raise SystemExit(0 if all(results) else 1)
