@@ -29,7 +29,13 @@ if ! curl -fs -m 10 -o /dev/null https://1.1.1.1; then
 fi
 
 problem=""
-ip=$(dig +short +time=5 +tries=2 @1.1.1.1 "$HOST" A | grep -E '^[0-9.]+$' | head -1)
+# dig isn't installed on the Jetson; ask 1.1.1.1 over HTTPS with curl there
+if command -v dig >/dev/null; then
+    ip=$(dig +short +time=5 +tries=2 @1.1.1.1 "$HOST" A | grep -E '^[0-9.]+$' | head -1)
+else
+    ip=$(curl -fs -m 10 -H 'accept: application/dns-json' "https://1.1.1.1/dns-query?name=$HOST&type=A" \
+        | grep -oE '"data":"[0-9.]+"' | grep -oE '[0-9.]+' | head -1)
+fi
 if [ -z "$ip" ]; then
     problem="no public DNS record"
 elif ! curl -fs -m 20 -o /dev/null --resolve "$HOST:443:$ip" "https://$HOST/api/health"; then
