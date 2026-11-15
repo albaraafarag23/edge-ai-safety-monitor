@@ -7,6 +7,7 @@ Keys (written by cv_pipeline, both expire within seconds when the detector stops
   camera:<id>:info           hash: plugin_id, model, mode, fps, width, height, updated_at
 """
 import asyncio
+import os
 import struct
 
 import redis.asyncio as aioredis
@@ -20,7 +21,10 @@ BOUNDARY = "frame"
 
 router = APIRouter(prefix="/cameras", tags=["cameras"])
 ws_router = APIRouter(prefix="/cameras", tags=["cameras"])
-LIVE_WINDOW = 2          # pictures on their way to the browser, not yet shown, at most
+# pictures on their way to the browser, not yet shown, at most. The view can't run faster than
+# LIVE_WINDOW / round trip: 4 lets all 20 a second through at a 0.2 s round trip (Tailscale Funnel ~0.1-0.2 s),
+# and as only the newest picture is ever sent, at most 4 can queue on a slow link
+LIVE_WINDOW = int(os.getenv("LIVE_WINDOW") or 4)
 LIVE_POLL_S = 0.015      # how often the newest picture is checked for (the detector publishes up to ~20 a second)
 same_site = lambda headers: True   # replaced by main.py's Origin check
 # camera ids as the detector accepts them (cv_pipeline/main.py); anything else can't be a Redis key of ours
@@ -120,8 +124,8 @@ async def stream(request: Request, camera_id: str = CameraId):
 async def live(ws: WebSocket, camera_id: str = CameraId):
     """The live view, as fast as the browser's connection allows and never behind. Each message is one picture:
     8 bytes with when the camera took it (big-endian float64, Unix seconds), then the JPEG. The browser answers
-    every picture it has put on screen; with LIVE_WINDOW pictures unanswered nothing more is sent, so nothing
-    can pile up in the network's buffers. On a slow link it simply gets fewer, always the newest."""
+    every picture it has put on screen; with LIVE_WINDOW pictures unanswered nothing more is sent, so at most
+    that many can pile up in the network's buffers. On a slow link it simply gets fewer, always the newest."""
     if not same_site(ws.headers):            # another site's page can't open it with the visitor's cookie
         await ws.close(code=1008)
         return

@@ -26,53 +26,86 @@ const TEXT = bilingual(
 const LIVE_MIN_GAP_MS = 100;   // picture-by-picture fallback: at most 10 a second
 const LIVE_FAILURES = 3;       // failures in a row before the view shows offline
 
-/** Shows a JPEG once it is decoded, so the view never flickers to a half-drawn picture. */
-async function decoded(blob: Blob): Promise<string> {
+type Picture = ImageBitmap | HTMLImageElement;
+
+/** Decodes a JPEG off the main thread where the browser can (createImageBitmap), so drawing never waits on it. */
+async function decodePicture(blob: Blob): Promise<Picture> {
+  if (typeof createImageBitmap === "function") return createImageBitmap(blob);
   const url = URL.createObjectURL(blob);
-  const img = new Image();
-  img.src = url;
   try {
+    const img = new Image();
+    img.src = url;
     await img.decode();
-  } catch (e) {
+    return img;
+  } finally {
     URL.revokeObjectURL(url);
-    throw e;
   }
-  return url;
 }
 
+const release = (p: Picture | null) => {
+  if (p && "close" in p) p.close();
+};
+
 /**
- * The newest pictures of a camera, never seconds behind. Normally over a WebSocket (backend cameras.py `live`):
- * the server pushes each new picture, up to ~20 a second, and this page answers each one it has put on screen;
- * the server stops at two unanswered, so nothing piles up in the network's buffers and a slow link just gets
- * fewer pictures. If WebSockets don't get through (an old browser, a strict proxy), it falls back to fetching
- * the newest picture again as soon as the last one is shown (at most 10 a second, one round trip old).
+ * The newest pictures of a camera, drawn on a canvas at the screen's own refresh. Normally over a WebSocket
+ * (backend cameras.py `live`): the server pushes each new picture, up to ~20 a second, and this page answers
+ * each one once it is painted (or skipped for a newer one); the server stops at a few unanswered, so nothing
+ * piles up in the network's buffers and a slow link just gets fewer pictures. Pictures are decoded in the
+ * background and painted straight onto the canvas: no React re-render per picture, no image swapping, so the
+ * view doesn't stutter. In a background tab nothing is painted, so nothing is answered and the server pauses.
+ * If WebSockets don't get through (an old browser, a strict proxy), it falls back to fetching the newest
+ * picture again as soon as the last one is shown (at most 10 a second, one round trip old).
  */
 function useLiveFrame(cameraId: string, active: boolean, onFail: () => void) {
-  const [src, setSrc] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [ready, setReady] = useState(false);
   const failRef = useRef(onFail);
   failRef.current = onFail;
 
   useEffect(() => {
     if (!active) {
-      setSrc(null);
+      setReady(false);
       return;
     }
     let stopped = false;
     let timer: number | undefined;
-    let shown: string | null = null;
+    let frame: number | undefined;
     let failures = 0;
     let socket: WebSocket | null = null;
+    let waiting: { picture: Picture; done: () => void } | null = null;   // decoded, not yet painted
     const controller = new AbortController();
 
-    const show = (url: string) => {
+    const paint = () => {
+      frame = undefined;
+      const next = waiting;
+      waiting = null;
+      const canvas = canvasRef.current;
+      if (!next) return;
+      if (canvas && !stopped) {
+        const w = next.picture.width, h = next.picture.height;
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+        }
+        canvas.getContext("2d")?.drawImage(next.picture, 0, 0);
+        failures = 0;
+        setReady(true);   // re-renders only the first time
+      }
+      release(next.picture);
+      next.done();
+    };
+    // the newest picture wins: one still waiting for the screen is skipped (and answered) for it
+    const show = (picture: Picture, done: () => void) => {
       if (stopped) {
-        URL.revokeObjectURL(url);
+        release(picture);
         return;
       }
-      if (shown) URL.revokeObjectURL(shown);
-      shown = url;
-      setSrc(url);
-      failures = 0;
+      if (waiting) {
+        release(waiting.picture);
+        waiting.done();
+      }
+      waiting = { picture, done };
+      if (frame === undefined) frame = requestAnimationFrame(paint);
     };
     const failed = () => {
       failures += 1;
@@ -91,7 +124,8 @@ function useLiveFrame(cameraId: string, active: boolean, onFail: () => void) {
       try {
         const res = await fetch(`${cameraFrameUrl(cameraId)}?t=${Date.now()}`, { cache: "no-store", signal: controller.signal });
         if (!res.ok) throw new Error(String(res.status));
-        show(await decoded(await res.blob()));
+        const picture = await decodePicture(await res.blob());
+        await new Promise<void>((resolve) => show(picture, resolve));
       } catch {
         if (stopped || !failed()) return;
       }
@@ -102,19 +136,21 @@ function useLiveFrame(cameraId: string, active: boolean, onFail: () => void) {
       if (stopped) return;
       let got = false;
       const proto = window.location.protocol === "https:" ? "wss" : "ws";
-      socket = new WebSocket(`${proto}://${window.location.host}${API_BASE}/cameras/${encodeURIComponent(cameraId)}/live`);
-      socket.binaryType = "arraybuffer";
-      socket.onmessage = async (e) => {
-        got = true;
-        const ws = e.target as WebSocket;
-        try {
-          show(await decoded(new Blob([(e.data as ArrayBuffer).slice(8)], { type: "image/jpeg" })));
-        } catch {
-          /* a bad picture: skip it */
-        }
-        if (ws.readyState === WebSocket.OPEN) ws.send("1");   // on screen: send the next one
+      const ws = new WebSocket(`${proto}://${window.location.host}${API_BASE}/cameras/${encodeURIComponent(cameraId)}/live`);
+      socket = ws;
+      ws.binaryType = "arraybuffer";
+      const answer = () => {
+        if (ws.readyState === WebSocket.OPEN) ws.send("1");   // painted or skipped: send the next one
       };
-      socket.onclose = () => {
+      ws.onmessage = async (e) => {
+        got = true;
+        try {
+          show(await decodePicture(new Blob([(e.data as ArrayBuffer).slice(8)], { type: "image/jpeg" })), answer);
+        } catch {
+          answer();   // a bad picture: skip it
+        }
+      };
+      ws.onclose = () => {
         if (stopped) return;
         if (!got) pull();                                       // never worked here: picture by picture
         else if (failed()) timer = window.setTimeout(connect, 1000);   // dropped (e.g. a restart): again
@@ -126,12 +162,14 @@ function useLiveFrame(cameraId: string, active: boolean, onFail: () => void) {
       stopped = true;
       controller.abort();
       window.clearTimeout(timer);
+      if (frame !== undefined) cancelAnimationFrame(frame);
       socket?.close();
-      if (shown) URL.revokeObjectURL(shown);
+      release(waiting?.picture ?? null);
+      waiting = null;
     };
   }, [cameraId, active]);
 
-  return src;
+  return { canvasRef, ready };
 }
 
 /**
@@ -160,7 +198,7 @@ export function CameraFeed({ camera, className = "", showFullscreen = true, show
   }, [failed]);
 
   const live = camera.online && !failed;
-  const src = useLiveFrame(camera.camera_id, live, () => setFailed(true));
+  const { canvasRef, ready } = useLiveFrame(camera.camera_id, live, () => setFailed(true));
   const ratio = camera.width && camera.height ? `${camera.width} / ${camera.height}` : "16 / 9";
 
   return (
@@ -169,10 +207,16 @@ export function CameraFeed({ camera, className = "", showFullscreen = true, show
       className={`group relative overflow-hidden rounded-xl bg-slate-950 ring-1 ring-slate-900/10 ${className}`}
       style={{ aspectRatio: ratio }}
     >
-      {live && src ? (
-        <img src={src} alt={`Live view of ${camera.camera_id}`} className="h-full w-full object-contain" />
-      ) : live ? (
-        <div className="flex h-full w-full items-center justify-center text-xs text-slate-500">{t.waiting}</div>
+      {live ? (
+        <>
+          <canvas
+            ref={canvasRef}
+            role="img"
+            aria-label={`Live view of ${camera.camera_id}`}
+            className={`h-full w-full object-contain ${ready ? "" : "invisible"}`}
+          />
+          {!ready && <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500">{t.waiting}</div>}
+        </>
       ) : (
         <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-slate-500">
           <CameraOff className="h-8 w-8" aria-hidden />
