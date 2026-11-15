@@ -88,14 +88,14 @@ class MediaRecorder:
         threading.Thread(target=self._work, daemon=True, name=f"media-{camera_id}").start()
 
     # ---------- called by the detector for every frame ----------
-    def add(self, frame_id: int, image, detections: list[dict], box_scale: float = 1.0):
+    def add(self, frame_id: int, image, detections: list[dict], box_scale: float = 1.0, captured: float = 0.0):
         """box_scale maps detection boxes onto `image` (0.5 when the frame was decoded at half the camera size).
         Returns at once: the frame is buffered by the recorder's thread. `image` must not be changed afterwards."""
         now = time.time()
         if now - self._last_add < 1 / BUFFER_FPS:
             return
         self._last_add = now
-        self._next = (frame_id, now, image, detections, box_scale)
+        self._next = (frame_id, now, image, detections, box_scale, captured or now)
         self._wake.set()
 
     def _work(self):
@@ -110,7 +110,8 @@ class MediaRecorder:
             except Exception as e:   # one bad frame must not stop the recorder
                 print(f"[CV] Media: could not buffer a frame of {self.camera_id}: {e}", flush=True)
 
-    def _buffer(self, frame_id: int, now: float, image, detections: list[dict], box_scale: float):
+    def _buffer(self, frame_id: int, now: float, image, detections: list[dict], box_scale: float,
+                captured: float = 0.0):
         h, w = image.shape[:2]
         scale = min(1.0, MAX_WIDTH / w)
         small = cv2.resize(image, (int(w * scale), int(h * scale))) if scale < 1 else image.copy()
@@ -120,7 +121,7 @@ class MediaRecorder:
             return
         data = jpg.tobytes()
         if self.live_view:
-            self.live_view.publish(data, annotated.shape[1], annotated.shape[0])
+            self.live_view.publish(data, annotated.shape[1], annotated.shape[0], captured or now)
         with self._lock:
             self._frames.append((frame_id, now, data))
             while self._frames and self._frames[0][1] < now - BUFFER_SECONDS:

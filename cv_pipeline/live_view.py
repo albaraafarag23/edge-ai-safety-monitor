@@ -25,6 +25,7 @@ class LiveView:
         self._last_info = 0.0
         self._fps = 0.0
         self._error_logged = False
+        self.age_ms = 0.0      # how old the last published picture was when it was published
 
     def set_model(self, model: str):
         self.info["model"] = model
@@ -42,13 +43,16 @@ class LiveView:
             self._fps = self._frames / (now - self._window_start)
             self._frames, self._window_start = 0, now
 
-    def publish(self, jpeg: bytes, width: int, height: int):
-        """Latest annotated frame (called by MediaRecorder, at most BUFFER_FPS times a second)."""
+    def publish(self, jpeg: bytes, width: int, height: int, captured: float | None = None):
+        """Latest annotated frame (called by MediaRecorder, at most BUFFER_FPS times a second). `captured` is when
+        the camera frame was read (time.time()): stored next to it, so the stream can say how old a picture is."""
         prefix = f"camera:{self.camera_id}"
+        now = time.time()
+        self.age_ms = (now - captured) * 1000 if captured else 0.0
         try:
-            pipe = self.r.pipeline()
+            pipe = self.r.pipeline()   # one transaction: the frame and its time always match
             pipe.set(f"{prefix}:frame", jpeg, ex=KEY_TTL_S)
-            now = time.time()
+            pipe.set(f"{prefix}:frame_at", f"{captured or now:.3f}", ex=KEY_TTL_S)
             if now - self._last_info >= INFO_EVERY_S:
                 self._last_info = now
                 pipe.sadd("cameras", self.camera_id)

@@ -79,10 +79,13 @@ async def get_camera(camera_id: str = CameraId):
 @router.get("/{camera_id}/frame")
 async def latest_frame(camera_id: str = CameraId):
     """The newest annotated frame as a JPEG (for a still image or a download)."""
-    frame = await _redis.get(f"camera:{camera_id}:frame")
+    frame, at = await _redis.mget(f"camera:{camera_id}:frame", f"camera:{camera_id}:frame_at")
     if not frame:
         raise HTTPException(status_code=404, detail="Camera is offline")
-    return Response(frame, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+    headers = {"Cache-Control": "no-store"}
+    if at:   # when the camera took it (Unix seconds)
+        headers["X-Captured-At"] = at.decode()
+    return Response(frame, media_type="image/jpeg", headers=headers)
 
 
 @router.get("/{camera_id}/stream")
@@ -93,10 +96,12 @@ async def stream(request: Request, camera_id: str = CameraId):
     async def frames():
         last = None
         while not await request.is_disconnected():
-            frame = await _redis.get(key)
+            frame, at = await _redis.mget(key, f"{key}_at")
             if frame and frame != last:
                 last = frame
-                yield (f"--{BOUNDARY}\r\nContent-Type: image/jpeg\r\nContent-Length: {len(frame)}\r\n\r\n"
+                # X-Captured-At: when the camera took it (Unix seconds), to measure how far behind the view is
+                stamp = f"X-Captured-At: {at.decode()}\r\n" if at else ""
+                yield (f"--{BOUNDARY}\r\nContent-Type: image/jpeg\r\nContent-Length: {len(frame)}\r\n{stamp}\r\n"
                        .encode() + frame + b"\r\n")
             await asyncio.sleep(1 / STREAM_FPS)
 

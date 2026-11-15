@@ -291,6 +291,8 @@ class Profile:
         arrived = {u.camera_id: (u.camera.count - self.seen.get(u.camera_id, 0)) / dt for u in self.units}
         self.seen = {u.camera_id: u.camera.count for u in self.units}
         stages = "  ".join(f"{k} {v / self.handled:.1f}" for k, v in self.ms.items())
+        stages += "  | waited in camera " + ", ".join(f"{u.camera.wait_ms:.0f}" for u in self.units)
+        stages += "  picture age at publish " + ", ".join(f"{u.live.age_ms:.0f}" for u in self.units)
         print(f"[CV] profile: camera {', '.join(f'{k} {v:.1f}' for k, v in arrived.items())} fps, "
               f"handled {self.handled / dt:.1f} fps | ms/frame: {stages}", flush=True)
         self.ms, self.handled, self.start = {}, 0, now
@@ -355,7 +357,7 @@ def run_live_mode(r: redis.Redis, plugin: dict, units: list[Unit], settings: lis
                 detections += unit.last.get(m.model_path, [])
 
             message = detection_message(unit.camera_id, unit.frame_id, detections, model_name, unit.camera.frame_size)
-            unit.recorder.add(unit.frame_id, frame.image, message["detections"], 1 / frame.scale)
+            unit.recorder.add(unit.frame_id, frame.image, message["detections"], 1 / frame.scale, frame.at)
             t = prof.add("recorder", t)
             publish(r, message)
             unit.live.frame_processed()

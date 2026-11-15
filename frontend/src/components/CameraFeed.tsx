@@ -1,6 +1,6 @@
 import { CameraOff, Maximize2 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { cameraFrameUrl, cameraStreamUrl } from "../api/client";
+import { cameraFrameUrl } from "../api/client";
 import type { Camera } from "../api/types";
 import { bilingual, useText } from "../lib/i18n";
 
@@ -23,10 +23,79 @@ const TEXT = bilingual(
   },
 );
 
+const LIVE_MIN_GAP_MS = 100;   // the detector publishes at most 10 pictures a second
+const LIVE_FAILURES = 3;       // failed fetches in a row before the view shows offline
+
 /**
- * Live view of one camera: a Motion-JPEG stream in a plain <img>, with a status overlay.
- * The stream holds a connection open, so it's only mounted while visible and is reconnected
- * when the camera comes back online.
+ * The newest picture of a camera, fetched again as soon as the last one is on screen. Unlike a Motion-JPEG
+ * stream, which the server pushes whether or not the browser keeps up, nothing can pile up in the network's
+ * buffers on the way: the picture is always at most one round trip old, instead of drifting seconds behind
+ * after a slow moment. Pauses while the tab is in the background.
+ */
+function useLiveFrame(cameraId: string, active: boolean, onFail: () => void) {
+  const [src, setSrc] = useState<string | null>(null);
+  const failRef = useRef(onFail);
+  failRef.current = onFail;
+
+  useEffect(() => {
+    if (!active) {
+      setSrc(null);
+      return;
+    }
+    let stopped = false;
+    let timer: number | undefined;
+    let shown: string | null = null;
+    let failures = 0;
+    const controller = new AbortController();
+
+    const next = async () => {
+      if (stopped) return;
+      if (document.hidden) {
+        timer = window.setTimeout(next, 500);
+        return;
+      }
+      const started = performance.now();
+      try {
+        const res = await fetch(`${cameraFrameUrl(cameraId)}?t=${Date.now()}`, { cache: "no-store", signal: controller.signal });
+        if (!res.ok) throw new Error(String(res.status));
+        const url = URL.createObjectURL(await res.blob());
+        // decode before showing, so the view never flickers to a half-drawn picture
+        const img = new Image();
+        img.src = url;
+        await img.decode();
+        if (stopped) {
+          URL.revokeObjectURL(url);
+          return;
+        }
+        if (shown) URL.revokeObjectURL(shown);
+        shown = url;
+        setSrc(url);
+        failures = 0;
+      } catch {
+        if (stopped) return;
+        failures += 1;
+        if (failures >= LIVE_FAILURES) {
+          failRef.current();
+          return;
+        }
+      }
+      timer = window.setTimeout(next, Math.max(0, LIVE_MIN_GAP_MS - (performance.now() - started)));
+    };
+    next();
+    return () => {
+      stopped = true;
+      controller.abort();
+      window.clearTimeout(timer);
+      if (shown) URL.revokeObjectURL(shown);
+    };
+  }, [cameraId, active]);
+
+  return src;
+}
+
+/**
+ * Live view of one camera, with a status overlay. Pictures come from useLiveFrame (always the newest one);
+ * after a failure it tries again when the camera reports online again.
  */
 export function CameraFeed({ camera, className = "", showFullscreen = true, showFps = true, overlay }: {
   camera: Camera;
@@ -37,27 +106,20 @@ export function CameraFeed({ camera, className = "", showFullscreen = true, show
 }) {
   const t = useText(TEXT);
   const box = useRef<HTMLDivElement>(null);
-  const img = useRef<HTMLImageElement>(null);
   const [failed, setFailed] = useState(false);
-  const [attempt, setAttempt] = useState(0);
 
-  // retry the stream when the camera reports online again
+  // try again when the camera reports online again, and a few seconds after a failure (e.g. a server restart)
   useEffect(() => {
-    if (camera.online) {
-      setFailed(false);
-      setAttempt((a) => a + 1);
-    }
+    if (camera.online) setFailed(false);
   }, [camera.online]);
-
-  // browsers keep an <img> stream open after unmount unless its src is cleared
-  useEffect(
-    () => () => {
-      if (img.current) img.current.src = "";
-    },
-    [],
-  );
+  useEffect(() => {
+    if (!failed) return;
+    const timer = window.setTimeout(() => setFailed(false), 3000);
+    return () => window.clearTimeout(timer);
+  }, [failed]);
 
   const live = camera.online && !failed;
+  const src = useLiveFrame(camera.camera_id, live, () => setFailed(true));
   const ratio = camera.width && camera.height ? `${camera.width} / ${camera.height}` : "16 / 9";
 
   return (
@@ -66,15 +128,10 @@ export function CameraFeed({ camera, className = "", showFullscreen = true, show
       className={`group relative overflow-hidden rounded-xl bg-slate-950 ring-1 ring-slate-900/10 ${className}`}
       style={{ aspectRatio: ratio }}
     >
-      {live ? (
-        <img
-          ref={img}
-          key={attempt}
-          src={`${cameraStreamUrl(camera.camera_id)}?n=${attempt}`}
-          alt={`Live view of ${camera.camera_id}`}
-          onError={() => setFailed(true)}
-          className="h-full w-full object-contain"
-        />
+      {live && src ? (
+        <img src={src} alt={`Live view of ${camera.camera_id}`} className="h-full w-full object-contain" />
+      ) : live ? (
+        <div className="flex h-full w-full items-center justify-center text-xs text-slate-500">{t.waiting}</div>
       ) : (
         <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-slate-500">
           <CameraOff className="h-8 w-8" aria-hidden />

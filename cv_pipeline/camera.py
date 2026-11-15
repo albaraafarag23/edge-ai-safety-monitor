@@ -42,6 +42,7 @@ class Frame:
     scale: float                 # image pixels * scale = camera pixels
     raw: np.ndarray | None       # the camera's JPEG bytes, when the frame was decoded here
     n: int                       # counts up per camera
+    at: float = 0.0              # time.time() when it was read from the camera
 
     def full(self) -> np.ndarray:
         """The frame at the camera's own resolution (decoded on demand, ~15 ms for 1080p on the Jetson)."""
@@ -94,6 +95,7 @@ class Camera:
         self.cap = None
         self._frame: Frame | None = None
         self._count, self._ended = 0, False
+        self.wait_ms = 0.0     # latest: how long the newest camera buffer waited before it was read
         self._damaged, self._damaged_logged = 0, 0.0
         self._damaged_since = time.monotonic()
         self._lock = threading.Condition()
@@ -133,6 +135,11 @@ class Camera:
     def _read(self):
         """(ok, frame, raw). ok is None for a damaged frame: skipped, but the camera is fine."""
         ok, frame = self.cap.read()
+        if ok and self.is_device:
+            # V4L2 stamps each buffer when the camera delivered it (monotonic ms): how long it waited for us
+            stamp = self.cap.get(cv2.CAP_PROP_POS_MSEC)
+            if stamp > 0:
+                self.wait_ms = time.monotonic() * 1000 - stamp
         raw = None
         if ok and self.flag is not None:
             raw = frame.reshape(-1)
@@ -185,7 +192,7 @@ class Camera:
                     time.sleep(max(0.0, next_frame - time.monotonic()))
                 with self._lock:
                     self._count += 1
-                    self._frame = Frame(frame, self.scale, raw, self._count)
+                    self._frame = Frame(frame, self.scale, raw, self._count, time.time())
                     self._lock.notify_all()
                 if self._wake:
                     self._wake.set()
