@@ -133,6 +133,9 @@ def _rule_dict(plugin: dict, rule: dict, row: RuleSetting | None) -> dict:
         "planned": bool(rule.get("planned")),
         "requires": rule.get("requires"),
         "recommended_actions": rule.get("recommended_actions", []),
+        # the code-of-practice clauses the rule enforces (docs/regulations.md), shown on its card
+        "regulations": [{k: c.get(k) for k in ("document", "title", "clause", "heading", "heading_ar", "page", "text", "url")}
+                        for c in rule.get("regulations") or [] if isinstance(c, dict) and c.get("document")],
         "enabled": available and (row.enabled if row else True),
         **{k: overrides.get(k, base[k]) for k in RULE_SETTINGS},
         "defaults": base,

@@ -6,7 +6,7 @@
  * Plugin text (rule names, zone names) comes from the plugin's own `translations.ar` block, see usePluginText.
  */
 import { useRules } from "../api/queries";
-import type { IncidentStatus, PluginTranslation, Role, Severity } from "../api/types";
+import type { IncidentStatus, PluginTranslation, Regulation, Role, Severity } from "../api/types";
 import { humanize, humanizeItem } from "./format";
 import { currentLang, type Lang } from "./i18n";
 
@@ -128,6 +128,8 @@ export function usePluginText() {
     ruleDescription: (ruleId: string, english: string) => t.rules?.[ruleId]?.description || english,
     ruleRequires: (ruleId: string, english: string | null) => t.rules?.[ruleId]?.requires || english,
     /** The site-approved steps for a rule (plugin recommended_actions), in the current language. */
+    ruleRegulations: (ruleId: string | undefined): Regulation[] =>
+      rules.data?.rules.find((r) => r.rule_id === ruleId)?.regulations ?? [],
     ruleActions: (ruleId: string | undefined): string[] => {
       const rule = rules.data?.rules.find((r) => r.rule_id === ruleId);
       return (ruleId && t.rules?.[ruleId]?.recommended_actions) || rule?.recommended_actions || [];

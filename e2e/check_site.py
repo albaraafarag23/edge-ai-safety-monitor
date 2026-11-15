@@ -85,6 +85,9 @@ async def console(page: Page):
         await rows.first.click()
         await page.wait_for_timeout(2000)
         check("incident page: starts with what to do", await page.get_by_text("What to do now").is_visible())
+        # every incident type with a rule that cites a code of practice shows it (docs/regulations.md)
+        check("incident page: the rule it breaks, from the code of practice",
+              await page.get_by_text("The rule it breaks").count() == 0 or await page.get_by_text("OSHJ-CoP").count() > 0)
         # keyboard: A = I'm on it (only when the incident is still open)
         if await page.get_by_role("button", name="I'm on it").count():
             await page.keyboard.press("a")
@@ -124,6 +127,8 @@ async def console(page: Page):
         await page.goto(URL + path)
         await page.wait_for_timeout(1500)
         check(f"page opens: {path}", await page.locator("h1").first.is_visible())
+        if path == "/app/rules":
+            check("rules: each rule names its code-of-practice clause", await page.get_by_text("OSHJ-CoP-02").count() >= 2)
 
 
 async def arabic(page: Page):

@@ -168,6 +168,18 @@ export interface RuleSettings {
   active_hours: ActiveHours | null; // null = always
 }
 
+/** A code-of-practice clause a rule enforces, quoted word for word (`…` where parts are left out). */
+export interface Regulation {
+  document: string; // e.g. OSHJ-CoP-02
+  title?: string | null; // the document's title
+  clause: string;
+  heading?: string | null;
+  heading_ar?: string | null;
+  page?: number | null;
+  text?: string | null; // English wording
+  url?: string | null; // the official PDF
+}
+
 export interface SafetyRule extends RuleSettings {
   rule_id: string;
   name: string;
@@ -177,6 +189,7 @@ export interface SafetyRule extends RuleSettings {
   zone_id: string | null;
   zone_name: string | null;
   recommended_actions?: string[]; // site-approved steps, most important first
+  regulations?: Regulation[]; // the code-of-practice clauses it enforces (docs/regulations.md)
   available: boolean; // false: not usable yet, see requires
   planned: boolean;
   requires: string | null;

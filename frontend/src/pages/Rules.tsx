@@ -8,6 +8,7 @@ import { useAuth } from "../lib/auth";
 import { SEVERITY_ORDER, formatDuration, timeAgo } from "../lib/format";
 import { bilingual, plural, useText } from "../lib/i18n";
 import { dayNames, describeHours, settingsChange } from "../lib/rules";
+import { Regulations } from "../components/Regulation";
 import { severityLabel, usePluginText } from "../lib/terms";
 
 const TEXT = bilingual(
@@ -309,6 +310,7 @@ function RuleRow({ rule, canEdit, onSettings }: { rule: SafetyRule; canEdit: boo
           <SeverityBadge severity={rule.severity} />
         </div>
         <p className="mt-0.5 text-sm text-slate-600">{plugin.ruleDescription(rule.rule_id, rule.description)}</p>
+        <Regulations items={rule.regulations ?? []} compact />
         <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-xs text-slate-500">
           {zone && <span>{zone} ·</span>}
           <span>{rule.min_duration_s > 0 ? t.alertsAfter(formatDuration(rule.min_duration_s)) : t.alertsAtOnce}</span>

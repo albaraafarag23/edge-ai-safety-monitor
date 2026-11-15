@@ -5,6 +5,7 @@ import { ApiError, mediaUrl } from "../api/client";
 import { useIncident, useIncidents, useReport, useSetStatus } from "../api/queries";
 import type { Incident, IncidentStatus } from "../api/types";
 import { PageHeader } from "../components/Layout";
+import { Regulations } from "../components/Regulation";
 import { Card, ErrorState, SeverityBadge, Spinner, StatusBadge } from "../components/ui";
 import { useAuth } from "../lib/auth";
 import { formatDateTime, formatDuration, timeAgo } from "../lib/format";
@@ -14,6 +15,8 @@ import { classLabel, incidentPeople, incidentTitle, itemLabel, joinList, joinPar
 const TEXT = bilingual(
   {
     evidence: "Evidence",
+    ruleBroken: "The rule it breaks",
+    ruleBrokenHint: "From the official code of practice, word for word. The same clause is quoted in the report.",
     snapshotAlt: "Annotated frame when the rule fired",
     noSnapshot: "No snapshot available",
     snapshotCaption: "Snapshot when the rule fired",
@@ -83,6 +86,8 @@ const TEXT = bilingual(
   },
   {
     evidence: "الأدلة",
+    ruleBroken: "القاعدة المخالَفة",
+    ruleBrokenHint: "من دليل الممارسة الرسمي بنصّه الحرفي. والبند نفسه مذكور في التقرير.",
     snapshotAlt: "الإطار مع ما رُصد فيه لحظة تحقق القاعدة",
     noSnapshot: "لا توجد لقطة",
     snapshotCaption: "لقطة لحظة تحقق القاعدة",
@@ -375,6 +380,21 @@ function WhatNow({ incident }: { incident: Incident }) {
   );
 }
 
+/** The code-of-practice clause the rule enforces, word for word, with the official PDF (docs/regulations.md). */
+function RuleBroken({ incident }: { incident: Incident }) {
+  const t = useText(TEXT);
+  const items = usePluginText().ruleRegulations(incident.metadata?.rule_id);
+  if (!items.length) return null;
+  return (
+    <Card title={t.ruleBroken} className="print:break-inside-avoid">
+      <div className="px-5 py-4">
+        <p className="mb-3 text-sm text-ink/60">{t.ruleBrokenHint}</p>
+        <Regulations items={items} />
+      </div>
+    </Card>
+  );
+}
+
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4 py-2 text-sm">
@@ -440,6 +460,7 @@ export function IncidentDetail() {
       <WhatNow incident={i} />
 
       <div className="space-y-6">
+        <RuleBroken incident={i} />
         <Evidence incident={i} />
         <div className="print:break-inside-avoid">
           <ReportCard id={i.event_id} />
