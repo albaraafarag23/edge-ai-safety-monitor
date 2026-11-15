@@ -25,7 +25,7 @@ from datetime import datetime
 from fastapi import Depends, HTTPException, Request, Response
 from sqlalchemy import func, select
 
-from models import SessionLocal, User
+from models import DEMO_EMAIL, SessionLocal, User
 
 COOKIE_NAME = "sm_session"
 SESSION_HOURS = float(os.getenv("SESSION_HOURS", "12"))
@@ -202,6 +202,29 @@ async def create_user(email: str, name: str, password: str, role: str = "supervi
         session.add(user)
         await session.commit()
         return user
+
+
+async def ensure_demo():
+    """The shared account for visitors, when DEMO_EMAIL and DEMO_PASSWORD are set: read-only (role viewer), and
+    its password can't be changed from inside (users.py), so one visitor can't lock the others out. Its
+    password and role follow .env on every start; clearing DEMO_EMAIL leaves the account for an admin to remove."""
+    password = os.getenv("DEMO_PASSWORD") or ""
+    if not DEMO_EMAIL or not password:
+        return
+    if len(password) < MIN_PASSWORD_LENGTH:
+        print(f"[Auth] DEMO_PASSWORD is shorter than {MIN_PASSWORD_LENGTH} characters: no demo account", flush=True)
+        return
+    async with SessionLocal() as session:
+        user = await session.scalar(select(User).where(User.email == DEMO_EMAIL))
+        if user is None:
+            await create_user(DEMO_EMAIL, os.getenv("DEMO_NAME") or "Demo visitor", password, "viewer")
+            print(f"[Auth] Created the read-only demo account: {DEMO_EMAIL}", flush=True)
+            return
+        if user.role != "viewer" or not user.active or not verify_password(password, user.password_hash):
+            user.role, user.active, user.password_hash = "viewer", True, hash_password(password)
+            await session.commit()
+            forget_users()
+            print(f"[Auth] Demo account {DEMO_EMAIL} set back to read-only with the password from .env", flush=True)
 
 
 async def ensure_admin():

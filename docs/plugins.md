@@ -44,7 +44,8 @@ don't reset the timer, default 1), `cooldown_s` (default 10), `active_hours` (se
 console), `enabled` (false = not usable yet, e.g. the model lacks its classes), `planned` (true = not built
 yet; its `type` may not exist yet and it isn't checked), `requires` (what an unusable rule still needs,
 shown in the console), `regulations` (the code-of-practice clauses the rule enforces, quoted in every report
-for it; see docs/regulations.md).
+for it; see docs/regulations.md), `personal` (false = nobody is counted for it in the per-person tally, e.g.
+a person down is someone in need, not a violation; capacity rules never count anyone).
 
 One rule per thing a site may want to switch off: hard hat and vest are separate `ppe` rules
 (`RULE_PPE_01`, `RULE_PPE_02`), smoking and vaping separate `presence` rules.

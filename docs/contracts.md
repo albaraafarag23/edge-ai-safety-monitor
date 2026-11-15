@@ -1,5 +1,7 @@
 # Interface contracts
 
+Version 2.8 (2026-11-15): incidents get `metadata.violators`, the recognised people counted in the per-person
+tally. Additive. New Redis key `site:digest_time` (backend → ai_reporting): when the daily summary is sent.
 Version 2.7 (2026-11-15): reports (`markdown`, `markdown_ar`) may have a `## Regulation` section (Arabic
 `## اللائحة`) between Violations and Findings: the regulation clauses the rule cites (plugin field
 `regulations`, docs/regulations.md). Optional and written by code, not the LLM; the required sections are unchanged.
@@ -105,6 +107,7 @@ attributes itself.
 | `clip_url` | Video from ~5 s before to ~3 s after. Same location rules as `snapshot_url` |
 | `metadata.zone_id`, `metadata.zone_name` | `null` for rules without a zone |
 | `metadata.missing_equipment` | Empty list for non-PPE rules |
+| `metadata.violators` | The people counted against in the per-person tally (console: Analytics, "By person"): `[{"person_id", "person_name", "person_name_ar"?, "face_score"}]`. A subset of `people`, and stricter: only someone who is the rule's subject (the one without the hard hat, the one smoking, the one in the zone), whose face match was strong (`face_score` ≥ 0.50, `TALLY_MIN_FACE_SCORE`), on a rule one person breaks (not a capacity rule, not a rule with `"personal": false`). Empty otherwise. Absent in incidents from before v2.8, which the tally therefore doesn't count |
 | `metadata.people` | Who face recognition identified among `objects_involved`: `[{"person_id", "person_name", "person_name_ar"?}]`, empty if nobody. An automatic identification: show it as something to confirm. Absent in incidents from before v2.6 |
 
 The event engine sets `snapshot_url` and `clip_url` when it creates the incident. The detector

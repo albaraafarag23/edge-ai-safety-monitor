@@ -19,6 +19,7 @@ import readcache
 import cameras
 import people
 import rule_settings
+import site_settings
 import zone_settings
 import users
 from live import broadcaster
@@ -133,6 +134,7 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("ALTER TABLE reports ADD COLUMN IF NOT EXISTS markdown_ar TEXT"))
         await conn.execute(text("ALTER TABLE incidents ADD COLUMN IF NOT EXISTS status_updated_by VARCHAR"))
     await auth.ensure_admin()
+    await auth.ensure_demo()
     await zone_settings.import_old_drawings()
 
     r = aioredis.from_url(REDIS_URL, decode_responses=True)
@@ -141,17 +143,20 @@ async def lifespan(app: FastAPI):
     task = asyncio.create_task(consume_incidents(r))
     switches_task = asyncio.create_task(rule_settings.keep_synced(REDIS_URL))
     zones_task = asyncio.create_task(zone_settings.keep_synced(REDIS_URL))
+    site_task = asyncio.create_task(site_settings.keep_synced(REDIS_URL))
 
     yield
 
     task.cancel()
     switches_task.cancel()
     zones_task.cancel()
+    site_task.cancel()
     await r.aclose()
     await cameras.close()
     await people.close()
     await rule_settings.close()
     await zone_settings.close()
+    await site_settings.close()
 
 
 app = FastAPI(title="Safety Monitor API", version="1.3.0", lifespan=lifespan)
@@ -239,6 +244,8 @@ async def list_incidents(
     event_type: str | None = Query(None, max_length=60),
     status: str | None = Query(None, max_length=20),
     person_id: str | None = Query(None, max_length=80, description="only incidents this recognised person was in"),
+    violator_id: str | None = Query(None, max_length=80,
+                                    description="only incidents counted against this person in the tally"),
     hours: float | None = Query(None, gt=0, description="only incidents received in the last N hours"),
 ):
     filters = []
@@ -254,6 +261,8 @@ async def list_incidents(
         filters.append(Incident.created_at >= datetime.utcnow() - timedelta(hours=hours))
     if person_id:
         filters.append(Incident.meta["people"].contains([{"person_id": person_id}]))
+    if violator_id:
+        filters.append(Incident.meta["violators"].contains([{"person_id": violator_id}]))
 
     async def compute():
         async with SessionLocal() as session:
@@ -267,7 +276,7 @@ async def list_incidents(
             )).all()
         return total, [incident.to_dict(report) for incident, report in rows]
 
-    key = ("incidents", limit, offset, severity, camera_id, event_type, status, person_id, hours)
+    key = ("incidents", limit, offset, severity, camera_id, event_type, status, person_id, violator_id, hours)
     total, items = await readcache.cached(key, 5, compute)
     response.headers["X-Total-Count"] = str(total)
     return items
@@ -396,6 +405,7 @@ protected.include_router(analytics.router)
 # for the summary email (ai_reporting); internal services only, like POST /reports
 app.include_router(analytics.internal_router, dependencies=[Depends(auth.internal_service)])
 protected.include_router(rule_settings.router)
+protected.include_router(site_settings.router)
 protected.include_router(users.router)
 protected.include_router(people.router)
 app.include_router(users.account)

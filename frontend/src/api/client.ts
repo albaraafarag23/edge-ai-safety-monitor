@@ -1,4 +1,4 @@
-import type { Analytics, Camera, FilterOptions, Incident, IncidentQuery, IncidentStatus, People, Person, PersonPhoto, Report, Role, RuleChange, SafetyRule, SafetyRules, Stats, User, Zone } from "./types";
+import type { Analytics, Camera, DailySummary, FilterOptions, Incident, IncidentQuery, IncidentStatus, People, Person, PersonPhoto, Report, Role, RuleChange, SafetyRule, SafetyRules, Stats, User, Zone } from "./types";
 
 // All backend calls go through /api (proxied by Vite in dev and nginx in Docker).
 export const API_BASE = "/api";
@@ -75,6 +75,9 @@ export const api = {
   resetPassword: async (id: number, password: string) => {
     await request<void>(`/users/${id}/password`, { method: "POST", body: JSON.stringify({ password }) });
   },
+  dailySummary: async () => (await request<DailySummary>("/settings/daily-summary")).data,
+  setDailySummary: async (time: string | null) =>
+    (await request<DailySummary>("/settings/daily-summary", { method: "PUT", body: JSON.stringify({ time }) })).data,
   analytics: async (days: number, tz: string) => (await request<Analytics>(`/analytics${toQuery({ days, tz })}`)).data,
   async incidents(query: IncidentQuery): Promise<{ items: Incident[]; total: number }> {
     const { data, headers } = await request<Incident[]>(`/incidents${toQuery(query)}`);

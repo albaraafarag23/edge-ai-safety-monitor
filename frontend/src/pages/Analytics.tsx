@@ -1,5 +1,5 @@
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAnalytics } from "../api/queries";
 import type { Analytics as Data, Severity } from "../api/types";
 import { PageHeader } from "../components/Layout";
@@ -46,6 +46,11 @@ const TEXT = bilingual(
     missingPpe: "Missing PPE",
     noPpe: "No PPE incidents in this period",
     byCamera: "By camera",
+    byPerson: "By person",
+    byPersonNote: "Someone is counted only when the camera was sure who it was and they broke the rule themselves. Anyone it couldn't name for certain is left out, so these are minimums.",
+    noPerson: "Nobody has been counted in this period.",
+    violations: (n: number): string => `${n} violation${n === 1 ? "" : "s"}`,
+    seeIncidents: (name: string) => `See the incidents counted for ${name}`,
     noZone: "No zone",
     units: { s: "s", min: "min", h: "h" },
     inShort: "In short",
@@ -93,6 +98,11 @@ const TEXT = bilingual(
     missingPpe: "معدات الوقاية الناقصة",
     noPpe: "لا حوادث معدات وقاية في هذه الفترة",
     byCamera: "حسب الكاميرا",
+    byPerson: "حسب الشخص",
+    byPersonNote: "لا يُحتسب الشخص إلا إذا تأكدت الكاميرا من هويته وكان هو من خالف القاعدة. من لم يُتعرَّف عليه بيقين لا يُحتسب، فهذه الأعداد حدٌّ أدنى.",
+    noPerson: "لم يُحتسب أحد في هذه الفترة.",
+    violations: (n: number) => `${n} ${plural("ar", n, { one: "مخالفة", two: "مخالفة", few: "مخالفات", other: "مخالفة" })}`,
+    seeIncidents: (name: string) => `عرض الحوادث المحتسبة على ${name}`,
     noZone: "بلا منطقة",
     units: { s: "ث", min: "د", h: "س" },
     inShort: "باختصار",
@@ -329,6 +339,49 @@ function Breakdown({ items, label = (k: string) => k, empty }: {
   return <BarList items={items.slice(0, 8).map((i) => ({ key: i.key, label: label(i.key), value: i.count }))} colorFor={() => "bg-[#2a78d6]"} />;
 }
 
+/** The tally per recognised person. Rows link to the incidents counted, so every number can be checked. */
+function ByPerson({ people }: { people: Data["by_person"] }) {
+  const t = useText(TEXT);
+  const ar = currentLang() === "ar";
+  const most = Math.max(1, ...people.map((p) => p.count));
+  return (
+    <>
+      {people.length ? (
+        <ul className="divide-y divide-ink/[0.06]">
+          {people.map((p) => {
+            const name = (ar && p.person_name_ar) || p.person_name;
+            return (
+              <li key={p.person_id}>
+                <Link
+                  to={`/app/incidents?violator_id=${encodeURIComponent(p.person_id)}`}
+                  aria-label={t.seeIncidents(name)}
+                  className="group flex flex-wrap items-center gap-x-4 gap-y-1.5 py-3 hover:bg-paper/60"
+                >
+                  <span className="min-w-0 flex-1 basis-40">
+                    <span className="block truncate font-medium text-ink group-hover:underline">{name}</span>
+                    <span className="block text-xs text-ink/55">
+                      {p.by_type.map((ty) => `${eventTypeLabel(ty.key)} ${ty.count}`).join(" · ")}
+                    </span>
+                  </span>
+                  <span className="flex min-w-0 flex-1 basis-40 items-center gap-3">
+                    <span className="h-2 flex-1 overflow-hidden rounded-full bg-ink/[0.06]" aria-hidden>
+                      <span className="block h-full rounded-full bg-[#2a78d6]" style={{ width: `${(p.count / most) * 100}%` }} />
+                    </span>
+                    <span className="shrink-0 text-sm tabular-nums text-ink/80">{t.violations(p.count)}</span>
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <p className="py-2 text-sm text-ink/60">{t.noPerson}</p>
+      )}
+      <p className="mt-4 text-xs leading-relaxed text-ink/55">{t.byPersonNote}</p>
+    </>
+  );
+}
+
 function formatMinutes(m: number | null, units: { s: string; min: string; h: string }) {
   if (m === null) return "—";
   if (m < 1) return `${Math.round(m * 60)} ${units.s}`;
@@ -442,6 +495,10 @@ function AnalyticsBody({ data, dim }: { data: Data; dim: boolean }) {
           <Breakdown items={data.by_camera} />
         </Card>
       </div>
+
+      <Card title={t.byPerson} className="mt-6">
+        <ByPerson people={data.by_person ?? []} />
+      </Card>
     </div>
   );
 }

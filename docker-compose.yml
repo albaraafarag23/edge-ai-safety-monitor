@@ -99,6 +99,8 @@ services:
       PLUGINS_DIR: /app/plugins
       # rule working hours (set in the console) are in this time zone
       SITE_TIMEZONE: ${SITE_TIMEZONE:-Africa/Cairo}
+      # how strong a face match must be to count someone in the per-person tally (docs/faces.md)
+      TALLY_MIN_FACE_SCORE: ${TALLY_MIN_FACE_SCORE:-0.50}
     volumes:
       - ./plugins:/app/plugins:ro
     depends_on:
@@ -119,6 +121,9 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:-}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # the shared read-only account for visitors; both empty = there is none (backend/auth.py ensure_demo)
+      DEMO_EMAIL: ${DEMO_EMAIL:-}
+      DEMO_PASSWORD: ${DEMO_PASSWORD:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       # the console's public address: changes are only accepted from the console's own pages (backend/main.py)
       CONSOLE_URL: ${CONSOLE_URL:-}

@@ -59,6 +59,16 @@ export const useAnalytics = (days: number) =>
     placeholderData: keepPreviousData,
   });
 
+export function useDailySummary() {
+  const qc = useQueryClient();
+  const query = useQuery({ queryKey: ["settings", "daily-summary"], queryFn: api.dailySummary });
+  const save = useMutation({
+    mutationFn: api.setDailySummary,
+    onSuccess: (data) => qc.setQueryData(["settings", "daily-summary"], data),
+  });
+  return { query, save };
+}
+
 export const useUsers = () => useQuery({ queryKey: keys.users, queryFn: api.users });
 
 export function useUserMutations() {

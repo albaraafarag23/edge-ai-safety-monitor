@@ -26,6 +26,7 @@ const TEXT = bilingual(
     email: "Email",
     role: "Role",
     memberSince: "Member since",
+    demo: "This is the shared demo account. It can look at everything but change nothing, including its own password.",
   },
   {
     tooShort: "يجب ألا تقل كلمة المرور الجديدة عن 8 أحرف.",
@@ -43,6 +44,7 @@ const TEXT = bilingual(
     email: "البريد الإلكتروني",
     role: "الدور",
     memberSince: "عضو منذ",
+    demo: "هذا حساب العرض المشترك. يستطيع الاطلاع على كل شيء دون تغيير أي شيء، بما في ذلك كلمة مروره.",
   },
 );
 
@@ -130,7 +132,13 @@ export function Account() {
             </div>
           </dl>
         </Card>
-        <ChangePassword />
+        {user.demo ? (
+          <Card title={t.changePassword}>
+            <p className="max-w-sm text-sm text-slate-600">{t.demo}</p>
+          </Card>
+        ) : (
+          <ChangePassword />
+        )}
       </div>
     </>
   );

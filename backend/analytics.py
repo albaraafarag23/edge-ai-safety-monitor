@@ -61,6 +61,17 @@ async def _analytics(days: int, tz: str):
             WHERE created_at >= :since AND event_type = 'PPE_MISSING'
             GROUP BY item ORDER BY count(*) DESC"""), {"since": since})).all()
 
+        # the per-person tally: metadata.violators lists only people the engine was sure of, who broke the rule
+        # themselves (event_engine/rules.py:_violators), so this counts no bystanders and no weak face matches
+        tally = (await session.execute(text("""
+            SELECT v->>'person_id', max(v->>'person_name'), max(v->>'person_name_ar'), event_type, count(*),
+                   max(created_at)
+            FROM incidents,
+                jsonb_array_elements(CASE WHEN jsonb_typeof(metadata->'violators') = 'array'
+                                          THEN metadata->'violators' ELSE '[]'::jsonb END) AS v
+            WHERE created_at >= :since AND v->>'person_id' IS NOT NULL
+            GROUP BY v->>'person_id', event_type"""), {"since": since})).all()
+
         # time from detection to the latest status change, for handled incidents
         minutes = func.extract("epoch", Incident.status_updated_at - Incident.created_at) / 60
         handled = (Incident.status != "open") & Incident.status_updated_at.isnot(None)
@@ -76,6 +87,19 @@ async def _analytics(days: int, tz: str):
         entry = by_day.setdefault(d.isoformat(), {s: 0 for s in SEVERITIES})
         entry[severity] = entry.get(severity, 0) + count
 
+    people: dict[str, dict] = {}
+    for person_id, name, name_ar, event_type, count, latest in tally:
+        p = people.setdefault(person_id, {"person_id": person_id, "person_name": name, "person_name_ar": name_ar,
+                                          "count": 0, "by_type": [], "last_at": latest})
+        p["count"] += count
+        p["by_type"].append({"key": event_type, "count": count})
+        p["person_name_ar"] = p["person_name_ar"] or name_ar
+        p["last_at"] = max(p["last_at"], latest)
+    by_person = sorted(people.values(), key=lambda p: (-p["count"], p["person_name"] or ""))
+    for p in by_person:
+        p["by_type"].sort(key=lambda t: -t["count"])
+        p["last_at"] = iso(p["last_at"])
+
     total = sum(c for _, c in by_type)
     return {
         "days": days,
@@ -88,6 +112,7 @@ async def _analytics(days: int, tz: str):
         "by_type": [{"key": k, "count": c} for k, c in by_type],
         "by_camera": [{"key": k, "count": c} for k, c in by_camera],
         "missing_equipment": [{"key": k, "count": c} for k, c in missing],
+        "by_person": by_person,
         "by_status": {s: by_status.get(s, 0) for s in ("open", "acknowledged", "resolved")},
         "median_minutes_to_handle": round(median_minutes, 1) if median_minutes is not None else None,
     }

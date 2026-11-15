@@ -1,11 +1,14 @@
 """The end-of-day summary email: what happened on site in the last 24 hours, in a few plain sentences, and what is
-still waiting for someone. Sent once a day at DIGEST_TIME (site time, e.g. "18:00"); empty = off (the default).
+still waiting for someone. Sent once a day at the time an admin chose in the console (Notifications page; Redis key
+site:digest_time, written by backend/site_settings.py), in site time. Until someone chooses there, DIGEST_TIME
+from .env applies (e.g. "18:00"; empty = off, the default).
 
 The figures come from the backend (GET /internal/daily-summary, with the internal token). The day it was last
 sent is kept in Redis, so a restart doesn't send it twice; a failed send is tried again every 15 minutes.
 Same language (EMAIL_LANGUAGE), recipients and look as the alert email (email_template.py).
 """
 import html
+import json
 import os
 import time
 from datetime import datetime, time as clock
@@ -22,6 +25,9 @@ DIGEST_TIME = os.getenv("DIGEST_TIME", "").strip()
 LAST_SENT_KEY = "ai_reporting:digest:last_date"
 LAST_TRY_KEY = "ai_reporting:digest:last_try"
 RETRY_S = 15 * 60
+CHOSEN_TIME_KEY = "site:digest_time"          # "HH:MM" or "off", from the console
+STATE_KEY = "ai_reporting:email:state"        # what the console shows about the summary (site_settings.py)
+STATE_TTL_S = 120
 
 TYPE_EN = {
     "PPE_MISSING": "missing safety gear", "RESTRICTED_ZONE_ENTRY": "entering a restricted area",
@@ -236,12 +242,27 @@ def build(summary: dict, lang: str, plugin: dict) -> EmailMessage:
     return msg
 
 
+def chosen_time(chosen: str | None, default: str = DIGEST_TIME) -> str:
+    """The time that applies: the console's choice ("off" = none), otherwise the one from .env. "" = off."""
+    if chosen is None:
+        return default
+    chosen = chosen.strip()
+    try:
+        hour, minute = (int(x) for x in chosen.split(":"))
+        return chosen if 0 <= hour < 24 and 0 <= minute < 60 else ""
+    except ValueError:
+        return ""   # "off", or something unreadable: better no email than one at a wrong time
+
+
 def maybe_send(r, backend_url: str, token: str, lang: str, plugin: dict):
-    """Called from the main loop: sends today's summary once DIGEST_TIME has passed."""
-    if not DIGEST_TIME or not notify.configured():
+    """Called from the main loop: sends today's summary once its time has passed."""
+    r.set(STATE_KEY, json.dumps({"configured": notify.configured(), "recipients": len(notify.RECIPIENTS),
+                                 "default_time": DIGEST_TIME or None, "timezone": et.SITE_TIMEZONE}), ex=STATE_TTL_S)
+    at = chosen_time(r.get(CHOSEN_TIME_KEY))
+    if not at or not notify.configured():
         return
     now = datetime.now(ZoneInfo(et.SITE_TIMEZONE))
-    if not due(now, r.get(LAST_SENT_KEY)):
+    if not due(now, r.get(LAST_SENT_KEY), at):
         return
     if time.time() - float(r.get(LAST_TRY_KEY) or 0) < RETRY_S:
         return

@@ -62,6 +62,21 @@ quoting numbers. With the Arducam at 1080p (6 mm lens) a face is about 60 px wid
 25 px at 12 m, so recognition should work to roughly 8-10 m when the person faces the camera, and not beyond.
 Faces narrower than 28 px are not judged at all.
 
+## The per-person tally
+
+Analytics has a "By person" card: how many violations each enrolled person has, with the kinds, and a link to
+the incidents counted. It counts only when it is sure, so the numbers are minimums:
+
+- the face match was strong (`face_score` ≥ 0.50; a name settled by two weaker looks is shown in the incident
+  but not counted). `TALLY_MIN_FACE_SCORE` on the event engine changes the bar;
+- the person is the one who broke the rule: the one without the hard hat, the one smoking, the one inside the
+  zone. Someone merely standing in the picture is not counted;
+- the rule is one a single person breaks. Too many people on a scaffold counts nobody, and neither does a rule
+  the plugin marks `"personal": false` (a person down).
+
+The event engine decides this when the incident fires and stores it as `metadata.violators`
+(`event_engine/rules.py:_violators`, docs/contracts.md). Incidents from before this was added are not counted.
+
 ## Limits and care
 - It needs to see the face: a person walking away, looking down under a hard hat, or far off stays unnamed.
 - An incident keeps the names known at the moment it fired; a name learned a second later is not added.

@@ -3,8 +3,9 @@
 #   scripts/jetson-deploy.sh            (needs `ssh jetson` to work: see jetson/README.md)
 #
 # Copies code only: never .env, data, outputs, models, media or CLAUDE.md (the Jetson keeps its own). Face photos
-# (faces/) are copied, since they are what the People page shows. If the laptop's .env has a GEMINI_API_KEY and
-# the Jetson's doesn't, it is added there (reports by Gemini, see docs/regulations.md / ai_reporting).
+# (faces/) are copied, since they are what the People page shows. If the laptop's .env has a GEMINI_API_KEY
+# (reports by Gemini) or DEMO_EMAIL / DEMO_PASSWORD (the read-only demo account, docs/deploy.md) and the
+# Jetson's doesn't, they are added there.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 APP="sitesentry/app"
@@ -24,14 +25,17 @@ rsync -az \
 echo "== Copying face photos"
 rsync -az faces/ "jetson:$APP/faces/"
 
-if grep -qE '^GEMINI_API_KEY=.+' .env 2>/dev/null; then
-  if ssh jetson "grep -qE '^GEMINI_API_KEY=.+' $APP/.env"; then
-    echo "== Gemini key: already on the Jetson"
-  else
-    echo "== Gemini key: adding the laptop's to the Jetson's .env"
-    grep -E '^GEMINI_API_KEY=' .env | ssh jetson "cat >> $APP/.env"
+# settings the Jetson takes from the laptop when it has none of its own (values are never printed)
+for name in GEMINI_API_KEY DEMO_EMAIL DEMO_PASSWORD; do
+  if grep -qE "^$name=.+" .env 2>/dev/null; then
+    if ssh jetson "grep -qE '^$name=.+' $APP/.env"; then
+      echo "== $name: already on the Jetson"
+    else
+      echo "== $name: adding the laptop's to the Jetson's .env"
+      grep -E "^$name=" .env | ssh jetson "cat >> $APP/.env"
+    fi
   fi
-fi
+done
 
 echo "== Rebuilding and restarting (a few minutes the first time)"
 ssh jetson "cd $APP && $COMPOSE up -d --build --remove-orphans 2>&1 | grep -E 'Started|Error|error' | tail -15"

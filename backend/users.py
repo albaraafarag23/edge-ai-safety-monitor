@@ -66,6 +66,8 @@ async def update_user(user_id: int, body: UserPatch, me: User = Depends(auth.cur
         user = await session.get(User, user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
+        if user.to_dict()["demo"] and body.role not in (None, "viewer"):
+            raise HTTPException(status_code=409, detail="The demo account stays read-only")
         removes_admin = user.role == "admin" and user.active and (
             (body.role is not None and body.role != "admin") or body.active is False)
         if removes_admin and user.id == me.id:
@@ -97,6 +99,8 @@ async def reset_password(user_id: int, body: PasswordReset):
 @account.post("/password")
 async def change_own_password(body: PasswordChange, response: Response, me: User = Depends(auth.current_user)):
     """Change your own password. Other sessions end; this one gets a fresh cookie."""
+    if me.to_dict()["demo"]:
+        raise HTTPException(status_code=403, detail="The demo account's password can't be changed")
     if not auth.verify_password(body.current_password, me.password_hash):
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     auth.check_password_rules(body.new_password)

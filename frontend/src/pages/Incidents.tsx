@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useFilterOptions, useIncidents } from "../api/queries";
+import type { Incident } from "../api/types";
 import { IncidentList } from "../components/IncidentTable";
 import { PageHeader } from "../components/Layout";
 import { Card, EmptyState, ErrorState, Spinner } from "../components/ui";
-import { bilingual, plural, useText } from "../lib/i18n";
+import { bilingual, currentLang, plural, useText } from "../lib/i18n";
 import { eventTypeLabel, severityLabel } from "../lib/terms";
 
 const TEXT = bilingual(
@@ -17,6 +18,8 @@ const TEXT = bilingual(
     type: "Type",
     camera: "Camera",
     clear: "Clear filters",
+    countedFor: (name: string) => `Only the incidents counted against ${name}: the camera was sure who it was, and they broke the rule themselves.`,
+    showEveryone: "Show all incidents",
     pagination: "Pagination",
     page: (page: number, pages: number) => `Page ${page} of ${pages}`,
     previous: "Previous",
@@ -38,6 +41,8 @@ const TEXT = bilingual(
     type: "النوع",
     camera: "الكاميرا",
     clear: "مسح عوامل التصفية",
+    countedFor: (name: string) => `الحوادث المحتسبة على ${name} فقط: تأكدت الكاميرا من هويته وكان هو من خالف القاعدة.`,
+    showEveryone: "عرض كل الحوادث",
     pagination: "التنقل بين الصفحات",
     page: (page: number, pages: number) => `الصفحة ${page} من ${pages}`,
     previous: "السابق",
@@ -53,7 +58,7 @@ const TEXT = bilingual(
 );
 
 const PAGE_SIZE = 25;
-const FILTERS = ["severity", "status", "event_type", "camera_id"] as const;
+const FILTERS = ["severity", "status", "event_type", "camera_id", "violator_id"] as const;
 type Filter = (typeof FILTERS)[number];
 
 function Select({ label, value, options, onChange }: {
@@ -80,6 +85,16 @@ function Select({ label, value, options, onChange }: {
       </select>
     </label>
   );
+}
+
+/** The person's name as the incidents themselves give it; until they load, their ID made readable. */
+function violatorName(items: Incident[], id: string) {
+  const ar = currentLang() === "ar";
+  for (const i of items) {
+    const who = i.metadata?.violators?.find((v) => v.person_id === id);
+    if (who) return (ar && who.person_name_ar) || who.person_name;
+  }
+  return id.replace(/[_-]+/g, " ");
 }
 
 export function Incidents() {
@@ -143,6 +158,15 @@ export function Incidents() {
             </button>
           )}
         </div>
+
+        {filters.violator_id && (
+          <p className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg bg-paper px-3 py-2 text-sm text-ink/75 ring-1 ring-ink/10">
+            <span>{t.countedFor(violatorName(incidents.data?.items ?? [], filters.violator_id))}</span>
+            <button onClick={() => update({ violator_id: "" })} className="font-medium text-ink underline decoration-ink/25 underline-offset-2">
+              {t.showEveryone}
+            </button>
+          </p>
+        )}
 
         {incidents.isPending ? (
           <Spinner />

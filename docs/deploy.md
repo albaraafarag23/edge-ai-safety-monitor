@@ -22,7 +22,11 @@ In `.env` (see `.env.example`):
 Then `docker compose up -d --build`. Containers restart on their own after a reboot
 (`restart: unless-stopped`) as long as Docker starts at boot (`sudo systemctl enable docker`).
 
-Give examiners a **viewer** account (read-only) from **Users** in the console.
+Give examiners a **viewer** account (read-only) from **Users** in the console. For one account to hand to
+many visitors, set `DEMO_EMAIL` and `DEMO_PASSWORD` in `.env`: the backend creates it at start, read-only, and
+its password can't be changed from inside, so one visitor can't lock the others out. To end it, clear the two
+values and switch the account off under **Users**. It sees what any viewer sees, including incident photos and
+the names of recognised people.
 
 ## 1. Console: Tailscale Funnel (once)
 

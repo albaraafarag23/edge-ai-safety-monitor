@@ -14,12 +14,15 @@ incident fires. Short detector dropouts (under grace_s) don't reset the timer.
 use a type that doesn't exist yet). On top of that, the console can switch rules off and change some of
 their settings at run time (RuleEngine.settings, see RULE_SETTINGS below).
 """
+import os
 import uuid
 from datetime import datetime, time, timezone
 from zoneinfo import ZoneInfo
 
 DEFAULT_GRACE_S = 1.0
 DEFAULT_COOLDOWN_S = 10.0
+# a face match at least this strong counts someone in the per-person tally (cv_pipeline/faces.py FACE_STRONG)
+SURE_FACE_SCORE = float(os.getenv("TALLY_MIN_FACE_SCORE", "0.50"))
 # rule fields the console may change (backend/rule_settings.py validates the values)
 RULE_SETTINGS = {"min_duration_s", "severity", "cooldown_s", "max_count", "active_hours"}
 
@@ -170,6 +173,27 @@ def _people(involved: list[dict]) -> list[dict]:
     return [people[k] for k in sorted(people)]
 
 
+def _violators(rule: dict, involved: list[dict]) -> list[dict]:
+    """The recognised people who themselves broke the rule, for the per-person tally (docs/contracts.md v2.8).
+
+    Stricter than `people` (everyone recognised in the incident). Someone is counted only when all of this holds:
+    the rule is one a single person breaks (not a capacity rule, where nobody in particular is at fault, and not
+    a rule the plugin marks `"personal": false`, e.g. a person down); they are the rule's subject (the person
+    without the hard hat, the one smoking, the one inside the zone), not something near it; and the face match
+    was strong (face_score >= SURE_FACE_SCORE), not a name settled by two weaker looks."""
+    if rule.get("max_count") is not None or rule.get("personal") is False:
+        return []
+    subjects = set(rule.get("subject_classes", []))
+    sure = {}
+    for o in involved:
+        who = o.get("attributes") or {}
+        if (o.get("class_name") in subjects and who.get("identity") == "known" and who.get("person_id")
+                and who.get("person_name") and (who.get("face_score") or 0) >= SURE_FACE_SCORE):
+            sure[who["person_id"]] = {k: who[k] for k in ("person_id", "person_name", "person_name_ar", "face_score")
+                                      if who.get(k)}
+    return [sure[k] for k in sorted(sure)]
+
+
 class RuleEngine:
     def __init__(self, plugins: dict, cooldown_s: float = DEFAULT_COOLDOWN_S, site_tz: str = "UTC"):
         self.plugins = plugins
@@ -287,6 +311,8 @@ class RuleEngine:
                 "missing_equipment": sorted({m for o in involved for m in o.get("missing_equipment", [])}),
                 # who was involved, when face recognition knew them (docs/contracts.md v2.6)
                 "people": _people(involved),
+                # the ones counted against in the per-person tally: sure of who, and they broke the rule (v2.8)
+                "violators": _violators(rule, involved),
                 "objects_involved": involved,
                 "frame_id": event.get("frame_id"),
                 "model": event.get("model"),

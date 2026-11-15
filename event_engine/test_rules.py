@@ -232,6 +232,29 @@ results.append(check("People: a recognised person is named in the incident",
                      f"{f[0][1]['metadata'].get('people') if f else None}"))
 f = run([[WORKER, NO_HARDHAT, VEST]] * 10, rules=["RULE_PPE_01"])
 results.append(check("People: nobody recognised gives an empty list", len(f) == 1 and f[0][1]["metadata"]["people"] == []))
+# --- who is counted in the per-person tally: sure of the face, and they broke the rule themselves ---
+f = run([[named, NO_HARDHAT, VEST]] * 10, rules=["RULE_PPE_01"])
+results.append(check("Tally: a strong face match on the person breaking the rule is counted",
+                     len(f) == 1 and [v["person_id"] for v in f[0][1]["metadata"]["violators"]] == ["omar-ahmed"]
+                     and f[0][1]["metadata"]["violators"][0]["face_score"] == 0.61,
+                     f"{f[0][1]['metadata'].get('violators') if f else None}"))
+weak = {**named, "attributes": {**named["attributes"], "face_score": 0.42}}
+f = run([[weak, NO_HARDHAT, VEST]] * 10, rules=["RULE_PPE_01"])
+results.append(check("Tally: a weaker match is named in the incident but not counted",
+                     len(f) == 1 and f[0][1]["metadata"]["violators"] == [] and len(f[0][1]["metadata"]["people"]) == 1))
+f = run([[WORKER, NO_HARDHAT, VEST]] * 10, rules=["RULE_PPE_01"])
+results.append(check("Tally: nobody recognised, nobody counted", len(f) == 1 and f[0][1]["metadata"]["violators"] == []))
+from rules import _violators
+results.append(check("Tally: a capacity rule counts nobody (no one person is at fault)",
+                     _violators({"subject_classes": ["Person"], "max_count": 3}, [named]) == []))
+results.append(check("Tally: a rule marked personal: false counts nobody (e.g. a person down)",
+                     _violators({"subject_classes": ["Person"], "personal": False}, [named]) == []))
+bystander = {"class_name": "machinery", "bbox": [0, 0, 10, 10], "attributes": named["attributes"]}
+results.append(check("Tally: only the rule's subject is counted, not what is near it",
+                     _violators({"subject_classes": ["Person"], "near_classes": ["machinery"]}, [bystander]) == []))
+smoker = {"class_name": "smoking", "bbox": [0, 0, 10, 10], "attributes": named["attributes"]}
+results.append(check("Tally: the person smoking is counted (their name is on the smoking box)",
+                     [v["person_id"] for v in _violators({"subject_classes": ["smoking"]}, [smoker])] == ["omar-ahmed"]))
 results.append(check("Engine: a malformed detection raises, so main.py can skip it",
                      _raises(lambda: run([[{"class_name": "Person"}]], rules=["RULE_ZONE_01"]))))
 

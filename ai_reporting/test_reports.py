@@ -94,6 +94,9 @@ check("Summary is due once the time has passed, once a day",
       and not digest.due(datetime(2026, 10, 11, 17, 59), None, "18:00")
       and not digest.due(datetime(2026, 10, 11, 19, 0), "2026-10-11", "18:00")
       and not digest.due(datetime(2026, 10, 11, 19, 0), None, ""))
+check("Summary time: the console's choice wins, 'off' switches it off, no choice uses .env",
+      digest.chosen_time("07:30", "18:00") == "07:30" and digest.chosen_time("off", "18:00") == ""
+      and digest.chosen_time(None, "18:00") == "18:00" and digest.chosen_time("25:00", "18:00") == "")
 lines = digest.sentences(SUMMARY, "en", PLUGIN)
 check("Summary in plain sentences", lines == [
     "12 incidents today, 3 still waiting for someone.",

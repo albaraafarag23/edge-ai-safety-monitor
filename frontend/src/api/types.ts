@@ -39,6 +39,7 @@ export interface Incident {
     missing_equipment?: string[];
     objects_involved?: Detection[];
     people?: PersonRef[]; // who face recognition identified among them (contracts v2.6)
+    violators?: PersonRef[]; // the ones counted in the per-person tally: sure of who, and they broke the rule (v2.8)
     frame_id?: number;
     model?: string;
   };
@@ -95,6 +96,7 @@ export interface IncidentQuery {
   status?: string;
   event_type?: string;
   camera_id?: string;
+  violator_id?: string; // only incidents counted against this person in the tally
   hours?: number;
 }
 
@@ -106,6 +108,7 @@ export interface User {
   name: string;
   role: Role;
   active: boolean;
+  demo?: boolean; // the shared read-only account for visitors: its password can't be changed
   created_at: string | null;
   last_login_at: string | null;
 }
@@ -121,8 +124,21 @@ export interface Analytics {
   by_type: { key: string; count: number }[];
   by_camera: { key: string; count: number }[];
   missing_equipment: { key: string; count: number }[];
+  /** Per person: only incidents where the face match was strong and that person broke the rule themselves. */
+  by_person: (PersonRef & { count: number; by_type: { key: string; count: number }[]; last_at: string | null })[];
   by_status: Record<IncidentStatus, number>;
   median_minutes_to_handle: number | null;
+}
+
+/** GET /settings/daily-summary: when the end-of-day summary email goes out. */
+export interface DailySummary {
+  time: string | null; // "HH:MM" in site time; null = off
+  set_in_console: boolean; // false: the time comes from the server's .env
+  timezone: string;
+  email_ready: boolean | null; // null: the reporting service isn't answering
+  recipients: number | null;
+  changed_by: string | null;
+  changed_at: string | null;
 }
 
 /** GET /zones?camera_id=: a plugin zone as one camera has it. Drawings are per camera, as fractions of the picture (0-1). */

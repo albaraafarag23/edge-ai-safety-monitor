@@ -1,13 +1,14 @@
 import { BellRing, CheckCheck, Mail, Monitor, Volume2 } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { mediaUrl } from "../api/client";
-import { useIncidents } from "../api/queries";
+import { useDailySummary, useIncidents } from "../api/queries";
 import type { Incident } from "../api/types";
 import { PageHeader } from "../components/Layout";
 import { Card, EmptyState, ErrorState, SeverityBadge, Spinner, StatusBadge } from "../components/ui";
 import { formatDateTime, timeAgo } from "../lib/format";
 import { bilingual, plural, useText } from "../lib/i18n";
+import { useAuth } from "../lib/auth";
 import { desktopSupported, enableDesktop, isUnread, updatePrefs, useNotificationPrefs } from "../lib/notifications";
 import { incidentTitle, usePluginText } from "../lib/terms";
 
@@ -117,6 +118,121 @@ function Setting({ icon, title, children, control }: { icon: ReactNode; title: s
       </div>
       {control}
     </div>
+  );
+}
+
+const SUMMARY_TEXT = bilingual(
+  {
+    title: "Daily summary email",
+    what: "One email a day: what happened on site in the last 24 hours and what is still open.",
+    sentAt: (time: string, tz: string) => `Sent every day at ${time} (${tz} time).`,
+    off: "Switched off: no summary is sent.",
+    time: "Send at",
+    on: "Send a daily summary",
+    save: "Save",
+    saving: "Saving…",
+    saved: "Saved.",
+    failed: "Couldn't save. Try again.",
+    adminOnly: "An admin can change this.",
+    fromServer: "This time comes from the server's settings; choosing one here replaces it.",
+    changedBy: (name: string) => `Last changed by ${name}.`,
+    noEmail: "Email isn't set up on the server yet, so nothing will be sent until it is.",
+    unknown: "The reporting service isn't answering, so it isn't known whether email is set up.",
+    recipients: (n: number): string => `Goes to ${n} ${n === 1 ? "address" : "addresses"}, the same as incident alerts.`,
+  },
+  {
+    title: "بريد الملخص اليومي",
+    what: "رسالة واحدة في اليوم: ما حدث في الموقع خلال آخر 24 ساعة وما زال مفتوحًا.",
+    sentAt: (time: string, tz: string) => `يُرسل كل يوم الساعة ${time} (بتوقيت ${tz}).`,
+    off: "متوقف: لا يُرسل ملخص.",
+    time: "وقت الإرسال",
+    on: "إرسال ملخص يومي",
+    save: "حفظ",
+    saving: "جارٍ الحفظ…",
+    saved: "تم الحفظ.",
+    failed: "تعذّر الحفظ. حاول مرة أخرى.",
+    adminOnly: "يستطيع المسؤول تغيير هذا.",
+    fromServer: "هذا الوقت من إعدادات الخادم؛ اختيار وقت هنا يحلّ محله.",
+    changedBy: (name: string) => `آخر تغيير بواسطة ${name}.`,
+    noEmail: "البريد الإلكتروني غير مُعدّ على الخادم بعد، فلن يُرسل شيء حتى يُعدّ.",
+    unknown: "خدمة التقارير لا تستجيب، فلا يُعرف هل البريد مُعدّ.",
+    recipients: (n: number) => `يُرسل إلى ${n} ${plural("ar", n, { one: "عنوان", two: "عنوانين", few: "عناوين", other: "عنوانًا" })}، مثل تنبيهات الحوادث.`,
+  },
+);
+
+/** When the end-of-day summary email goes out. Everyone sees it; an admin chooses the time or switches it off. */
+function DailySummaryCard() {
+  const t = useText(SUMMARY_TEXT);
+  const { user } = useAuth();
+  const { query, save } = useDailySummary();
+  const data = query.data;
+  const [on, setOn] = useState(false);
+  const [time, setTime] = useState("18:00");
+  useEffect(() => {
+    if (!data) return;
+    setOn(Boolean(data.time));
+    if (data.time) setTime(data.time);
+  }, [data?.time]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (query.isPending) return <Card title={t.title}><Spinner /></Card>;
+  if (query.isError || !data) {
+    return <Card title={t.title}><ErrorState error={query.error} onRetry={() => query.refetch()} /></Card>;
+  }
+  const admin = user?.role === "admin";
+  const changed = on !== Boolean(data.time) || (on && time !== data.time);
+  return (
+    <Card title={t.title}>
+      <p className="text-sm text-slate-600">{t.what}</p>
+      <p className="mt-2 text-sm font-medium text-slate-900">
+        {data.time ? t.sentAt(data.time, data.timezone) : t.off}
+      </p>
+      {admin ? (
+        <form
+          className="mt-4 space-y-3"
+          onSubmit={(e) => {
+            e.preventDefault();
+            save.mutate(on ? time : null);
+          }}
+        >
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-slate-700">{t.on}</span>
+            <Toggle label={t.on} checked={on} onChange={(v) => { setOn(v); save.reset(); }} />
+          </div>
+          {on && (
+            <label className="flex items-center justify-between gap-3 text-sm text-slate-700">
+              {t.time}
+              <input
+                type="time"
+                required
+                value={time}
+                onChange={(e) => { setTime(e.target.value); save.reset(); }}
+                className="rounded-md border border-slate-300 px-2 py-1.5 text-sm tabular-nums"
+              />
+            </label>
+          )}
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={!changed || save.isPending}
+              className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-40"
+            >
+              {save.isPending ? t.saving : t.save}
+            </button>
+            <span className="text-sm" role="status">
+              {save.isError ? <span className="text-red-700">{t.failed}</span> : save.isSuccess && !changed ? <span className="text-slate-600">{t.saved}</span> : null}
+            </span>
+          </div>
+        </form>
+      ) : (
+        <p className="mt-2 text-xs text-slate-500">{t.adminOnly}</p>
+      )}
+      <div className="mt-4 space-y-1 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+        {data.email_ready === false && <p className="font-medium text-amber-800">{t.noEmail}</p>}
+        {data.email_ready === null && <p>{t.unknown}</p>}
+        {data.email_ready && data.recipients ? <p>{t.recipients(data.recipients)}</p> : null}
+        {data.set_in_console ? (data.changed_by ? <p>{t.changedBy(data.changed_by)}</p> : null) : data.time ? <p>{t.fromServer}</p> : null}
+      </div>
+    </Card>
   );
 }
 
@@ -279,8 +395,9 @@ export function Notifications() {
             </p>
           )}
         </section>
-        <div>
+        <div className="space-y-6">
           <Settings />
+          <DailySummaryCard />
         </div>
       </div>
     </>

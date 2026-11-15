@@ -17,6 +17,8 @@ SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 CONTRACT_FIELDS = ["event_id", "timestamp", "plugin_id", "camera_id", "severity", "event_type",
                    "location", "duration_seconds", "rules_violated", "snapshot_url", "clip_url", "metadata"]
+# the shared, read-only account for visitors (auth.ensure_demo); empty = there is none
+DEMO_EMAIL = (os.getenv("DEMO_EMAIL") or "").strip().lower()
 STATUSES = ("open", "acknowledged", "resolved")
 
 
@@ -115,6 +117,7 @@ class User(Base):
 
     def to_dict(self) -> dict:
         return {"id": self.id, "email": self.email, "name": self.name, "role": self.role, "active": self.active,
+                "demo": bool(DEMO_EMAIL) and self.email == DEMO_EMAIL,   # the shared read-only account (auth.py)
                 "created_at": iso(self.created_at), "last_login_at": iso(self.last_login_at)}
 
 
@@ -139,6 +142,16 @@ class ZoneDrawing(Base):
     camera_id: Mapped[str] = mapped_column(String, primary_key=True)
     zone_id: Mapped[str] = mapped_column(String, primary_key=True)
     polygon: Mapped[list] = mapped_column(JSONB)                   # [[x, y], ...] as fractions of the picture (0-1)
+    changed_by: Mapped[str | None] = mapped_column(String)
+    changed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class SiteSetting(Base):
+    """A site-wide setting chosen in the console (backend/site_settings.py). No row = the default from .env."""
+    __tablename__ = "site_settings"
+
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    value: Mapped[dict] = mapped_column(JSONB, default=dict)
     changed_by: Mapped[str | None] = mapped_column(String)
     changed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

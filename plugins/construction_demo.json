@@ -321,6 +321,7 @@
     },
     {
       "rule_id": "RULE_POSE_01",
+      "personal": false,
       "name": "Person down",
       "type": "pose",
       "planned": true,
