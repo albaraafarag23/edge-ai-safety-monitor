@@ -9,13 +9,15 @@ Keys (written by cv_pipeline, both expire within seconds when the detector stops
 import asyncio
 
 import redis.asyncio as aioredis
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Path, Request, Response
 from fastapi.responses import StreamingResponse
 
 STREAM_FPS = 10          # the detector publishes at most 10 frames per second
 BOUNDARY = "frame"
 
 router = APIRouter(prefix="/cameras", tags=["cameras"])
+# camera ids as the detector accepts them (cv_pipeline/main.py); anything else can't be a Redis key of ours
+CameraId = Path(pattern=r"^[A-Za-z0-9_-]{1,40}$")
 _redis: aioredis.Redis | None = None
 
 
@@ -64,18 +66,18 @@ async def camera_info(camera_id: str) -> dict:
 @router.get("")
 async def list_cameras():
     ids = sorted(_text(c) for c in await _redis.smembers("cameras"))
-    return [await camera_info(c) for c in ids]
+    return list(await asyncio.gather(*(camera_info(c) for c in ids)))
 
 
 @router.get("/{camera_id}")
-async def get_camera(camera_id: str):
+async def get_camera(camera_id: str = CameraId):
     if not await _redis.sismember("cameras", camera_id):
         raise HTTPException(status_code=404, detail="Unknown camera")
     return await camera_info(camera_id)
 
 
 @router.get("/{camera_id}/frame")
-async def latest_frame(camera_id: str):
+async def latest_frame(camera_id: str = CameraId):
     """The newest annotated frame as a JPEG (for a still image or a download)."""
     frame = await _redis.get(f"camera:{camera_id}:frame")
     if not frame:
@@ -84,7 +86,7 @@ async def latest_frame(camera_id: str):
 
 
 @router.get("/{camera_id}/stream")
-async def stream(camera_id: str, request: Request):
+async def stream(request: Request, camera_id: str = CameraId):
     """Motion JPEG: an <img> pointed here plays the camera live, no player needed."""
     key = f"camera:{camera_id}:frame"
 

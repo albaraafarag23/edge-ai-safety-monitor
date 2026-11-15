@@ -171,8 +171,18 @@ def subject(incident: dict, lang: str = "en", names: dict | None = None) -> str:
 
 def facts(incident: dict, lang: str = "en", names: dict | None = None) -> list[str]:
     parts = [TEXT[lang]["camera"].format(id=incident.get("camera_id", "?")), _zone(incident, lang, names),
-             when(incident, lang), lasted(incident.get("duration_seconds"), lang)]
+             when(incident, lang), lasted(incident.get("duration_seconds"), lang), who(incident, lang)]
     return [p for p in parts if p]
+
+
+def who(incident: dict, lang: str = "en") -> str | None:
+    """"Recognised: Omar Ahmed" when face recognition named someone in the incident (contracts v2.6)."""
+    people = (incident.get("metadata") or {}).get("people") or []
+    found = [str((p.get("person_name_ar") if lang == "ar" else None) or p.get("person_name"))
+             for p in people if isinstance(p, dict) and p.get("person_name")]
+    if not found:
+        return None
+    return ("تعرّفت الكاميرا على: " + "، ".join(found)) if lang == "ar" else "Recognised by the camera: " + ", ".join(found)
 
 
 def plain_text(incident: dict, report_md: str, actions: list[str], has_clip: bool, lang: str = "en",

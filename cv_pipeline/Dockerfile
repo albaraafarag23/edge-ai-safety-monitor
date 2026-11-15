@@ -13,7 +13,9 @@ RUN pip install --no-cache-dir redis>=5.0.0
 RUN pip install --no-cache-dir -r requirements.txt
 COPY requirements-media.txt .
 RUN pip install --no-cache-dir -r requirements-media.txt
+# face recognition (faces.py): runs the ArcFace model
+RUN pip install --no-cache-dir "onnxruntime>=1.17"
 
-COPY main.py plugin_config.py media.py live_view.py camera.py person_crops.py .
+COPY *.py ./
 
 CMD ["python", "main.py"]

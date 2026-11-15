@@ -1,10 +1,10 @@
-import { Download, Shapes, Video } from "lucide-react";
+import { ArrowLeft, Download, Shapes, Video } from "lucide-react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { cameraFrameUrl, mediaUrl } from "../api/client";
-import { useCameras, useIncidents } from "../api/queries";
+import { useCameras, useIncidents, useStats } from "../api/queries";
 import type { Camera } from "../api/types";
-import { CameraFeed } from "../components/CameraFeed";
+import { CameraFeed, CameraStill } from "../components/CameraFeed";
 import { ZoneEditor, ZoneOverlay } from "../components/ZoneEditor";
 import { useAuth } from "../lib/auth";
 import { PageHeader } from "../components/Layout";
@@ -42,6 +42,10 @@ const TEXT = bilingual(
     lastSeen: (when: string) => `Last seen ${when}.`,
     technical: "Technical details",
     editZones: "Edit zones",
+    allCameras: "All cameras",
+    wallHint: "Every camera, refreshed each second. Pick one to watch it live, edit its zones and see its incidents.",
+    openToday: (n: number) => (n === 1 ? "1 incident today" : `${n} incidents today`),
+    quietToday: "Nothing today",
     map: {
       title: "Where incidents happen",
       hint: "The last 7 days on this camera. The brighter the glow, the more often something happened there.",
@@ -78,6 +82,10 @@ const TEXT = bilingual(
     lastSeen: (when: string) => `آخر ظهور ${when}.`,
     technical: "التفاصيل التقنية",
     editZones: "تعديل المناطق",
+    allCameras: "كل الكاميرات",
+    wallHint: "كل الكاميرات، تتجدد صورها كل ثانية. اختر واحدة لمشاهدتها مباشرة وتعديل مناطقها ورؤية حوادثها.",
+    openToday: (n: number) => (n === 1 ? "حادثة واحدة اليوم" : n === 2 ? "حادثتان اليوم" : n <= 10 ? `${n} حوادث اليوم` : `${n} حادثة اليوم`),
+    quietToday: "لا شيء اليوم",
     map: {
       title: "أين تقع الحوادث",
       hint: "آخر 7 أيام على هذه الكاميرا. كلما اشتد التوهج، تكررت الحوادث في ذلك المكان أكثر.",
@@ -209,6 +217,38 @@ function CameraTile({ camera, selected, onSelect }: { camera: Camera; selected: 
   );
 }
 
+/** Every camera at once, when there is more than one: pick one to open it. */
+function CameraWall({ cameras, onOpen }: { cameras: Camera[]; onOpen: (id: string) => void }) {
+  const t = useText(TEXT);
+  const stats = useStats(24);
+  return (
+    <>
+      <p className="mb-4 max-w-2xl text-sm text-ink/65">{t.wallHint}</p>
+      <ul className={`grid gap-5 sm:grid-cols-2 ${cameras.length > 4 ? "2xl:grid-cols-3" : ""}`}>
+        {cameras.map((c) => {
+          const today = stats.data?.by_camera[c.camera_id] ?? 0;
+          return (
+            <li key={c.camera_id}>
+              <button onClick={() => onOpen(c.camera_id)} className="group block w-full text-start">
+                <CameraStill camera={c} className="shadow-lg shadow-slate-900/10 transition group-hover:ring-2 group-hover:ring-ink/40" />
+                <span className="mt-2.5 flex items-baseline justify-between gap-3">
+                  <span className="min-w-0">
+                    <span className="block truncate font-display font-semibold text-ink">{c.location ?? c.camera_id}</span>
+                    {c.location && <span className="block truncate text-xs text-ink/55">{c.camera_id}</span>}
+                  </span>
+                  <span className={`shrink-0 text-sm ${today ? "font-semibold text-ink" : "text-ink/55"}`}>
+                    {stats.data ? (today ? t.openToday(today) : t.quietToday) : ""}
+                  </span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
+}
+
 export function Cameras() {
   const cameras = useCameras();
   const [params, setParams] = useSearchParams();
@@ -222,6 +262,8 @@ export function Cameras() {
 
   const list = cameras.data;
   const online = list.filter((c) => c.online).length;
+  // several cameras: all of them at once until one is picked
+  const wall = list.length > 1 && !list.some((c) => c.camera_id === params.get("camera"));
   const selected = list.find((c) => c.camera_id === params.get("camera")) ?? list[0];
 
   return (
@@ -229,8 +271,23 @@ export function Cameras() {
       <PageHeader
         title={t.title}
         subtitle={list.length ? t.countOnline(online, list.length) : undefined}
+        actions={
+          list.length > 1 && !wall ? (
+            <button
+              onClick={() => {
+                setEditing(false);
+                setParams({});
+              }}
+              className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-ink ring-1 ring-ink/20 hover:bg-white"
+            >
+              <ArrowLeft className="h-4 w-4 rtl:rotate-180" /> {t.allCameras}
+            </button>
+          ) : undefined
+        }
       />
-      {!selected ? (
+      {wall ? (
+        <CameraWall cameras={list} onOpen={(id) => setParams({ camera: id })} />
+      ) : !selected ? (
         <Card>
           <EmptyState title={t.noneYet}>
             {t.noneHintBefore}
@@ -241,7 +298,7 @@ export function Cameras() {
       ) : (
         <div className="grid gap-6 xl:grid-cols-[1fr_20rem]">
           <div className="min-w-0 space-y-4">
-            <CameraFeed camera={selected} showFps={false} className="w-full shadow-lg shadow-slate-900/10"
+            <CameraFeed key={selected.camera_id} camera={selected} showFps={false} className="w-full shadow-lg shadow-slate-900/10"
               overlay={editing ? null : <ZoneOverlay camera={selected} />} />
             <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
               <p>
@@ -269,7 +326,7 @@ export function Cameras() {
                 </a>
               )}
             </div>
-            {editing ? <ZoneEditor camera={selected} onClose={() => setEditing(false)} /> : <DangerMap camera={selected} />}
+            {editing ? <ZoneEditor key={selected.camera_id} camera={selected} onClose={() => setEditing(false)} /> : <DangerMap camera={selected} />}
           </div>
 
           <div className="min-w-0 space-y-6">
@@ -277,7 +334,10 @@ export function Cameras() {
               <div className="space-y-2">
                 {list.map((c) => (
                   <CameraTile key={c.camera_id} camera={c} selected={c.camera_id === selected.camera_id}
-                    onSelect={() => setParams({ camera: c.camera_id })} />
+                    onSelect={() => {
+                      setEditing(false);
+                      setParams({ camera: c.camera_id });
+                    }} />
                 ))}
               </div>
             )}

@@ -1,4 +1,4 @@
-import { BarChart3, Bell, Camera, ChevronDown, LayoutDashboard, ListChecks, LogOut, ShieldCheck, UserCog, Users } from "lucide-react";
+import { BarChart3, Bell, Camera, ChevronDown, LayoutDashboard, ListChecks, LogOut, ScanFace, ShieldCheck, UserCog, Users } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useIncidents } from "../api/queries";
@@ -20,6 +20,7 @@ const TEXT = bilingual(
       analytics: "Analytics",
       notifications: "Notifications",
       rules: "Safety rules",
+      people: "People",
       users: "Users",
     },
     connection: { live: "Connected", connecting: "Connecting…", offline: "Offline" },
@@ -44,6 +45,7 @@ const TEXT = bilingual(
       analytics: "التحليلات",
       notifications: "الإشعارات",
       rules: "قواعد السلامة",
+      people: "الأشخاص",
       users: "المستخدمون",
     },
     connection: { live: "متصل", connecting: "جارٍ الاتصال…", offline: "غير متصل" },
@@ -72,7 +74,10 @@ const NAV = [
   { to: "/app/notifications", key: "notifications" as NavKey, icon: Bell, end: false, photo: "closing" },
   { to: "/app/rules", key: "rules" as NavKey, icon: ShieldCheck, end: false, photo: "zones" },
 ];
-const ADMIN_NAV = [{ to: "/app/users", key: "users" as NavKey, icon: Users, end: false, photo: "how" }];
+const ADMIN_NAV = [
+  { to: "/app/people", key: "people" as NavKey, icon: ScanFace, end: false, photo: "smoking" },
+  { to: "/app/users", key: "users" as NavKey, icon: Users, end: false, photo: "how" },
+];
 const OTHER_PAGES: Record<string, string> = { "/app/account": "hero" };
 
 function useNav() {

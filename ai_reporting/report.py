@@ -30,6 +30,8 @@ Rules:
 - State only facts present in the inputs. Do not invent or guess causes, names, identities,
   injuries, intentions, weather, or anything else not in the JSON.
 - Where a field is missing, null or empty, write "NOT SPECIFIED".
+- People: metadata.people lists who the cameras' face recognition identified (it may be empty). Name only
+  those people, and say the identification is automatic and should be confirmed. Never name anyone else.
 - Recommended actions: choose 2-3 from the approved list. You may adjust wording to fit the
   incident, but do not add actions that are not on the list. If the list is empty, write
   "NOT SPECIFIED".
@@ -43,7 +45,7 @@ Output only the report, in Markdown, with exactly this structure:
 One bullet per entry in rules_violated.
 ## Findings
 Bullets: event ID, time, camera, location, duration, severity, detected entities,
-missing equipment, evidence attached.
+missing equipment, people identified, evidence attached.
 ## Recommended Actions
 A numbered list of 2-3 actions."""
 
@@ -58,6 +60,9 @@ Rules:
 - State only facts present in the inputs. Do not invent or guess causes, names, identities,
   injuries, intentions, weather, or anything else not in the JSON.
 - Where a field is missing, null or empty, write "غير محدد".
+- People: metadata.people lists who the cameras' face recognition identified (it may be empty). Name only
+  those people (use person_name_ar when it is given), and say the identification is automatic and should be
+  confirmed. Never name anyone else.
 - Use the Arabic names you are given. Keep identifiers exactly as they are, in Latin letters:
   event ID, camera ID, rule IDs, model and file names.
 - Use Western digits (0-9). Times are UTC; keep them as given and say they are UTC.
@@ -128,6 +133,13 @@ def arabic_names(incident: dict, plugin: dict) -> dict:
         "missing_equipment": [ITEM_AR.get(m, m) for m in meta.get("missing_equipment") or []],
         "detected_entities": [CLASS_AR.get(c, c) for c in meta.get("detected_entities") or []],
     }
+
+
+def people_names(incident: dict, lang: str = "en") -> list[str]:
+    """Who face recognition identified in the incident (metadata.people, contracts v2.6)."""
+    people = (incident.get("metadata") or {}).get("people") or []
+    return [str((p.get("person_name_ar") if lang == "ar" else None) or p.get("person_name"))
+            for p in people if isinstance(p, dict) and p.get("person_name")]
 
 
 def _llm_input(incident: dict) -> dict:
@@ -213,6 +225,8 @@ def generate_from_template(incident: dict, actions: list[str], evidence: dict, l
         f"- Severity: {_ns(incident.get('severity'))}",
         f"- Detected entities: {_ns(', '.join(meta.get('detected_entities') or []))}",
         f"- Missing equipment: {_ns(', '.join(meta.get('missing_equipment') or []))}",
+        f"- People identified (automatic face recognition, to be confirmed): "
+        f"{_ns(', '.join(people_names(incident)))}",
         f"- Evidence attached: {_ns(', '.join(attached))}",
         "## Recommended Actions",
         *([f"{i}. {a}" for i, a in enumerate(actions[:3], 1)] or ["NOT SPECIFIED"]),
@@ -248,6 +262,7 @@ def _template_ar(incident: dict, actions: list[str], evidence: dict, plugin: dic
         f"- الخطورة: {ns(names['severity'])}",
         f"- ما رُصد: {ns('، '.join(names['detected_entities']))}",
         f"- المعدات الناقصة: {ns('، '.join(names['missing_equipment']))}",
+        f"- من تم التعرف عليهم (تعرّف آلي على الوجه، يحتاج إلى تأكيد): {ns('، '.join(people_names(incident, 'ar')))}",
         f"- الأدلة المرفقة: {ns('، '.join(attached))}",
         "## الإجراءات الموصى بها",
         *([f"{i}. {a}" for i, a in enumerate(actions[:3], 1)] or [NOT_SPECIFIED["ar"]]),

@@ -22,6 +22,14 @@ def person_at(x, y_feet, h=200):
     return {"class_name": "Person", "confidence": 0.9, "bbox": [x, y_feet - h, x + 60, y_feet]}
 
 
+def _raises(fn) -> bool:
+    try:
+        fn()
+    except Exception:
+        return True
+    return False
+
+
 def run(frames, camera="cam_01", rules=None, fps=2, settings=None, start=T0, site_tz="UTC"):
     """frames: list of object lists, one per frame. Returns [(frame_index, incident), ...].
     settings: console rule settings {rule_id: {...}}, or a function i -> settings from frame i."""
@@ -185,6 +193,47 @@ results.append(check("Redrawn zone: scales to the camera's resolution",
                      len(run_zones([person_at(1620, 400)], top_right, frame_size=(1920, 1080))) == 1))
 results.append(check("Redrawn zone: without a frame size the plugin's polygon is used",
                      len(run_zones([person_at(50, 420)], top_right, frame_size=None)) == 1))
+
+# --- several cameras: a zone belongs to the camera the plugin names, unless it's drawn for another one ---
+def run_camera(objects, camera, zones=None, seconds=1):
+    engine = RuleEngine({PLUGIN["plugin_id"]: dict(PLUGIN, rules=[r for r in PLUGIN["rules"] if r["rule_id"] == "RULE_ZONE_01"])})
+    engine.zones[PLUGIN["plugin_id"]] = zones or {}
+    fired = []
+    for i in range(seconds * 2):
+        fired += engine.process({"timestamp": (T0 + timedelta(seconds=i / 2)).isoformat(), "camera_id": camera,
+                                 "frame_id": i, "plugin_id": PLUGIN["plugin_id"], "detections": objects,
+                                 "frame_size": [640, 480]})
+    return fired
+
+in_edge = [person_at(50, 420)]
+results.append(check("Cameras: the plugin's zone fires on its own camera", len(run_camera(in_edge, "cam_01")) == 1))
+results.append(check("Cameras: and not on another camera", not run_camera(in_edge, "cam_02")))
+for_cam2 = {"excavation_edge": {"cam_02": [[0.75, 0.0], [1.0, 0.0], [1.0, 0.4], [0.75, 0.4]]}}
+results.append(check("Cameras: a zone drawn for the second camera fires there",
+                     len(run_camera([person_at(540, 150)], "cam_02", for_cam2)) == 1))
+results.append(check("Cameras: the first camera keeps the plugin's shape", len(run_camera(in_edge, "cam_01", for_cam2)) == 1))
+results.append(check("Cameras: the second camera's drawing doesn't move the first camera's zone",
+                     not run_camera([person_at(540, 150)], "cam_01", for_cam2)))
+both = RuleEngine({PLUGIN["plugin_id"]: dict(PLUGIN, rules=[r for r in PLUGIN["rules"] if r["rule_id"] == "RULE_PPE_01"])})
+fired = []
+for i in range(10):   # the same rule on two cameras at once: each has its own timer and cooldown
+    for cam in ("cam_01", "cam_02"):
+        fired += both.process({"timestamp": (T0 + timedelta(seconds=i / 2)).isoformat(), "camera_id": cam, "frame_id": i,
+                               "plugin_id": PLUGIN["plugin_id"], "detections": [WORKER, NO_HARDHAT, VEST]})
+results.append(check("Cameras: the same rule fires once on each camera",
+                     sorted(i["camera_id"] for i in fired) == ["cam_01", "cam_02"], f"{[i['camera_id'] for i in fired]}"))
+
+# --- who was involved (names from face recognition, carried in the detection's attributes) ---
+named = {**WORKER, "attributes": {"track_id": 4, "identity": "known", "person_id": "omar-ahmed",
+                                  "person_name": "Omar Ahmed", "face_score": 0.61}}
+f = run([[named, NO_HARDHAT, VEST]] * 10, rules=["RULE_PPE_01"])
+results.append(check("People: a recognised person is named in the incident",
+                     len(f) == 1 and f[0][1]["metadata"]["people"] == [{"person_id": "omar-ahmed", "person_name": "Omar Ahmed"}],
+                     f"{f[0][1]['metadata'].get('people') if f else None}"))
+f = run([[WORKER, NO_HARDHAT, VEST]] * 10, rules=["RULE_PPE_01"])
+results.append(check("People: nobody recognised gives an empty list", len(f) == 1 and f[0][1]["metadata"]["people"] == []))
+results.append(check("Engine: a malformed detection raises, so main.py can skip it",
+                     _raises(lambda: run([[{"class_name": "Person"}]], rules=["RULE_ZONE_01"]))))
 
 # --- plugin errors ---
 for name, broken in [("unknown rule type", {**PLUGIN, "rules": [{"rule_id": "X", "type": "magic"}]}),

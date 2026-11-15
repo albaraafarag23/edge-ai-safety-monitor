@@ -12,6 +12,13 @@ export interface Detection {
   missing_equipment?: string[];
 }
 
+/** Someone face recognition identified in an incident. */
+export interface PersonRef {
+  person_id: string;
+  person_name: string;
+  person_name_ar?: string;
+}
+
 export interface Incident {
   event_id: string;
   timestamp: string;
@@ -31,6 +38,7 @@ export interface Incident {
     detected_entities?: string[];
     missing_equipment?: string[];
     objects_involved?: Detection[];
+    people?: PersonRef[]; // who face recognition identified among them (contracts v2.6)
     frame_id?: number;
     model?: string;
   };
@@ -117,13 +125,14 @@ export interface Analytics {
   median_minutes_to_handle: number | null;
 }
 
-/** GET /zones: a plugin zone and, when redrawn in the console, its polygon as fractions of the picture (0-1). */
+/** GET /zones?camera_id=: a plugin zone as one camera has it. Drawings are per camera, as fractions of the picture (0-1). */
 export interface Zone {
   zone_id: string;
   name: string;
-  camera_id: string | null;
-  plugin_polygon: [number, number][]; // the plugin's own, in pixels of the camera's frame
-  polygon: [number, number][] | null;
+  camera_id: string | null; // the camera the plugin puts it on (null = every camera)
+  on_camera: boolean; // false: this camera doesn't have the zone until it is drawn here
+  plugin_polygon: [number, number][]; // the plugin's own, in pixels of the camera's frame ([] on other cameras)
+  polygon: [number, number][] | null; // drawn in the console for this camera
   rules: { rule_id: string; name: string }[]; // the rules that use this zone
   changed_by: string | null;
   changed_at: string | null;
@@ -196,3 +205,27 @@ export interface SafetyRules {
 
 /** PATCH /rules/{id}: only the fields sent change; null resets a field to the plugin's value. */
 export type RuleChange = { enabled?: boolean } & { [K in keyof RuleSettings]?: RuleSettings[K] | null };
+
+/** A face photo of a person, and how the detector's check of it went. */
+export interface PersonPhoto {
+  file: string;
+  checked: boolean; // false until the detector has looked at it
+  ok: boolean;
+  problem: "no_face" | "small_face" | "several_faces" | "unclear_face" | "different_person" | "unreadable" | null;
+  face_px: number | null;
+}
+
+/** Someone the cameras should recognise (GET /people, admins only). */
+export interface Person {
+  person_id: string;
+  name: string;
+  name_ar: string | null;
+  photos: PersonPhoto[];
+  usable: number; // photos face recognition can use
+}
+
+export interface People {
+  recognition: { running: boolean; engine?: string; people?: number; photos?: number; updated_at?: string };
+  people: Person[];
+  limits: { photos_per_person: number; photo_mb: number };
+}

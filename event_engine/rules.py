@@ -161,6 +161,15 @@ def _ts(value) -> float:
         return datetime.now(timezone.utc).timestamp()
 
 
+def _people(involved: list[dict]) -> list[dict]:
+    people = {}
+    for o in involved:
+        who = o.get("attributes") or {}
+        if who.get("person_id") and who.get("person_name"):
+            people[who["person_id"]] = {k: who[k] for k in ("person_id", "person_name", "person_name_ar") if who.get(k)}
+    return [people[k] for k in sorted(people)]
+
+
 class RuleEngine:
     def __init__(self, plugins: dict, cooldown_s: float = DEFAULT_COOLDOWN_S, site_tz: str = "UTC"):
         self.plugins = plugins
@@ -169,8 +178,9 @@ class RuleEngine:
         self._active = {}       # (camera, rule_id) -> {"start": ts, "last": ts}
         self._last_fired = {}   # (camera, rule_id) -> ts
         self.settings = {}      # plugin_id -> {rule_id: {"enabled": bool, <RULE_SETTINGS>...}} from the console
-        # plugin_id -> {zone_id: [[x, y], ...]}: zones redrawn in the console, as fractions of the picture (0-1),
-        # so they fit any camera resolution; turned into pixels with each detection's frame_size
+        # plugin_id -> {zone_id: {camera_id: [[x, y], ...]}}: zones drawn in the console for one camera, as
+        # fractions of the picture (0-1), so they fit any camera resolution; turned into pixels with each
+        # detection's frame_size. "*" as the camera means every camera the plugin puts the zone on.
         self.zones = {}
         for plugin in plugins.values():
             for rule in plugin.get("rules", []):
@@ -203,9 +213,11 @@ class RuleEngine:
                 # forget any running timer, so the rule starts from zero when it's active again
                 self._active.pop((camera, rule["rule_id"]), None)
                 continue
-            zone = self._zone(plugin, rule.get("zone"), event.get("frame_size")) if rule.get("zone") else None
-            if zone and zone.get("camera_id") not in (None, camera):
-                continue
+            zone = None
+            if rule.get("zone"):
+                zone = self._zone(plugin, rule["zone"], camera, event.get("frame_size"))
+                if zone is None:   # this camera doesn't look at that zone
+                    continue
 
             involved = CHECKS[rule["type"]](rule, objects, zone)
             duration = self._track((camera, rule["rule_id"]), bool(involved), now,
@@ -220,14 +232,22 @@ class RuleEngine:
             incidents.append(self._incident(plugin, rule, zone, event, involved, duration))
         return incidents
 
-    def _zone(self, plugin: dict, zone_id: str, frame_size) -> dict | None:
-        """The plugin's zone, with the console's redrawn polygon when there is one (and the frame size is known)."""
+    def _zone(self, plugin: dict, zone_id: str, camera: str, frame_size) -> dict | None:
+        """The zone as this camera sees it, or None if the zone isn't on this camera.
+
+        A zone drawn in the console for this camera wins (when the frame size is known). Otherwise the plugin's
+        polygon applies on the camera the plugin names (every camera if it names none)."""
         zone = plugin.get("zones", {}).get(zone_id)
+        if not zone:
+            return None
         drawn = self.zones.get(plugin["plugin_id"], {}).get(zone_id)
-        if not zone or not drawn or not frame_size or len(frame_size) != 2:
-            return zone
-        width, height = frame_size
-        return {**zone, "polygon": [[x * width, y * height] for x, y in drawn]}
+        if isinstance(drawn, dict):
+            mine = zone.get("camera_id") in (None, camera)
+            drawn = drawn.get(camera) or (drawn.get("*") if mine else None)
+        if drawn and frame_size and len(frame_size) == 2:
+            width, height = frame_size
+            return {**zone, "polygon": [[x * width, y * height] for x, y in drawn]}
+        return zone if zone.get("camera_id") in (None, camera) else None
 
     def _track(self, key, active, now, grace_s):
         """Returns how long the condition has held, or None if it isn't active."""
@@ -265,6 +285,8 @@ class RuleEngine:
                 "zone_name": zone["name"] if zone else None,
                 "detected_entities": sorted({o["class_name"] for o in involved}),
                 "missing_equipment": sorted({m for o in involved for m in o.get("missing_equipment", [])}),
+                # who was involved, when face recognition knew them (docs/contracts.md v2.6)
+                "people": _people(involved),
                 "objects_involved": involved,
                 "frame_id": event.get("frame_id"),
                 "model": event.get("model"),

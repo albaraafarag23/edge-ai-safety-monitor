@@ -18,6 +18,8 @@ const TEXT = bilingual(
     title: "Zones on this camera",
     hint: "Pick a zone, then drag its corners, or redraw it by clicking around the area. A person counts as inside when their feet are inside.",
     fromPlugin: "Original shape",
+    notHere: "Not on this camera. Draw it to use it here.",
+    remove: "Remove from this camera",
     drawnBy: (who: string, when: string) => `Drawn by ${who}, ${when}`,
     usedBy: (rules: string) => `Used by: ${rules}`,
     redraw: "Redraw",
@@ -38,6 +40,8 @@ const TEXT = bilingual(
     title: "المناطق على هذه الكاميرا",
     hint: "اختر منطقة ثم اسحب زواياها، أو أعد رسمها بالنقر حول المكان. يُعد الشخص داخلها حين تكون قدماه داخلها.",
     fromPlugin: "الشكل الأصلي",
+    notHere: "ليست على هذه الكاميرا. ارسمها لاستخدامها هنا.",
+    remove: "إزالة من هذه الكاميرا",
     drawnBy: (who: string, when: string) => `رسمها ${who}، ${when}`,
     usedBy: (rules: string) => `تستخدمها: ${rules}`,
     redraw: "إعادة الرسم",
@@ -69,8 +73,8 @@ export function fractions(zone: Zone, camera: Camera): Point[] {
 /** The zones drawn over the live picture (read-only), in the same colours as the editor. */
 export function ZoneOverlay({ camera }: { camera: Camera }) {
   const plugin = usePluginText();
-  const zones = useZones();
-  const mine = (zones.data ?? []).filter((z) => !z.camera_id || z.camera_id === camera.camera_id);
+  const zones = useZones(camera.camera_id);
+  const mine = (zones.data ?? []).filter((z) => z.on_camera);
   if (!mine.length) return null;
   return (
     <div dir="ltr" className="pointer-events-none absolute inset-0">
@@ -108,9 +112,10 @@ export function ZoneOverlay({ camera }: { camera: Camera }) {
 export function ZoneEditor({ camera, onClose }: { camera: Camera; onClose: () => void }) {
   const t = useText(TEXT);
   const plugin = usePluginText();
-  const zones = useZones();
-  const { draw, reset } = useZoneMutations();
-  const mine = (zones.data ?? []).filter((z) => !z.camera_id || z.camera_id === camera.camera_id);
+  const zones = useZones(camera.camera_id);
+  const { draw, reset } = useZoneMutations(camera.camera_id);
+  // every zone of the plugin: one that isn't on this camera yet can be drawn here
+  const mine = zones.data ?? [];
   const [selected, setSelected] = useState<string | null>(null);
   const [points, setPoints] = useState<Point[] | null>(null);   // the selected zone while it's being edited
   const [redrawing, setRedrawing] = useState(false);
@@ -125,9 +130,9 @@ export function ZoneEditor({ camera, onClose }: { camera: Camera; onClose: () =>
   }, [mine, selected]);
   useEffect(() => {
     setPoints(zone ? fractions(zone, camera) : null);
-    setRedrawing(false);
+    setRedrawing(!!zone && !zone.on_camera);   // nothing to drag yet: start drawing
     // only when another zone is picked, or after a save brings the stored shape back
-  }, [zone?.zone_id, zone?.changed_at]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [camera.camera_id, zone?.zone_id, zone?.changed_at, zone?.on_camera]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const at = (e: { clientX: number; clientY: number }): Point => {
     const r = box.current!.getBoundingClientRect();
@@ -204,6 +209,7 @@ export function ZoneEditor({ camera, onClose }: { camera: Camera; onClose: () =>
                   const pts = z.zone_id === selected && points ? points : fractions(z, camera);
                   const color = COLORS[n % COLORS.length];
                   const active = z.zone_id === selected;
+                  if (!pts.length) return null;
                   const shape = pts.map((p) => p.join(",")).join(" ");
                   return active && redrawing ? (
                     <polyline key={z.zone_id} points={shape} fill="none" stroke={color} strokeWidth={2} vectorEffect="non-scaling-stroke" />
@@ -264,7 +270,7 @@ export function ZoneEditor({ camera, onClose }: { camera: Camera; onClose: () =>
                       {plugin.zoneName(z.zone_id, z.name)}
                     </span>
                     <span className="mt-0.5 block text-xs text-ink/60">
-                      {z.changed_by && z.changed_at ? t.drawnBy(z.changed_by, timeAgo(z.changed_at)) : t.fromPlugin}
+                      {z.changed_by && z.changed_at ? t.drawnBy(z.changed_by, timeAgo(z.changed_at)) : z.on_camera ? t.fromPlugin : t.notHere}
                     </span>
                     {z.rules.length > 0 && <span className="mt-0.5 block text-xs text-ink/60">{t.usedBy(joinList(z.rules.map((r) => plugin.ruleName(r.rule_id, r.name))))}</span>}
                   </button>
@@ -320,7 +326,7 @@ export function ZoneEditor({ camera, onClose }: { camera: Camera; onClose: () =>
                     onClick={() => reset.mutate(zone.zone_id, { onSuccess: () => setMessage(null) })}
                     className="inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-ink/65 hover:text-ink"
                   >
-                    <RotateCcw className="h-4 w-4" /> {t.reset}
+                    <RotateCcw className="h-4 w-4" /> {zone.plugin_polygon.length ? t.reset : t.remove}
                   </button>
                 )}
               </div>

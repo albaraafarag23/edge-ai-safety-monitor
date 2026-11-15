@@ -13,7 +13,8 @@ export const keys = {
   cameras: ["cameras"] as const,
   users: ["users"] as const,
   rules: ["rules"] as const,
-  zones: ["zones"] as const,
+  zones: (cameraId: string) => ["zones", cameraId] as const,
+  people: ["people"] as const,
   analytics: (days: number) => ["analytics", days] as const,
 };
 
@@ -75,17 +76,41 @@ export function useUserMutations() {
 
 export const useRules = () => useQuery({ queryKey: keys.rules, queryFn: api.rules });
 
-export const useZones = () => useQuery({ queryKey: keys.zones, queryFn: api.zones });
+export const useZones = (cameraId: string) => useQuery({ queryKey: keys.zones(cameraId), queryFn: () => api.zones(cameraId) });
 
-export function useZoneMutations() {
+export function useZoneMutations(cameraId: string) {
   const qc = useQueryClient();
-  const done = () => qc.invalidateQueries({ queryKey: keys.zones });
+  const done = () => qc.invalidateQueries({ queryKey: keys.zones(cameraId) });
   return {
     draw: useMutation({
-      mutationFn: ({ zoneId, polygon }: { zoneId: string; polygon: [number, number][] }) => api.drawZone(zoneId, polygon),
+      mutationFn: ({ zoneId, polygon }: { zoneId: string; polygon: [number, number][] }) => api.drawZone(cameraId, zoneId, polygon),
       onSettled: done,
     }),
-    reset: useMutation({ mutationFn: (zoneId: string) => api.resetZone(zoneId), onSettled: done }),
+    reset: useMutation({ mutationFn: (zoneId: string) => api.resetZone(cameraId, zoneId), onSettled: done }),
+  };
+}
+
+// a new photo is checked by the detector within seconds: ask again until every photo has its result
+export const usePeople = () =>
+  useQuery({
+    queryKey: keys.people,
+    queryFn: api.people,
+    refetchInterval: (query) =>
+      query.state.data?.people.some((p) => p.photos.some((photo) => !photo.checked)) ? 2_500 : 30_000,
+  });
+
+export function usePeopleMutations() {
+  const qc = useQueryClient();
+  const onSettled = () => qc.invalidateQueries({ queryKey: keys.people });
+  return {
+    add: useMutation({ mutationFn: api.addPerson, onSettled }),
+    rename: useMutation({
+      mutationFn: ({ id, ...change }: { id: string; name?: string; name_ar?: string | null }) => api.renamePerson(id, change),
+      onSettled,
+    }),
+    remove: useMutation({ mutationFn: api.removePerson, onSettled }),
+    addPhoto: useMutation({ mutationFn: ({ id, photo }: { id: string; photo: Blob }) => api.addPhoto(id, photo), onSettled }),
+    removePhoto: useMutation({ mutationFn: ({ id, file }: { id: string; file: string }) => api.removePhoto(id, file), onSettled }),
   };
 }
 

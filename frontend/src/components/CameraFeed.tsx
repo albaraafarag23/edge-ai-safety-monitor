@@ -1,6 +1,6 @@
 import { CameraOff, Maximize2 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { cameraStreamUrl } from "../api/client";
+import { cameraFrameUrl, cameraStreamUrl } from "../api/client";
 import type { Camera } from "../api/types";
 import { bilingual, useText } from "../lib/i18n";
 
@@ -114,6 +114,71 @@ export function CameraFeed({ camera, className = "", showFullscreen = true, show
           <Maximize2 className="h-4 w-4" />
         </button>
       )}
+    </div>
+  );
+}
+
+const STILL_EVERY_MS = 1000;
+
+/**
+ * A camera as a picture that refreshes every second, for showing many cameras at once. A live stream each would
+ * hold a connection open per camera, and browsers allow only a few per site; stills don't. The next picture is
+ * loaded before it replaces the current one, so the tile never flickers, and nothing is fetched while the tab
+ * is in the background.
+ */
+export function CameraStill({ camera, className = "" }: { camera: Camera; className?: string }) {
+  const t = useText(TEXT);
+  const [src, setSrc] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!camera.online) {
+      setSrc(null);
+      return;
+    }
+    let stopped = false;
+    let timer: number | undefined;
+    const load = () => {
+      if (document.hidden) {
+        timer = window.setTimeout(load, STILL_EVERY_MS);
+        return;
+      }
+      const next = new Image();
+      const url = `${cameraFrameUrl(camera.camera_id)}?t=${Date.now()}`;
+      const done = (ok: boolean) => {
+        if (stopped) return;
+        if (ok) setSrc(url);
+        timer = window.setTimeout(load, STILL_EVERY_MS);
+      };
+      next.onload = () => done(true);
+      next.onerror = () => done(false);
+      next.src = url;
+    };
+    load();
+    return () => {
+      stopped = true;
+      window.clearTimeout(timer);
+    };
+  }, [camera.camera_id, camera.online]);
+
+  const ratio = camera.width && camera.height ? `${camera.width} / ${camera.height}` : "16 / 9";
+  return (
+    <div className={`relative overflow-hidden rounded-xl bg-slate-950 ring-1 ring-slate-900/10 ${className}`} style={{ aspectRatio: ratio }}>
+      {src ? (
+        <img src={src} alt={`Live view of ${camera.camera_id}`} className="h-full w-full object-contain" />
+      ) : (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-slate-500">
+          <CameraOff className="h-7 w-7" aria-hidden />
+          <p className="text-sm font-medium text-slate-400">{camera.online ? t.waiting : t.cameraOffline}</p>
+        </div>
+      )}
+      <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-2 bg-gradient-to-b from-black/60 to-transparent p-3 text-white">
+        <span className={`inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wider ${camera.online ? "bg-red-600" : "bg-slate-600"}`}>
+          {camera.online && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />}
+          {camera.online ? t.live : t.offline}
+        </span>
+        <span className="truncate text-xs font-medium drop-shadow">{camera.location ?? camera.camera_id}</span>
+        {camera.mode === "test" && <span className="ms-auto rounded bg-amber-400/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-950">{t.testMode}</span>}
+      </div>
     </div>
   );
 }

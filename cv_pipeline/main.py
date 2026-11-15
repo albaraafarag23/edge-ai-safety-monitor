@@ -1,6 +1,17 @@
+"""The detector: reads the cameras, runs the plugin's models on each frame and publishes what it sees.
+
+One process serves every camera: the models are loaded once and take the cameras' newest frames in turn,
+so a second camera costs frame rate, not memory. Each camera has its own reader thread (camera.py), frame
+buffer for snapshots and clips (media.py), live view (live_view.py) and person tracker (tracker.py).
+Cameras come from CAMERAS_FILE (a JSON list, config/cameras.example.json); without that file there is one
+camera, set by SOURCE / CAMERA_ID / CAMERA_LOCATION as before.
+"""
 import os
 import json
+import re
+import threading
 import time
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 import cv2
@@ -8,11 +19,13 @@ import numpy as np
 import redis
 
 from camera import Camera
+from faces import FaceIdentifier
 from live_view import LiveView
-from media import MediaRecorder
+from media import MediaListener, MediaRecorder
 from person_crops import cut, upper_body_box
 from plugin_config import (DetectionConfig, PluginError, build_config, check_main_model, load_plugin,
                            model_paths, model_specs)
+from tracker import Tracker
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 PLUGINS_DIR = os.getenv("PLUGINS_DIR", "../plugins")
@@ -21,6 +34,8 @@ MODELS_DIR = os.getenv("MODELS_DIR", "../models")
 MODEL_OVERRIDE = os.getenv("MODEL_PATH") or None
 # "engine" on the Jetson: use each model's TensorRT build (construction_ppe.engine) when it exists
 USE_ENGINE = os.getenv("MODEL_FORMAT", "pt").lower() == "engine"
+# several cameras: a JSON list, see config/cameras.example.json. Without the file, the one camera below.
+CAMERAS_FILE = os.getenv("CAMERAS_FILE", "/config/cameras.json")
 SOURCE = os.getenv("SOURCE", "0")
 CAMERA_SIZE = os.getenv("CAMERA_SIZE", "1920x1080")
 CAMERA_DECODE = os.getenv("CAMERA_DECODE", "half")   # see camera.py
@@ -29,8 +44,12 @@ CAMERA_ID = os.getenv("CAMERA_ID", "cam_01")
 CAMERA_LOCATION = os.getenv("CAMERA_LOCATION") or None  # shown in the dashboard, e.g. "North gate"
 PLUGIN_ID = os.getenv("PLUGIN_ID", "construction_safety")
 STREAM_KEY = "detections"
+# detections waiting for the rule engine; older ones are dropped (about a minute at 30 frames a second in all)
+STREAM_MAXLEN = 2000
 MEDIA_DIR = os.getenv("MEDIA_DIR", "../media")
 TEST_MODE = os.getenv("TEST_MODE", "false").lower() == "true"
+CAMERA_ID_FORMAT = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
+LOG_EVERY_S = 10.0
 
 # Synthetic detections for test mode — simulates what the construction PPE model would produce
 _WORKER = {"class_name": "Person", "confidence": 0.91, "bbox": [300.0, 120.0, 400.0, 400.0]}
@@ -65,11 +84,36 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
 
-def detection_message(frame_id: int, detections: list[dict], model_name: str, frame_size) -> dict:
+def camera_settings() -> list[dict]:
+    """The cameras to run: [{"id", "source", "location", "size", "decode", "controls"}, ...]."""
+    default = {"id": CAMERA_ID, "source": SOURCE, "location": CAMERA_LOCATION, "size": CAMERA_SIZE,
+               "decode": CAMERA_DECODE, "controls": CAMERA_CONTROLS}
+    if not os.path.isfile(CAMERAS_FILE):
+        cameras = [default]
+    else:
+        try:
+            with open(CAMERAS_FILE) as f:
+                entries = json.load(f)
+        except (OSError, ValueError) as e:
+            raise SystemExit(f"[CV] {CAMERAS_FILE} can't be read: {e}")
+        if not isinstance(entries, list) or not all(isinstance(c, dict) for c in entries):
+            raise SystemExit(f"[CV] {CAMERAS_FILE} must be a list of cameras, see config/cameras.example.json")
+        cameras = [{**default, "location": None, **c} for c in entries if c.get("enabled", True)]
+        missing = [c.get("id") for c in entries if c.get("enabled", True) and "source" not in c]
+        if missing and not TEST_MODE:
+            raise SystemExit(f"[CV] {CAMERAS_FILE}: no \"source\" for camera(s) {missing}")
+    ids = [str(c.get("id", "")) for c in cameras]
+    bad = [i for i in ids if not CAMERA_ID_FORMAT.match(i)]
+    if not cameras or bad or len(set(ids)) != len(ids):
+        raise SystemExit(f"[CV] Camera ids must be unique, 1-40 letters, digits, - or _ (got {ids})")
+    return cameras
+
+
+def detection_message(camera_id: str, frame_id: int, detections: list[dict], model_name: str, frame_size) -> dict:
     """Detection output, as defined in docs/contracts.md."""
     return {
         "timestamp": utc_now(),
-        "camera_id": CAMERA_ID,
+        "camera_id": camera_id,
         "frame_id": frame_id,
         "plugin_id": PLUGIN_ID,
         "model": model_name,
@@ -89,7 +133,7 @@ def publish(r: redis.Redis, message: dict):
     # one stream entry per frame; the whole message is JSON in the "data" field
     global _redis_down_since
     try:
-        r.xadd(STREAM_KEY, {"data": json.dumps(message)}, maxlen=1000)
+        r.xadd(STREAM_KEY, {"data": json.dumps(message)}, maxlen=STREAM_MAXLEN, approximate=True)
     except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
         # A Redis restart must not stop detection (reopening the camera and loading the models takes
         # a while on the Jetson). Detections are live data, so the ones made meanwhile are dropped;
@@ -103,13 +147,13 @@ def publish(r: redis.Redis, message: dict):
         _redis_down_since = None
 
 
-def synthetic_frame(frame_id: int):
+def synthetic_frame(camera_id: str, frame_id: int):
     """Plain test image so test mode also produces snapshots and clips."""
     w, h = SYNTHETIC_FRAME_SIZE
     img = np.full((h, w, 3), 60, np.uint8)
     # bottom-left, so it doesn't sit under the dashboard's live-view overlay at the top
     cv2.putText(img, "SYNTHETIC TEST FRAME", (20, h - 45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 200), 2)
-    cv2.putText(img, f"{CAMERA_ID}  frame {frame_id}  {utc_now()}", (20, h - 18), cv2.FONT_HERSHEY_SIMPLEX,
+    cv2.putText(img, f"{camera_id}  frame {frame_id}  {utc_now()}", (20, h - 18), cv2.FONT_HERSHEY_SIMPLEX,
                 0.5, (200, 200, 200), 1)
     return img
 
@@ -121,30 +165,52 @@ def log_config(cfg: DetectionConfig):
         print(f"[CV] Plugin '{cfg.plugin_id}': {os.path.basename(m.model_path)} detects {m.thresholds}", flush=True)
 
 
-def run_test_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder, live: LiveView):
+@dataclass
+class Unit:
+    """One camera and everything that belongs to it."""
+    camera_id: str
+    live: LiveView
+    recorder: MediaRecorder
+    camera: Camera | None = None        # None in test mode
+    tracker: Tracker = field(default_factory=Tracker)
+    frame_id: int = 0
+    seen: int = 0                       # the camera's frame counter at the last frame processed
+    last: dict = field(default_factory=dict)   # model path -> its latest detections, reused on frames it skips
+    logged: tuple = (0.0, None)         # when and what was last logged
+
+
+def log_detections(unit: Unit, detections: list[dict]):
+    """What a camera sees, logged when it changes and at most every LOG_EVERY_S (not once per frame)."""
+    seen = tuple(sorted({(d.get("attributes") or {}).get("person_name") or d["class_name"] for d in detections}))
+    now = time.monotonic()
+    if seen != unit.logged[1] and now - unit.logged[0] >= 1 or (seen and now - unit.logged[0] >= LOG_EVERY_S):
+        unit.logged = (now, seen)
+        print(f"[CV] {unit.camera_id}: {', '.join(seen) or 'nothing'}", flush=True)
+
+
+def run_test_mode(r: redis.Redis, plugin: dict, units: list[Unit]):
     # No model in test mode: treat the plugin's own classes as the models' classes
     cfg = build_config(plugin, [dict(enumerate(spec.get("classes", {}))) for spec in model_specs(plugin)])
     log_config(cfg)
-    live.set_model("synthetic")
-    live.set_frame_size(*SYNTHETIC_FRAME_SIZE)
-    print(f"[CV] TEST MODE — synthetic detections at {SYNTHETIC_FPS} fps, "
+    for unit in units:
+        unit.live.set_model("synthetic")
+        unit.live.set_frame_size(*SYNTHETIC_FRAME_SIZE)
+    print(f"[CV] TEST MODE — synthetic detections at {SYNTHETIC_FPS} fps on {[u.camera_id for u in units]}, "
           f"each scene held for {SCENARIO_SECONDS} s", flush=True)
-    frame_id = 0
+    per_scene = SYNTHETIC_FPS * SCENARIO_SECONDS
 
     while True:
-        scene = frame_id // (SYNTHETIC_FPS * SCENARIO_SECONDS)
-        detections = [o for o in SYNTHETIC_SCENARIOS[scene % len(SYNTHETIC_SCENARIOS)]
-                      if cfg.keep(o["class_name"], o["confidence"])]
-        new_scene = frame_id % (SYNTHETIC_FPS * SCENARIO_SECONDS) == 0
-        frame_id += 1
-        message = detection_message(frame_id, detections, "synthetic", SYNTHETIC_FRAME_SIZE)
-        recorder.add(frame_id, synthetic_frame(frame_id), message["detections"])
-        publish(r, message)
-        live.frame_processed()
-
-        if new_scene:
-            print(f"[CV] Synthetic scene: {[d['class_name'] for d in detections] or 'no detections'}", flush=True)
-
+        for n, unit in enumerate(units):
+            # each camera starts at a different scene, so they don't all show the same thing
+            scene = unit.frame_id // per_scene + n * 2
+            detections = [o for o in SYNTHETIC_SCENARIOS[scene % len(SYNTHETIC_SCENARIOS)]
+                          if cfg.keep(o["class_name"], o["confidence"])]
+            unit.frame_id += 1
+            message = detection_message(unit.camera_id, unit.frame_id, detections, "synthetic", SYNTHETIC_FRAME_SIZE)
+            unit.recorder.add(unit.frame_id, synthetic_frame(unit.camera_id, unit.frame_id), message["detections"])
+            publish(r, message)
+            unit.live.frame_processed()
+            log_detections(unit, detections)
         time.sleep(1 / SYNTHETIC_FPS)
 
 
@@ -165,22 +231,35 @@ def classify_people(model, cfg_model, frame, detections: list[dict], scale: floa
     """Classifier with crop_from (e.g. the smoking-act model): classify each person's head and upper body,
     and report that region as a box of each class over its threshold (e.g. "smoking")."""
     h, w = frame.shape[:2]
-    people = [[v / scale for v in d["bbox"]] for d in detections if d["class_name"] == cfg_model.crop_from]
-    people = [b for b in people if b[3] - b[1] >= MIN_PERSON_PX]
+    # the person's attributes (who they are) go onto what is found on them, e.g. the "smoking" box
+    people = [([v / scale for v in d["bbox"]], d.get("attributes") or {})
+              for d in detections if d["class_name"] == cfg_model.crop_from]
+    people = [p for p in people if p[0][3] - p[0][1] >= MIN_PERSON_PX]
     found = []
-    for box in sorted(people, key=lambda b: b[3] - b[1], reverse=True)[:MAX_PEOPLE]:
+    for box, attributes in sorted(people, key=lambda p: p[0][3] - p[0][1], reverse=True)[:MAX_PEOPLE]:
         region = upper_body_box(box, w, h)
         # one crop at a time: the TensorRT build takes a batch of 1
         probs = model.predict(cut(frame, region, cfg_model.crop), imgsz=cfg_model.imgsz,
                               verbose=False)[0].probs.data.tolist()
         x1, y1, x2, y2 = max(region[0], 0), max(region[1], 0), min(region[2], w), min(region[3], h)
         found += [{"class_name": model.names[i], "confidence": round(p, 3),
-                   "bbox": [round(v * scale, 1) for v in (x1, y1, x2, y2)]}
+                   "bbox": [round(v * scale, 1) for v in (x1, y1, x2, y2)], "attributes": dict(attributes)}
                   for i, p in enumerate(probs) if cfg_model.keep(model.names[i], p)]
     return found
 
 
-def run_live_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder, live: LiveView):
+def identify_people(faces: FaceIdentifier, unit: Unit, frame, detections: list[dict], subject: str):
+    """Follows each person across frames and adds who they are (attributes) once face recognition knows."""
+    people = [d for d in detections if d["class_name"] == subject]
+    now = time.time()
+    ids, gone = unit.tracker.update([d["bbox"] for d in people], now)
+    faces.forget(unit.camera_id, gone)
+    for d, track_id in zip(people, ids):
+        faces.observe(unit.camera_id, track_id, frame, d["bbox"], now)
+        d["attributes"] = {"track_id": track_id, **faces.identity(unit.camera_id, track_id)}
+
+
+def run_live_mode(r: redis.Redis, plugin: dict, units: list[Unit], settings: list[dict], faces: FaceIdentifier):
     from ultralytics import YOLO
 
     check_main_model(plugin, MODELS_DIR, MODEL_OVERRIDE, USE_ENGINE)
@@ -190,34 +269,54 @@ def run_live_mode(r: redis.Redis, plugin: dict, recorder: MediaRecorder, live: L
     cfg = build_config(plugin, [loaded[p].names if p in loaded else None for p in paths], MODELS_DIR,
                        MODEL_OVERRIDE, USE_ENGINE)
     log_config(cfg)
-    camera = Camera(SOURCE, CAMERA_SIZE, decode=CAMERA_DECODE, controls=CAMERA_CONTROLS)
-    print(f"[CV] LIVE MODE — source={SOURCE}  models={[m.model_path for m in cfg.models]}", flush=True)
-
     # e.g. "construction_ppe.engine+smoking.engine" when an extra model runs too
     model_name = "+".join(os.path.basename(m.model_path) for m in cfg.models)
-    live.set_model(model_name)
-    live.set_frame_size(*camera.frame_size)
-    last = {}   # model path -> its latest detections, reused on frames it skips (every_n_frames)
-    for frame_id, frame in enumerate(camera.frames(), start=1):
-        detections = []
-        for m in cfg.models:   # main model, then each extra model (e.g. smoking) on the same frame
-            if (frame_id - 1) % m.every_n_frames == 0:
-                model = loaded[m.model_path]
-                if m.crop_from:   # the main model's people are already in detections
-                    last[m.model_path] = classify_people(model, m, frame, detections, camera.scale)
-                else:
-                    boxes = model.predict(frame, conf=m.min_confidence, classes=m.class_ids, imgsz=m.imgsz,
-                                          verbose=False)[0].boxes
-                    last[m.model_path] = detect(model, m, boxes, camera.scale)
-            detections += last[m.model_path]
+    # the people face recognition names: the class person classifiers crop, else the plugin's person class
+    subject = next((m.crop_from for m in cfg.models if m.crop_from), None) or next(
+        (name for name in cfg.models[0].thresholds if name.lower() == "person"), None)
 
-        message = detection_message(frame_id, detections, model_name, camera.frame_size)
-        recorder.add(frame_id, frame, message["detections"], 1 / camera.scale)
-        publish(r, message)
-        live.frame_processed()
+    new_frame = threading.Event()   # set by any camera: one loop waits on all of them
+    for unit, c in zip(units, settings):
+        unit.camera = Camera(c["source"], c["size"], decode=c["decode"], controls=c["controls"] or "", wake=new_frame)
+        unit.live.set_model(model_name)
+    print(f"[CV] LIVE MODE — cameras={[(u.camera_id, u.camera.name) for u in units]}  "
+          f"models={[m.model_path for m in cfg.models]}", flush=True)
 
-        if detections:
-            print(f"[CV] Detected: {[d['class_name'] for d in detections]}", flush=True)
+    while units:
+        new_frame.clear()
+        busy = False
+        for unit in list(units):
+            frame = unit.camera.poll(unit.seen)
+            if frame is None:
+                if unit.camera.ended:
+                    print(f"[CV] {unit.camera_id}: the video has ended", flush=True)
+                    units.remove(unit)
+                continue
+            busy = True
+            unit.seen = frame.n
+            unit.frame_id += 1
+            unit.live.set_frame_size(*unit.camera.frame_size)
+            detections = []
+            for m in cfg.models:   # main model, then each extra model (e.g. smoking) on the same frame
+                if (unit.frame_id - 1) % m.every_n_frames == 0:
+                    model = loaded[m.model_path]
+                    if m.crop_from:   # the main model's people are already in detections
+                        unit.last[m.model_path] = classify_people(model, m, frame.image, detections, frame.scale)
+                    else:
+                        boxes = model.predict(frame.image, conf=m.min_confidence, classes=m.class_ids, imgsz=m.imgsz,
+                                              verbose=False)[0].boxes
+                        unit.last[m.model_path] = detect(model, m, boxes, frame.scale)
+                        if m is cfg.models[0] and subject:
+                            identify_people(faces, unit, frame, unit.last[m.model_path], subject)
+                detections += unit.last.get(m.model_path, [])
+
+            message = detection_message(unit.camera_id, unit.frame_id, detections, model_name, unit.camera.frame_size)
+            unit.recorder.add(unit.frame_id, frame.image, message["detections"], 1 / frame.scale)
+            publish(r, message)
+            unit.live.frame_processed()
+            log_detections(unit, detections)
+        if not busy:
+            new_frame.wait(timeout=1)
 
 
 def main():
@@ -225,17 +324,24 @@ def main():
         plugin = load_plugin(PLUGINS_DIR, PLUGIN_ID)
     except PluginError as e:
         raise SystemExit(f"[CV] {e}")
+    settings = camera_settings()
 
     r = redis.from_url(REDIS_URL, decode_responses=True)
-    live = LiveView(REDIS_URL, CAMERA_ID, PLUGIN_ID, "test" if TEST_MODE else "live", CAMERA_LOCATION)
-    recorder = MediaRecorder(MEDIA_DIR, REDIS_URL, CAMERA_ID, live_view=live)
-    recorder.start()
+    units = []
+    for c in settings:
+        live = LiveView(REDIS_URL, c["id"], PLUGIN_ID, "test" if TEST_MODE else "live", c.get("location"))
+        units.append(Unit(c["id"], live, MediaRecorder(MEDIA_DIR, c["id"], live_view=live)))
+    MediaListener(REDIS_URL, {u.camera_id: u.recorder for u in units}, MEDIA_DIR,
+                  os.getenv("DETECTOR_ID") or units[0].camera_id).start()
+    # in test mode too: the console's People page still learns how each enrolled photo did
+    faces = FaceIdentifier(REDIS_URL)
+    print(f"[CV] Face recognition: {faces.status}", flush=True)
 
     try:
         if TEST_MODE:
-            run_test_mode(r, plugin, recorder, live)
+            run_test_mode(r, plugin, units)
         else:
-            run_live_mode(r, plugin, recorder, live)
+            run_live_mode(r, plugin, units, settings, faces)
     except PluginError as e:
         raise SystemExit(f"[CV] Invalid plugin: {e}")
 

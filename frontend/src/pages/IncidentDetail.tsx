@@ -9,7 +9,7 @@ import { Card, ErrorState, SeverityBadge, Spinner, StatusBadge } from "../compon
 import { useAuth } from "../lib/auth";
 import { formatDateTime, formatDuration, timeAgo } from "../lib/format";
 import { bilingual, useLang, useText } from "../lib/i18n";
-import { classLabel, incidentTitle, itemLabel, joinList, joinParts, severityLabel, usePluginText } from "../lib/terms";
+import { classLabel, incidentPeople, incidentTitle, itemLabel, joinList, joinParts, severityLabel, usePluginText } from "../lib/terms";
 
 const TEXT = bilingual(
   {
@@ -70,6 +70,7 @@ const TEXT = bilingual(
       detected: "Detected",
       duration: "Duration",
       camera: "Camera",
+      who: "Who",
       zone: "Zone",
       rule: "Rule",
       missing: "Missing equipment",
@@ -138,6 +139,7 @@ const TEXT = bilingual(
       detected: "وقت الرصد",
       duration: "المدة",
       camera: "الكاميرا",
+      who: "من",
       zone: "المنطقة",
       rule: "القاعدة",
       missing: "المعدات الناقصة",
@@ -423,7 +425,7 @@ export function IncidentDetail() {
         title={incidentTitle(i)}
         image={mediaUrl(i.snapshot_url)}
         back={back}
-        subtitle={joinParts([location ?? i.camera_id, timeAgo(i.received_at), t.lasted(formatDuration(i.duration_seconds))])}
+        subtitle={joinParts([incidentPeople(i).length ? joinList(incidentPeople(i)) : null, location ?? i.camera_id, timeAgo(i.received_at), t.lasted(formatDuration(i.duration_seconds))])}
         actions={<SeverityBadge severity={i.severity} />}
       />
 
@@ -450,6 +452,7 @@ export function IncidentDetail() {
               <Row label={t.rows.detected}>{formatDateTime(i.timestamp)}</Row>
               <Row label={t.rows.duration}>{formatDuration(i.duration_seconds)}</Row>
               <Row label={t.rows.camera}>{i.camera_id}</Row>
+              <Row label={t.rows.who}>{incidentPeople(i).length ? joinList(incidentPeople(i)) : "—"}</Row>
               <Row label={t.rows.zone}>{plugin.zoneName(m.zone_id, m.zone_name ?? null) ?? "—"}</Row>
               <Row label={t.rows.rule}>{m.rule_id ?? "—"}</Row>
               <Row label={t.rows.missing}>

@@ -56,6 +56,9 @@ The camera is opened by its stable name (`/dev/v4l/by-id/...-video-index0`): aft
 back as `/dev/video1`. The container sees all of `/dev` with permission for video devices, and the detector
 reopens the camera and re-applies its settings (50 Hz anti-flicker) by itself.
 
+More cameras: `docs/cameras.md`. Face recognition: `docs/faces.md` (run `scripts/get-face-models.sh
+~/sitesentry/models` on the Jetson once).
+
 ## Speed and power
 
 `benchmark.sh` runs `benchmark.py` in the container and logs board power with `tegrastats` (VDD_IN = whole

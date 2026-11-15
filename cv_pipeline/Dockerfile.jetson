@@ -11,7 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends v4l-utils \
 RUN pip install --no-cache-dir "redis>=5.0.0"
 COPY requirements-media.txt .
 RUN pip install --no-cache-dir -r requirements-media.txt
+# face recognition (faces.py) runs ArcFace with onnxruntime. The Ultralytics Jetson image normally has it
+# (with CUDA); only install the CPU build if it is missing, and carry on without it if that fails
+# (faces.py then falls back to OpenCV).
+RUN python3 -c "import onnxruntime" 2>/dev/null || pip install --no-cache-dir "onnxruntime>=1.17" || true
 
-COPY main.py plugin_config.py media.py live_view.py camera.py person_crops.py .
+COPY *.py ./
 
 CMD ["python3", "main.py"]

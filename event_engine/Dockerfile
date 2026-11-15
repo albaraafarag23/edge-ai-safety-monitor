@@ -7,4 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY main.py rules.py .
 
+USER 1000:1000
+
 CMD ["python", "main.py"]

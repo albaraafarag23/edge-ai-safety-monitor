@@ -10,6 +10,7 @@ Roles: admin (everything, including users), supervisor (handles incidents), view
 
 The ai_reporting service isn't a browser user: it sends INTERNAL_API_TOKEN in X-Internal-Token.
 """
+import asyncio
 import base64
 import collections
 import hashlib
@@ -30,6 +31,8 @@ SESSION_HOURS = float(os.getenv("SESSION_HOURS", "12"))
 # true behind HTTPS. Browsers also accept Secure cookies on http://localhost, so true works locally too.
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 INTERNAL_API_TOKEN = os.getenv("INTERNAL_API_TOKEN", "")
+if INTERNAL_API_TOKEN == "dev-internal-token":
+    print("[Auth] INTERNAL_API_TOKEN is the example value: set a random one in .env before going public", flush=True)
 MIN_PASSWORD_LENGTH = 8
 
 AUTH_SECRET = os.getenv("AUTH_SECRET", "")
@@ -63,6 +66,8 @@ def verify_password(password: str, stored: str) -> bool:
 def check_password_rules(password: str):
     if len(password) < MIN_PASSWORD_LENGTH:
         raise HTTPException(status_code=422, detail=f"Password must be at least {MIN_PASSWORD_LENGTH} characters")
+    if len(password) > 1000:
+        raise HTTPException(status_code=422, detail="Password is too long")
 
 
 # checked when the email doesn't exist, so a wrong email takes as long as a wrong password
@@ -177,10 +182,11 @@ def clear_session_cookie(response: Response):
 async def authenticate(email: str, password: str) -> User | None:
     async with SessionLocal() as session:
         user = await session.scalar(select(User).where(User.email == email.strip().lower()))
+        # hashing takes ~50 ms of CPU: in a thread, so sign-in attempts can't stall every other request
         if not user or not user.active:
-            verify_password(password, _DUMMY_HASH)
+            await asyncio.to_thread(verify_password, password, _DUMMY_HASH)
             return None
-        if not verify_password(password, user.password_hash):
+        if not await asyncio.to_thread(verify_password, password, user.password_hash):
             return None
         user.last_login_at = datetime.utcnow()
         await session.commit()

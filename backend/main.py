@@ -9,13 +9,15 @@ from typing import Literal
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
-from pydantic import BaseModel
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select, text
+from urllib.parse import urlsplit
 
 import analytics
 import auth
 import cameras
+import people
 import rule_settings
 import zone_settings
 import users
@@ -39,13 +41,13 @@ class ReportIn(BaseModel):
 
 
 class LoginIn(BaseModel):
-    email: str
-    password: str
+    email: str = Field(max_length=200)
+    password: str = Field(max_length=1000)
 
 
 class StatusIn(BaseModel):
     status: Literal["open", "acknowledged", "resolved"]
-    note: str | None = None
+    note: str | None = Field(None, max_length=2000)
 
 
 async def ensure_group(r: aioredis.Redis):
@@ -73,7 +75,7 @@ async def consume_incidents(r: aioredis.Redis):
             if not messages:
                 continue
 
-            handled, stored = [], []
+            handled, stored, seen = [], [], set()
             async with SessionLocal() as session:
                 for _, events in messages:
                     for msg_id, data in events:
@@ -82,11 +84,14 @@ async def consume_incidents(r: aioredis.Redis):
                             continue
                         try:
                             row = Incident.from_contract(json.loads(data["data"]))
-                        except (KeyError, json.JSONDecodeError) as e:
+                        except (KeyError, TypeError, ValueError) as e:
+                            # skipped for good: a message that can't be stored would otherwise fail the whole
+                            # batch's commit and be re-read forever, blocking every incident behind it
                             print(f"[Backend] Skipping message {msg_id}: not in the contract format ({e})", flush=True)
                             continue
                         # a redelivered incident may already be stored (and acknowledged/resolved since)
-                        if await session.get(Incident, row.event_id) is None:
+                        if row.event_id not in seen and await session.get(Incident, row.event_id) is None:
+                            seen.add(row.event_id)
                             session.add(row)
                             stored.append(row)
                 # acknowledge only after the commit succeeds; a failed save is re-read from the backlog
@@ -115,9 +120,11 @@ async def lifespan(app: FastAPI):
         await conn.execute(text("ALTER TABLE reports ADD COLUMN IF NOT EXISTS markdown_ar TEXT"))
         await conn.execute(text("ALTER TABLE incidents ADD COLUMN IF NOT EXISTS status_updated_by VARCHAR"))
     await auth.ensure_admin()
+    await zone_settings.import_old_drawings()
 
     r = aioredis.from_url(REDIS_URL, decode_responses=True)
     cameras.init(REDIS_URL)
+    people.init(REDIS_URL)
     task = asyncio.create_task(consume_incidents(r))
     switches_task = asyncio.create_task(rule_settings.keep_synced(REDIS_URL))
     zones_task = asyncio.create_task(zone_settings.keep_synced(REDIS_URL))
@@ -129,21 +136,40 @@ async def lifespan(app: FastAPI):
     zones_task.cancel()
     await r.aclose()
     await cameras.close()
+    await people.close()
     await rule_settings.close()
     await zone_settings.close()
 
 
-app = FastAPI(title="Safety Monitor API", version="1.2.0", lifespan=lifespan)
+app = FastAPI(title="Safety Monitor API", version="1.3.0", lifespan=lifespan)
 
-# The dashboard is served from the same origin (nginx / Vite proxy /api), so CORS only matters
-# for other tools; credentials (the session cookie) are never sent cross-origin.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["X-Total-Count"],
-)
+# The dashboard is served from the same origin (nginx / Vite proxy /api), so no other site needs to call the
+# API from a browser. CORS_ORIGINS (comma-separated) opens it to named origins, e.g. a dashboard on another host.
+CORS_ORIGINS = [o.strip().rstrip("/") for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+# hosts the console is reached at besides the request's own Host header: its public address (CONSOLE_URL)
+OWN_HOSTS = {urlsplit(o).hostname for o in [os.getenv("CONSOLE_URL", ""), *CORS_ORIGINS] if urlsplit(o).hostname}
+if CORS_ORIGINS:
+    app.add_middleware(CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"],
+                       expose_headers=["X-Total-Count"])
+
+
+@app.middleware("http")
+async def same_site_changes_only(request: Request, call_next):
+    """A change (POST, PATCH, PUT, DELETE) sent by a browser must come from the console's own pages.
+
+    Browsers put the page's address in the Origin header of such requests. If it names another site, that site
+    is trying to act with the visitor's session (cross-site request forgery): refused, on top of the session
+    cookie's SameSite=Lax. Requests without Origin (ai_reporting, curl, scripts) aren't from a browser page."""
+    origin = request.headers.get("origin")
+    if origin and request.method not in ("GET", "HEAD", "OPTIONS"):
+        # host names only: another port on the same host shares the cookie anyway
+        hosts = {urlsplit(f"//{h.strip()}").hostname for name in ("host", "x-forwarded-host")
+                 for h in request.headers.get(name, "").split(",") if h.strip()}
+        if urlsplit(origin).hostname not in hosts | OWN_HOSTS:
+            return JSONResponse({"detail": "Request from another site refused"}, status_code=403)
+    return await call_next(request)
+
+
 MEDIA_ROOT = Path(MEDIA_DIR).resolve()
 MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
 
@@ -202,10 +228,11 @@ async def list_incidents(
     response: Response,
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
-    severity: str | None = None,
-    camera_id: str | None = None,
-    event_type: str | None = None,
-    status: str | None = None,
+    severity: str | None = Query(None, max_length=20),
+    camera_id: str | None = Query(None, max_length=40),
+    event_type: str | None = Query(None, max_length=60),
+    status: str | None = Query(None, max_length=20),
+    person_id: str | None = Query(None, max_length=80, description="only incidents this recognised person was in"),
     hours: float | None = Query(None, gt=0, description="only incidents received in the last N hours"),
 ):
     filters = []
@@ -219,6 +246,8 @@ async def list_incidents(
         filters.append(Incident.status == status)
     if hours:
         filters.append(Incident.created_at >= datetime.utcnow() - timedelta(hours=hours))
+    if person_id:
+        filters.append(Incident.meta["people"].contains([{"person_id": person_id}]))
 
     async with SessionLocal() as session:
         total = await session.scalar(select(func.count()).select_from(Incident).where(*filters))
@@ -345,5 +374,6 @@ protected.include_router(analytics.router)
 app.include_router(analytics.internal_router, dependencies=[Depends(auth.internal_service)])
 protected.include_router(rule_settings.router)
 protected.include_router(users.router)
+protected.include_router(people.router)
 app.include_router(users.account)
 app.include_router(protected)

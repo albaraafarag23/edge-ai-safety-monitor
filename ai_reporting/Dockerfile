@@ -7,4 +7,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY main.py report.py notify.py email_template.py outbox.py digest.py ./
 
+USER 1000:1000
+
 CMD ["python", "main.py"]

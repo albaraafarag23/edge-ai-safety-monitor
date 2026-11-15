@@ -93,6 +93,15 @@ async def console(page: Page):
 
     await page.goto(URL + "/app/cameras")
     await page.wait_for_timeout(2500)
+    wall = page.get_by_text("Every camera, refreshed each second")
+    if await wall.count():   # several cameras: all of them first, then one is picked
+        tiles = page.locator("main ul button")
+        check("cameras: the wall shows every camera", await tiles.count() >= 2, f"{await tiles.count()} tiles")
+        await page.wait_for_timeout(1500)
+        check("cameras: the wall's pictures load", await page.locator("main ul button img").count() >= 1)
+        await tiles.first.click()
+        await page.wait_for_timeout(2000)
+        check("cameras: picking one opens it, with a way back", await page.get_by_role("button", name="All cameras").is_visible())
     check("cameras: danger map or its empty note", await page.get_by_text("Where incidents happen").is_visible())
     edit = page.get_by_role("button", name="Edit zones")
     if await edit.count():
@@ -106,6 +115,10 @@ async def console(page: Page):
     await page.goto(URL + "/app/no-such-page")
     await page.wait_for_timeout(1000)
     check("console 404: friendly page", await page.get_by_text("This page isn't here").is_visible())
+
+    await page.goto(URL + "/app/people")
+    await page.wait_for_timeout(2000)
+    check("people: page opens with the photo guide (admins)", await page.get_by_text("Photos that work").is_visible())
 
     for path in ("/app/cameras", "/app/analytics", "/app/notifications", "/app/rules"):
         await page.goto(URL + path)
@@ -123,7 +136,7 @@ async def arabic(page: Page):
 
 
 async def phone(page: Page):
-    for path in ("/", "/app", "/app/incidents", "/app/cameras", "/app/analytics", "/app/rules"):
+    for path in ("/", "/app", "/app/incidents", "/app/cameras", "/app/analytics", "/app/rules", "/app/people"):
         await page.goto(URL + path)
         await page.wait_for_timeout(1500)
         extra = await no_overflow(page)

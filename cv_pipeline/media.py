@@ -1,11 +1,14 @@
-"""Saves a snapshot and a short video clip for every incident on this camera.
+"""Saves a snapshot and a short video clip for every incident, per camera.
 
-The detector keeps the last BUFFER_SECONDS of frames (with boxes drawn on them) in memory,
-downscaled and JPEG-compressed so it stays small (~10 MB). A background thread listens on
-the incidents stream. For each incident on this camera it writes:
+Each camera has a MediaRecorder that keeps the last BUFFER_SECONDS of frames (with boxes drawn on them)
+in memory, downscaled and JPEG-compressed so it stays small (~10 MB). Shrinking, drawing and compressing
+happen in the recorder's own thread, not in the detector loop, so they don't cost detection speed.
+One MediaListener thread listens on the incidents stream. For each incident on one of this detector's
+cameras, that camera's recorder writes:
   - the frame the rule fired on -> incident["snapshot_url"]
   - PRE_SECONDS before to POST_SECONDS after that frame -> incident["clip_url"]
 Files are written under a temporary name and renamed, so readers never see half a file.
+With MEDIA_KEEP_DAYS set, snapshots and clips older than that are deleted (off by default: kept forever).
 """
 import collections
 import json
@@ -25,6 +28,9 @@ MAX_WIDTH = 960        # buffered frames are downscaled to this width
 PRE_SECONDS = 5
 POST_SECONDS = 3
 INCIDENT_STREAM = "incidents"
+# days to keep snapshots and clips; empty = forever. An always-on device fills its disk eventually.
+MEDIA_KEEP_DAYS = float(os.getenv("MEDIA_KEEP_DAYS") or 0)
+CLEAN_EVERY_S = 3600
 
 # ffmpeg with the libx264 encoder, bundled by the imageio-ffmpeg package. H.264 plays in every
 # browser and email app; OpenCV's own pip build can only write MPEG-4, which browsers won't play.
@@ -49,6 +55,9 @@ def annotate(image, detections, scale):
         color = COLORS.get(d["class_name"], DEFAULT_COLOR)
         cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
         label = LABELS.get(d["class_name"], d["class_name"])
+        name = (d.get("attributes") or {}).get("person_name")
+        if name and name.isascii():   # OpenCV's built-in font has Latin letters only
+            label = name
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         cv2.rectangle(image, (x1, max(y1 - th - 6, 0)), (x1 + tw + 4, max(y1, th + 6)), color, -1)
         cv2.putText(image, label, (x1 + 2, max(y1 - 4, th + 2)), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
@@ -67,22 +76,41 @@ def _atomic_write(path: Path, write):
 
 
 class MediaRecorder:
-    def __init__(self, media_dir: str, redis_url: str, camera_id: str, live_view=None):
+    def __init__(self, media_dir: str, camera_id: str, live_view=None):
         self.media_dir = Path(media_dir)
         self.live_view = live_view  # optional LiveView: gets every buffered frame for the dashboard
-        self.redis_url = redis_url
         self.camera_id = camera_id
         self._frames = collections.deque()   # (frame_id, time, jpeg bytes)
         self._lock = threading.Lock()
         self._last_add = 0.0
+        self._next = None                    # the newest frame waiting to be buffered
+        self._wake = threading.Event()
+        threading.Thread(target=self._work, daemon=True, name=f"media-{camera_id}").start()
 
     # ---------- called by the detector for every frame ----------
     def add(self, frame_id: int, image, detections: list[dict], box_scale: float = 1.0):
-        """box_scale maps detection boxes onto `image` (0.5 when the frame was decoded at half the camera size)."""
+        """box_scale maps detection boxes onto `image` (0.5 when the frame was decoded at half the camera size).
+        Returns at once: the frame is buffered by the recorder's thread. `image` must not be changed afterwards."""
         now = time.time()
         if now - self._last_add < 1 / BUFFER_FPS:
             return
         self._last_add = now
+        self._next = (frame_id, now, image, detections, box_scale)
+        self._wake.set()
+
+    def _work(self):
+        while True:
+            self._wake.wait()
+            self._wake.clear()
+            item, self._next = self._next, None
+            if item is None:
+                continue
+            try:
+                self._buffer(*item)
+            except Exception as e:   # one bad frame must not stop the recorder
+                print(f"[CV] Media: could not buffer a frame of {self.camera_id}: {e}", flush=True)
+
+    def _buffer(self, frame_id: int, now: float, image, detections: list[dict], box_scale: float):
         h, w = image.shape[:2]
         scale = min(1.0, MAX_WIDTH / w)
         small = cv2.resize(image, (int(w * scale), int(h * scale))) if scale < 1 else image.copy()
@@ -90,55 +118,22 @@ class MediaRecorder:
         ok, jpg = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 85])
         if not ok:
             return
+        data = jpg.tobytes()
         if self.live_view:
-            self.live_view.publish(jpg.tobytes(), annotated.shape[1], annotated.shape[0])
+            self.live_view.publish(data, annotated.shape[1], annotated.shape[0])
         with self._lock:
-            self._frames.append((frame_id, now, jpg.tobytes()))
+            self._frames.append((frame_id, now, data))
             while self._frames and self._frames[0][1] < now - BUFFER_SECONDS:
                 self._frames.popleft()
-
-    # ---------- incident listener ----------
-    def start(self):
-        threading.Thread(target=self._listen, daemon=True, name="media-listener").start()
-
-    def _listen(self):
-        r = redis.from_url(self.redis_url, decode_responses=True)
-        group = f"media_{self.camera_id}"
-        print(f"[CV] Media recorder ready ({MEDIA_SUMMARY}) -> {self.media_dir}", flush=True)
-        need_group = True
-        while True:
-            try:
-                if need_group:  # at start, and if Redis came back without the group
-                    try:
-                        r.xgroup_create(INCIDENT_STREAM, group, id="$", mkstream=True)
-                    except redis.exceptions.ResponseError as e:
-                        if "BUSYGROUP" not in str(e):
-                            raise
-                    need_group = False
-                messages = r.xreadgroup(group, "detector", {INCIDENT_STREAM: ">"}, count=10, block=1000)
-                for _, entries in messages or []:
-                    for msg_id, data in entries:
-                        try:
-                            incident = json.loads(data["data"])
-                            if incident.get("camera_id") == self.camera_id:
-                                self._save(incident)
-                        except Exception as e:  # never let one bad incident stop the recorder
-                            print(f"[CV] Media: could not save for message {msg_id}: {e}", flush=True)
-                        r.xack(INCIDENT_STREAM, group, msg_id)
-            except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
-                print(f"[CV] Media: Redis connection lost ({e}), retrying", flush=True)
-                time.sleep(2)
-            except redis.exceptions.ResponseError as e:
-                if "NOGROUP" not in str(e):
-                    raise
-                need_group = True
 
     def _path(self, url: str | None) -> Path | None:
         if not url or not url.startswith("/media/"):
             return None
-        return self.media_dir / url.removeprefix("/media/")
+        path = (self.media_dir / url.removeprefix("/media/")).resolve()
+        # an incident names its own files: never let that reach outside the media folder
+        return path if path.is_relative_to(self.media_dir.resolve()) else None
 
-    def _save(self, incident: dict):
+    def save(self, incident: dict):
         target = (incident.get("metadata") or {}).get("frame_id")
         with self._lock:
             frames = list(self._frames)
@@ -211,5 +206,71 @@ def _write_mpeg4(tmp: Path, images: list, fps: float) -> bool:
     return True
 
 
+class MediaListener:
+    """Hears every incident and has the right camera's recorder save its snapshot and clip.
+
+    `name` makes the consumer group: each detector process hears every incident, also when several detectors
+    (e.g. two Jetsons) share one Redis, and saves only those of its own cameras."""
+
+    def __init__(self, redis_url: str, recorders: dict[str, MediaRecorder], media_dir: str, name: str):
+        self.redis_url, self.recorders = redis_url, recorders
+        self.media_dir, self.group = Path(media_dir), f"media_{name}"
+
+    def start(self):
+        threading.Thread(target=self._listen, daemon=True, name="media-listener").start()
+
+    def _listen(self):
+        r = redis.from_url(self.redis_url, decode_responses=True)
+        print(f"[CV] Media recorder ready ({MEDIA_SUMMARY}) -> {self.media_dir}", flush=True)
+        need_group = True
+        last_clean = 0.0
+        while True:
+            try:
+                if need_group:  # at start, and if Redis came back without the group
+                    try:
+                        r.xgroup_create(INCIDENT_STREAM, self.group, id="$", mkstream=True)
+                    except redis.exceptions.ResponseError as e:
+                        if "BUSYGROUP" not in str(e):
+                            raise
+                    need_group = False
+                messages = r.xreadgroup(self.group, "detector", {INCIDENT_STREAM: ">"}, count=10, block=1000)
+                for _, entries in messages or []:
+                    for msg_id, data in entries:
+                        try:
+                            incident = json.loads(data["data"])
+                            recorder = self.recorders.get(incident.get("camera_id"))
+                            if recorder:
+                                recorder.save(incident)
+                        except Exception as e:  # never let one bad incident stop the recorder
+                            print(f"[CV] Media: could not save for message {msg_id}: {e}", flush=True)
+                        r.xack(INCIDENT_STREAM, self.group, msg_id)
+                if MEDIA_KEEP_DAYS and time.monotonic() - last_clean >= CLEAN_EVERY_S:
+                    last_clean = time.monotonic()
+                    remove_old_media(self.media_dir, MEDIA_KEEP_DAYS)
+            except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
+                print(f"[CV] Media: Redis connection lost ({e}), retrying", flush=True)
+                time.sleep(2)
+            except redis.exceptions.ResponseError as e:
+                if "NOGROUP" not in str(e):
+                    raise
+                need_group = True
+
+
+def remove_old_media(media_dir: Path, keep_days: float):
+    cutoff = time.time() - keep_days * 86400
+    removed = 0
+    for folder in ("snapshots", "clips"):
+        for file in (media_dir / folder).glob("evt_*"):
+            try:
+                if file.stat().st_mtime < cutoff:
+                    file.unlink()
+                    removed += 1
+            except OSError:
+                pass
+    if removed:
+        print(f"[CV] Media: removed {removed} file(s) older than {keep_days:g} days", flush=True)
+
+
 MEDIA_SUMMARY = (f"buffer {BUFFER_SECONDS}s @ {BUFFER_FPS} fps, clips {PRE_SECONDS}s before + {POST_SECONDS}s after, "
+                 f"{f'kept {MEDIA_KEEP_DAYS:g} days, ' if MEDIA_KEEP_DAYS else ''}"
                  f"{'H.264 via ffmpeg' if FFMPEG else 'MPEG-4 (ffmpeg not found)'}")

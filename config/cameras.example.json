@@ -1,0 +1,20 @@
+[
+  {
+    "id": "cam_01",
+    "source": "/dev/v4l/by-id/usb-Arducam_Technology_Co.__Ltd._Arducam_12MP_SN0001-video-index0",
+    "location": "Main gate",
+    "size": "1920x1080",
+    "decode": "half"
+  },
+  {
+    "id": "cam_02",
+    "source": "rtsp://user:password@192.168.1.60:554/stream1",
+    "location": "Yard"
+  },
+  {
+    "id": "cam_03",
+    "source": "/dev/video2",
+    "location": "Store room",
+    "enabled": false
+  }
+]

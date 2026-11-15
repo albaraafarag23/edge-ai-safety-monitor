@@ -19,7 +19,8 @@ SITE_TIMEZONE = os.getenv("SITE_TIMEZONE", "Africa/Cairo")
 # rule settings from the console: a Redis hash per plugin, rule_id -> JSON, written by the backend
 # (backend/rule_settings.py)
 SETTINGS_KEY = "rules:settings:{plugin_id}"
-# zones redrawn in the console: a Redis hash per plugin, zone_id -> {"polygon": [[x, y], ...]} as fractions (0-1)
+# zones drawn in the console: a Redis hash per plugin, "<camera_id>/<zone_id>" ->
+# {"camera_id", "zone_id", "polygon": [[x, y], ...]} with the points as fractions of the picture (0-1)
 ZONES_KEY = "zones:settings:{plugin_id}"
 SETTINGS_REFRESH_S = 2.0
 # wait between attempts while Redis is unreachable (doubles up to the maximum)
@@ -48,11 +49,13 @@ def refresh_settings(r, engine: RuleEngine):
             print(f"[EE] {plugin_id}: rule settings changed: {settings or 'none'}", flush=True)
         engine.settings[plugin_id] = settings
         zones = {}
-        for zone_id, raw in r.hgetall(ZONES_KEY.format(plugin_id=plugin_id)).items():
+        for field, raw in r.hgetall(ZONES_KEY.format(plugin_id=plugin_id)).items():
             try:
-                zones[zone_id] = json.loads(raw)["polygon"]
-            except (json.JSONDecodeError, KeyError, TypeError):
-                print(f"[EE] Ignoring unreadable zone {zone_id}", flush=True)
+                drawing = json.loads(raw)
+                # entries written before zones were per camera have no camera: they hold for every camera
+                zones.setdefault(drawing.get("zone_id", field), {})[drawing.get("camera_id", "*")] = drawing["polygon"]
+            except (json.JSONDecodeError, KeyError, TypeError, AttributeError):
+                print(f"[EE] Ignoring unreadable zone {field}", flush=True)
         if zones != engine.zones.get(plugin_id, {}):
             print(f"[EE] {plugin_id}: zones redrawn in the console: {sorted(zones) or 'none'}", flush=True)
         engine.zones[plugin_id] = zones
@@ -125,9 +128,15 @@ def run(r, engine: RuleEngine):
                     print(f"[EE] Skipping message {event_id}: not in the contract format", flush=True)
                     r.xack(DETECTION_STREAM, CONSUMER_GROUP, event_id)
                     continue
-                for incident in engine.process(detection):
+                try:
+                    incidents = engine.process(detection)
+                except Exception as e:   # one malformed message must not restart the engine (and lose its timers)
+                    print(f"[EE] Skipping message {event_id}: {type(e).__name__}: {e}", flush=True)
+                    r.xack(DETECTION_STREAM, CONSUMER_GROUP, event_id)
+                    continue
+                for incident in incidents:
                     r.xadd(INCIDENT_STREAM, {"data": json.dumps(incident)}, maxlen=1000)
-                    print(f"[EE] Incident {incident['event_id']}: {incident['event_type']}  "
+                    print(f"[EE] Incident {incident['event_id']}: {incident['camera_id']} {incident['event_type']}  "
                           f"severity={incident['severity']}  duration={incident['duration_seconds']}s", flush=True)
                 r.xack(DETECTION_STREAM, CONSUMER_GROUP, event_id)
 

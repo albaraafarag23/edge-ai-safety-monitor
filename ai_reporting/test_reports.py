@@ -66,6 +66,22 @@ check("English email is unchanged in shape", email_template.subject(INCIDENT) ==
 import digest
 from datetime import datetime
 
+# who was involved (face recognition, contracts v2.6)
+NAMED = {**INCIDENT, "metadata": {**INCIDENT["metadata"], "people": [
+    {"person_id": "omar-ahmed", "person_name": "Omar Ahmed", "person_name_ar": "عمر أحمد"}]}}
+check("Report names a recognised person, as something to confirm",
+      "Omar Ahmed" in generate_from_template(NAMED, en_actions, EVIDENCE) and
+      "People identified (automatic face recognition, to be confirmed): NOT SPECIFIED"
+      in generate_from_template(INCIDENT, en_actions, EVIDENCE))
+check("Arabic report uses the person's Arabic name", "عمر أحمد" in generate_from_template(NAMED, ar_actions, EVIDENCE, "ar", PLUGIN))
+check("Email says who was recognised, only when someone was",
+      "Recognised by the camera: Omar Ahmed" in email_template.facts(NAMED) and
+      not any("Recognised" in f for f in email_template.facts(INCIDENT)))
+check("A person's name can't inject HTML into the email",
+      "<script>" not in email_template.html_body(
+          {**NAMED, "metadata": {**NAMED["metadata"], "people": [{"person_id": "x", "person_name": "<script>x</script>"}]}},
+          generate_from_template(NAMED, en_actions, EVIDENCE), en_actions, None, False))
+
 SUMMARY = {
     "tz": "Africa/Cairo", "total": 12, "by_status": {"open": 3, "acknowledged": 2, "resolved": 7},
     "top_type": {"key": "PPE_MISSING", "count": 7}, "top_zone": {"key": "Excavation Edge", "count": 5},

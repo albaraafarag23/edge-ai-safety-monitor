@@ -106,6 +106,9 @@ export function incidentTitle(i: { event_type: string; metadata?: { missing_equi
   }
   return INCIDENT_TITLE[currentLang()][i.event_type] ?? eventTypeLabel(i.event_type);
 }
+/** The people face recognition identified in an incident, by name in the current language. */
+export const incidentPeople = (i: { metadata?: { people?: { person_name: string; person_name_ar?: string }[] } }): string[] =>
+  (i.metadata?.people ?? []).map((p) => (ar() && p.person_name_ar) || p.person_name);
 export const itemLabel = (item: string) => (ar() && ITEM_AR[item]) || humanizeItem(item);
 /** A detector class name as shown to people (the model's own name in English). */
 export const classLabel = (name: string) => (ar() && CLASS_AR[name]) || name;

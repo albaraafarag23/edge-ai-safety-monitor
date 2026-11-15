@@ -1,4 +1,4 @@
-import type { Analytics, Camera, FilterOptions, Incident, IncidentQuery, IncidentStatus, Report, Role, RuleChange, SafetyRule, SafetyRules, Stats, User, Zone } from "./types";
+import type { Analytics, Camera, FilterOptions, Incident, IncidentQuery, IncidentStatus, People, Person, PersonPhoto, Report, Role, RuleChange, SafetyRule, SafetyRules, Stats, User, Zone } from "./types";
 
 // All backend calls go through /api (proxied by Vite in dev and nginx in Docker).
 export const API_BASE = "/api";
@@ -55,6 +55,8 @@ export function mediaUrl(path: string | null | undefined): string | null {
 /** Live Motion-JPEG stream and latest still frame of a camera. */
 export const cameraStreamUrl = (id: string) => `${API_BASE}/cameras/${encodeURIComponent(id)}/stream`;
 export const cameraFrameUrl = (id: string) => `${API_BASE}/cameras/${encodeURIComponent(id)}/frame`;
+export const personPhotoUrl = (id: string, file: string) =>
+  `${API_BASE}/people/${encodeURIComponent(id)}/photos/${encodeURIComponent(file)}`;
 
 export const api = {
   me: async () => (await request<User>("/auth/me")).data,
@@ -83,11 +85,38 @@ export const api = {
   report: async (id: string) => (await request<Report>(`/incidents/${encodeURIComponent(id)}/report`)).data,
   stats: async (hours: number) => (await request<Stats>(`/stats${toQuery({ hours })}`)).data,
   rules: async () => (await request<SafetyRules>("/rules")).data,
-  zones: async () => (await request<Zone[]>("/zones")).data,
-  drawZone: async (zoneId: string, polygon: [number, number][]) =>
-    (await request<Zone>(`/zones/${encodeURIComponent(zoneId)}`, { method: "PUT", body: JSON.stringify({ polygon }) })).data,
-  resetZone: async (zoneId: string) =>
-    (await request<Zone>(`/zones/${encodeURIComponent(zoneId)}`, { method: "DELETE" })).data,
+  // zones are per camera: each camera sees a different part of the site
+  zones: async (cameraId: string) => (await request<Zone[]>(`/zones${toQuery({ camera_id: cameraId })}`)).data,
+  drawZone: async (cameraId: string, zoneId: string, polygon: [number, number][]) =>
+    (
+      await request<Zone>(`/zones/${encodeURIComponent(zoneId)}${toQuery({ camera_id: cameraId })}`, {
+        method: "PUT",
+        body: JSON.stringify({ polygon }),
+      })
+    ).data,
+  resetZone: async (cameraId: string, zoneId: string) =>
+    (await request<Zone>(`/zones/${encodeURIComponent(zoneId)}${toQuery({ camera_id: cameraId })}`, { method: "DELETE" })).data,
+  // people the cameras should recognise (admins only)
+  people: async () => (await request<People>("/people")).data,
+  addPerson: async (person: { name: string; name_ar?: string | null }) =>
+    (await request<Person>("/people", { method: "POST", body: JSON.stringify(person) })).data,
+  renamePerson: async (id: string, change: { name?: string; name_ar?: string | null }) =>
+    (await request<Person>(`/people/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify(change) })).data,
+  removePerson: async (id: string) => {
+    await request<void>(`/people/${encodeURIComponent(id)}`, { method: "DELETE" });
+  },
+  // the request body is the image itself
+  addPhoto: async (id: string, photo: Blob) =>
+    (
+      await request<PersonPhoto>(`/people/${encodeURIComponent(id)}/photos`, {
+        method: "POST",
+        body: photo,
+        headers: { "Content-Type": photo.type || "image/jpeg" },
+      })
+    ).data,
+  removePhoto: async (id: string, file: string) => {
+    await request<void>(`/people/${encodeURIComponent(id)}/photos/${encodeURIComponent(file)}`, { method: "DELETE" });
+  },
   changeRule: async (ruleId: string, change: RuleChange) =>
     (await request<SafetyRule>(`/rules/${encodeURIComponent(ruleId)}`, { method: "PATCH", body: JSON.stringify(change) }))
       .data,

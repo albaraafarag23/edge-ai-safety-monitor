@@ -19,11 +19,16 @@ another inference per frame, so check the FPS on the Jetson when adding one.
 ## `zones` section
 `{zone_id: {"name", "camera_id", "polygon": [[x, y], ...]}}` in pixels of that camera's image.
 A person is "in" a zone when the bottom-centre of their box (their feet) is inside the polygon.
-Admins and supervisors can redraw a zone on the camera picture in the console (Live cameras, "Edit zones"), for
-example once the camera is mounted. The drawing is stored as fractions of the picture (0-1) in Postgres
-(`zone_settings`) and the Redis hash `zones:settings:<plugin_id>`; the event engine scales it to each detection's
-`frame_size`, so it fits any camera resolution. "Back to the original shape" deletes it and the plugin polygon
-applies again (`backend/zone_settings.py`, `GET /zones`, `PUT` / `DELETE /zones/{zone_id}`).
+With several cameras, a zone belongs to the camera named in its `camera_id` (to every camera if it has none):
+each camera looks at a different part of the site, so on any other camera the zone doesn't exist, and rules that
+need it stay quiet there, until someone draws it for that camera.
+
+Admins and supervisors draw zones on a camera's picture in the console (Live cameras, pick the camera, "Edit
+zones"), for example once the camera is mounted, or to put an existing zone on a second camera. A drawing is
+stored per camera as fractions of the picture (0-1) in Postgres (`zone_drawings`) and the Redis hash
+`zones:settings:<plugin_id>`; the event engine scales it to each detection's `frame_size`, so it fits any camera
+resolution. "Back to the original shape" (or "Remove from this camera") deletes the drawing
+(`backend/zone_settings.py`, `GET /zones?camera_id=`, `PUT` / `DELETE /zones/{zone_id}?camera_id=`).
 
 ## `rules` section (read by `event_engine`)
 | `type` | Fires when | Extra fields |

@@ -1,5 +1,9 @@
 # Interface contracts
 
+Version 2.6 (2026-11-15): several cameras and face recognition. Additive only: nothing that reads the old
+fields breaks. A detector process may now send detections for more than one `camera_id`. `Person` detections
+carry `attributes.track_id` and, when face recognition knows them, who they are; incidents get
+`metadata.people`. Zone drawings in Redis are per camera (see "Zone drawings" below).
 Version 2.5 (2026-10-29): new detection class `smoking` from the smoking-act classifier (`smoking_act.pt`),
 replacing `cigarette` / `vape` from `smoking.pt`. Its `bbox` is the person's head and upper body (the region that
 was classified), not the cigarette. `SMOKING` incidents now cover cigarettes, vapes, pipes and shisha. Fields unchanged.
@@ -50,7 +54,7 @@ in pixels of the original camera frame.
 | `detections` | Only the plugin's classes, above that class's confidence threshold. Empty list if none |
 | `detection_id` | Unique within the frame only (`det_001`, `det_002`, …) |
 | `class_name` | Exactly as the model names it, e.g. `Person`, `Hardhat`, `NO-Hardhat`, `machinery` |
-| `attributes` | Reserved for per-object extras (tracking id, pose keypoints). Empty for now |
+| `attributes` | Per-object extras. On `Person` boxes: `track_id` (the same number while that person stays in view on that camera) and, from face recognition, `identity` (`"known"` or `"unknown"`; absent while undecided or when nobody is enrolled), and for a known person `person_id`, `person_name`, optional `person_name_ar`, `face_score` (0-1). Boxes found on a person (e.g. `smoking`) copy that person's attributes. Empty `{}` otherwise |
 
 PPE is sent as separate boxes (`Hardhat`, `NO-Hardhat`, …). The event engine matches them
 to people (see `ppe` rules in `docs/plugins.md`). The detector doesn't set `hard_hat: false`
@@ -98,6 +102,7 @@ attributes itself.
 | `clip_url` | Video from ~5 s before to ~3 s after. Same location rules as `snapshot_url` |
 | `metadata.zone_id`, `metadata.zone_name` | `null` for rules without a zone |
 | `metadata.missing_equipment` | Empty list for non-PPE rules |
+| `metadata.people` | Who face recognition identified among `objects_involved`: `[{"person_id", "person_name", "person_name_ar"?}]`, empty if nobody. An automatic identification: show it as something to confirm. Absent in incidents from before v2.6 |
 
 The event engine sets `snapshot_url` and `clip_url` when it creates the incident. The detector
 for that camera writes the files a moment later: the snapshot right away, the clip about 3 s later.
@@ -105,6 +110,14 @@ Consumers must allow for the file not existing yet, or never existing (e.g. the 
 
 The backend's `GET /incidents` and `GET /incidents/{event_id}` return this payload, plus
 `received_at` (when the backend stored it).
+
+## Zone drawings (backend → event_engine)
+Redis hash `zones:settings:<plugin_id>`: field `<camera_id>/<zone_id>`, value
+`{"camera_id": "cam_02", "zone_id": "excavation_edge", "polygon": [[x, y], ...]}` with the points as fractions of
+the picture (0-1). A drawing holds for that camera only. Without one, the plugin's polygon applies on the camera
+the plugin's zone names (every camera if it names none), and the zone doesn't exist on other cameras.
+(Before v2.6 the field was the zone id alone and the value had only `polygon`; the engine still reads that form
+as "every camera the plugin puts the zone on".)
 
 ## Report (ai_reporting → backend)
 `POST /reports`, read back with `GET /incidents/{event_id}/report` or `GET /reports`:

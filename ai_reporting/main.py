@@ -1,7 +1,7 @@
 """For each incident: write an AI report, store it in the backend, email it to the supervisor.
 
-Repeats of the same rule on the same camera within NOTIFY_COOLDOWN_S are recorded as
-duplicates instead of generating another report and email.
+Repeats of the same rule on the same camera (and the same recognised people, if any) within
+NOTIFY_COOLDOWN_S are recorded as duplicates instead of generating another report and email.
 Reports are written in each of REPORT_LANGUAGES (English always, Arabic by default too, at the same time);
 the email goes out in EMAIL_LANGUAGE.
 An email or report save that fails (network down, SMTP or backend unavailable) is retried from
@@ -185,7 +185,10 @@ def write_report(client, incident: dict, plugin: dict, actions: list[str], evide
 def handle(r, incident: dict, plugins: dict, client, last_notified: dict):
     event_id = incident["event_id"]
     meta = incident.get("metadata") or {}
-    key = (incident.get("camera_id"), meta.get("rule_id"))
+    # the same rule on the same camera is a repeat, unless face recognition names someone new:
+    # a second person without a hard hat is news even a minute after the first
+    who = tuple(sorted(str(p.get("person_id")) for p in meta.get("people") or [] if isinstance(p, dict)))
+    key = (incident.get("camera_id"), meta.get("rule_id"), who)
     now = time.time()
     previous = last_notified.get(key)
     if previous and now - previous[0] < NOTIFY_COOLDOWN_S:

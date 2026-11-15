@@ -1,14 +1,19 @@
-"""Reads the camera in a background thread and hands the detector the newest frame.
+"""Reads one camera in a background thread and hands the detector the newest frame.
 
 USB (UVC) cameras such as the Arducam IMX477 are opened in MJPEG mode at CAMERA_SIZE (OpenCV's default
 would be 640x480). The raw JPEG is decoded here rather than by OpenCV: with CAMERA_DECODE=half, libjpeg
 decodes straight to half size, which on the Jetson is what lets the detector keep up with all 30 fps
 (OpenCV's own decode managed ~17 fps at 1080p). A 960 px model sees the same detail either way, because a
 1920 px frame would be shrunk to 960 before inference anyway. `scale` maps boxes back to camera pixels,
-so detections keep the camera's frame size (docs/contracts.md).
+so detections keep the camera's frame size (docs/contracts.md). The raw JPEG stays with the frame, so the
+few things that need every pixel (face recognition) can decode it at full size (Frame.full()).
 
-Any other source (a video file, an RTSP URL) is read with plain cv2.VideoCapture at full size, at its own
-frame rate, so a recorded clip behaves like the live camera.
+Other sources are read with plain cv2.VideoCapture at full size:
+  - a network stream (rtsp://, http://, https://): live like a USB camera, reconnects when it drops
+  - a video file: played at its own frame rate, so a recorded clip behaves like the live camera; ends at the end
+
+A camera that is missing at start or drops out doesn't stop the detector: it is retried until it is back,
+so the other cameras keep running (its live view shows offline meanwhile).
 Measurements: jetson/README.md.
 """
 import os
@@ -16,19 +21,56 @@ import shutil
 import subprocess
 import threading
 import time
+from dataclasses import dataclass
 
 import cv2
+import numpy as np
 
 DECODE_FLAGS = {"full": cv2.IMREAD_COLOR, "half": cv2.IMREAD_REDUCED_COLOR_2}
+STREAM_PREFIXES = ("rtsp://", "rtsps://", "http://", "https://")
+# IP cameras: TCP avoids the grey smeared frames UDP gives on a busy network
+os.environ.setdefault("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp")
+
+
+class CameraError(Exception):
+    pass
+
+
+@dataclass
+class Frame:
+    image: np.ndarray            # what the models see (half size with CAMERA_DECODE=half)
+    scale: float                 # image pixels * scale = camera pixels
+    raw: np.ndarray | None       # the camera's JPEG bytes, when the frame was decoded here
+    n: int                       # counts up per camera
+
+    def full(self) -> np.ndarray:
+        """The frame at the camera's own resolution (decoded on demand, ~15 ms for 1080p on the Jetson)."""
+        if self.raw is None or self.scale == 1.0:
+            return self.image
+        image = cv2.imdecode(self.raw, cv2.IMREAD_COLOR)
+        return image if image is not None else self.image
+
+
+def safe_name(source) -> str:
+    """The source without a stream's user:password, for logs."""
+    text = str(source)
+    if "://" in text and "@" in text:
+        scheme, rest = text.split("://", 1)
+        return f"{scheme}://***@{rest.rsplit('@', 1)[1]}"
+    return text
 
 
 class Camera:
     def __init__(self, source: str, size: str = "1920x1080", fps: int = 30, decode: str = "half",
-                 controls: str = ""):
+                 controls: str = "", wake: threading.Event | None = None):
+        source = str(source)
         self.source = int(source) if source.isdigit() else source
         # a device index, /dev/videoN or (better) the camera's stable name under /dev/v4l/by-id/, which
         # survives the camera reconnecting as another /dev/videoN after a USB dropout
         self.is_device = isinstance(self.source, int) or self.source.startswith("/dev/")
+        self.is_stream = not self.is_device and self.source.lower().startswith(STREAM_PREFIXES)
+        self.is_file = not self.is_device and not self.is_stream
+        self.name = safe_name(self.source)
         if decode not in ("opencv", *DECODE_FLAGS):
             raise ValueError(f"CAMERA_DECODE must be opencv, full or half, not '{decode}'")
         self.flag = DECODE_FLAGS.get(decode) if self.is_device else None
@@ -37,14 +79,18 @@ class Camera:
         self.fps = fps
         self.controls = controls
 
-        self.cap = self._open()
-        self._frame, self._count, self._ended = None, 0, False
+        self.cap = None
+        self._frame: Frame | None = None
+        self._count, self._ended = 0, False
         self._lock = threading.Condition()
-        threading.Thread(target=self._read_loop, daemon=True, name="camera").start()
+        self._wake = wake    # set on every new frame: one detector loop can wait on several cameras
+        threading.Thread(target=self._read_loop, daemon=True, name=f"camera-{self.name}").start()
 
     def _open(self):
         if not self.is_device:
             cap = cv2.VideoCapture(self.source)
+            if self.is_stream:
+                cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         else:
             device = os.path.realpath(self.source) if isinstance(self.source, str) else self.source
             if self.controls:   # re-applied on every (re)open: the camera forgets them when it reconnects
@@ -58,52 +104,82 @@ class Camera:
             if self.flag is not None:
                 cap.set(cv2.CAP_PROP_CONVERT_RGB, 0)   # hand over the raw JPEG bytes
         if not cap.isOpened():
-            raise SystemExit(f"[CV] Cannot open camera source {self.source}")
+            cap.release()
+            raise CameraError(f"[CV] Cannot open camera source {self.name}")
         w, h = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         if w and h:
             self.width, self.height = w, h   # what the camera agreed to, or the video's own size
-        if not self.is_device:
+        if self.is_file:
             self.fps = cap.get(cv2.CAP_PROP_FPS) or self.fps
-        print(f"[CV] Camera {self.source}: {w}x{h}"
+        print(f"[CV] Camera {self.name}: {w}x{h}"
               + (f" MJPEG, decoded at {w // int(self.scale)}x{h // int(self.scale)}" if self.flag is not None else ""),
               flush=True)
         return cap
 
     def _read(self):
         ok, frame = self.cap.read()
+        raw = None
         if ok and self.flag is not None:
-            frame = cv2.imdecode(frame.reshape(-1), self.flag)
+            raw = frame.reshape(-1)
+            frame = cv2.imdecode(raw, self.flag)
             ok = frame is not None
-        return ok, frame
+        return ok, frame, raw
+
+    def _end(self):
+        with self._lock:
+            self._ended = True
+            self._lock.notify_all()
+        if self._wake:
+            self._wake.set()
 
     def _read_loop(self):
         failures = 0
         next_frame = time.monotonic()
         while True:
-            ok, frame = self._read()
+            if self.cap is None:
+                try:
+                    self.cap = self._open()
+                    next_frame = time.monotonic()
+                except CameraError as e:
+                    if self.is_file:     # a video that can't be opened never will be
+                        print(e, flush=True)
+                        return self._end()
+                    failures += 1
+                    if failures in (1, 10) or failures % 60 == 0:
+                        print(f"{e} (attempt {failures}), retrying", flush=True)
+                    time.sleep(min(failures, 5))
+                    continue
+            ok, frame, raw = self._read()
             if ok:
                 failures = 0
-                if not self.is_device:   # play files and streams back in real time, like a live camera,
+                if self.is_file:   # play files back in real time, like a live camera,
                     next_frame += 1 / self.fps   # so duration rules (e.g. 3 s without a hard hat) still work
                     time.sleep(max(0.0, next_frame - time.monotonic()))
                 with self._lock:
-                    self._frame, self._count = frame, self._count + 1
+                    self._count += 1
+                    self._frame = Frame(frame, self.scale, raw, self._count)
                     self._lock.notify_all()
+                if self._wake:
+                    self._wake.set()
                 continue
-            if not self.is_device:       # end of a video file
-                with self._lock:
-                    self._ended = True
-                    self._lock.notify_all()
-                return
-            failures += 1                # unplugged or glitch: reopen after a pause
+            if self.is_file:             # end of a video file
+                return self._end()
+            failures += 1                # unplugged, stream dropped or a glitch: reopen after a pause
             if failures in (1, 10) or failures % 60 == 0:
-                print(f"[CV] Camera {self.source}: no frame ({failures}), reopening", flush=True)
+                print(f"[CV] Camera {self.name}: no frame ({failures}), reopening", flush=True)
             time.sleep(1)
             self.cap.release()
-            try:
-                self.cap = self._open()
-            except SystemExit as e:
-                print(e, flush=True)
+            self.cap = None
+
+    def poll(self, last: int) -> Frame | None:
+        """The newest frame if it is newer than frame number `last`, else None. Never waits."""
+        with self._lock:
+            return self._frame if self._frame is not None and self._count != last else None
+
+    @property
+    def ended(self) -> bool:
+        """True once a video file has played to its end (cameras and streams never end)."""
+        return self._ended
 
     def frames(self):
         """Yields each new frame once (the newest one: frames that arrive while the detector is busy are skipped)."""
@@ -129,6 +205,10 @@ def set_controls(device, controls: str):
         print("[CV] v4l2-ctl not installed, camera controls not applied", flush=True)
         return
     dev = f"/dev/video{device}" if isinstance(device, int) else device
-    result = subprocess.run(["v4l2-ctl", "-d", dev, "-c", controls], capture_output=True, text=True)
+    try:
+        result = subprocess.run(["v4l2-ctl", "-d", dev, "-c", controls], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        print(f"[CV] Camera controls {controls}: {e}", flush=True)
+        return
     print(f"[CV] Camera controls {controls}: " + ("set" if result.returncode == 0 else result.stderr.strip()),
           flush=True)

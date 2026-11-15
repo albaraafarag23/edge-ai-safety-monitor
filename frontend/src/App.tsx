@@ -6,6 +6,7 @@ import { CONSOLE_URL, IS_STATIC_SITE } from "./lib/site";
 import { Account } from "./pages/Account";
 import { Analytics } from "./pages/Analytics";
 import { Cameras } from "./pages/Cameras";
+import { People } from "./pages/People";
 import { IncidentDetail } from "./pages/IncidentDetail";
 import { Incidents } from "./pages/Incidents";
 import { Landing } from "./pages/Landing";
@@ -60,6 +61,7 @@ export function App() {
         <Route path="analytics" element={<Analytics />} />
         <Route path="notifications" element={<Notifications />} />
         <Route path="rules" element={<Rules />} />
+        <Route path="people" element={<People />} />
         <Route path="users" element={<Users />} />
         <Route path="account" element={<Account />} />
         <Route path="*" element={<NotFound />} />

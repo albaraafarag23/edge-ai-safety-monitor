@@ -50,7 +50,24 @@ class Incident(Base):
 
     @classmethod
     def from_contract(cls, payload: dict) -> "Incident":
-        return cls(**{("meta" if k == "metadata" else k): payload.get(k) for k in CONTRACT_FIELDS})
+        """Raises ValueError for a payload that couldn't be stored (docs/contracts.md)."""
+        if not isinstance(payload, dict):
+            raise ValueError("not an object")
+        for key in ("event_id", "timestamp", "plugin_id", "camera_id", "severity", "event_type"):
+            if not isinstance(payload.get(key), str) or not payload[key] or len(payload[key]) > 200:
+                raise ValueError(f"{key} missing or not text")
+        values = {("meta" if k == "metadata" else k): payload.get(k) for k in CONTRACT_FIELDS}
+        values["location"] = str(values["location"] or "NOT SPECIFIED")
+        try:
+            values["duration_seconds"] = float(values["duration_seconds"] or 0)
+        except (TypeError, ValueError):
+            raise ValueError("duration_seconds is not a number")
+        values["rules_violated"] = values["rules_violated"] if isinstance(values["rules_violated"], list) else []
+        values["meta"] = values["meta"] if isinstance(values["meta"], dict) else {}
+        for key in ("snapshot_url", "clip_url"):   # only the media folder: these become links in the console
+            if not (isinstance(values[key], str) and values[key].startswith("/media/")):
+                values[key] = None
+        return cls(**values)
 
     def to_dict(self, report: "Report | None" = None) -> dict:
         d = {k: getattr(self, "meta" if k == "metadata" else k) for k in CONTRACT_FIELDS}
@@ -113,11 +130,13 @@ class RuleSetting(Base):
     changed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
-class ZoneSetting(Base):
-    """A plugin zone redrawn in the console (backend/zone_settings.py). No row = the plugin's own polygon."""
-    __tablename__ = "zone_settings"
+class ZoneDrawing(Base):
+    """A plugin zone drawn in the console for one camera (backend/zone_settings.py). No row = the plugin's own
+    polygon. (The older table zone_settings, one drawing per zone, is read once at startup and left alone.)"""
+    __tablename__ = "zone_drawings"
 
     plugin_id: Mapped[str] = mapped_column(String, primary_key=True)
+    camera_id: Mapped[str] = mapped_column(String, primary_key=True)
     zone_id: Mapped[str] = mapped_column(String, primary_key=True)
     polygon: Mapped[list] = mapped_column(JSONB)                   # [[x, y], ...] as fractions of the picture (0-1)
     changed_by: Mapped[str | None] = mapped_column(String)

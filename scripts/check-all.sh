@@ -12,7 +12,10 @@ cd "$(dirname "$0")/.."
 step() { printf '\n== %s\n' "$*"; }
 
 step "Rule engine tests"
-(cd event_engine && python3 test_rules.py | tail -1)
+(cd event_engine && python3 test_rules.py | tail -1 && python3 test_demo_plugin.py | tail -1)
+
+step "Person tracker tests"
+(cd cv_pipeline && python3 test_tracker.py | tail -1)
 
 step "Report tests (ai_reporting image)"
 IMAGE=$(docker compose config --images ai_reporting 2>/dev/null | grep ai_reporting | head -1)

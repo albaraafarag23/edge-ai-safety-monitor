@@ -1,9 +1,19 @@
 # Ports are bound to 127.0.0.1 only: nothing is reachable from the network except through the
 # public tunnel (Tailscale Funnel -> localhost:3000, see docs/deploy.md). The database, Redis and the
 # API stay private; the browser reaches the API through the website's /api.
+# Container logs are capped (3 files of 10 MB per service): on a device that runs for months, unlimited
+# logs fill the disk.
+x-logging: &logging
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
 services:
 
   redis:
+    <<: *logging
     image: redis:7-alpine
     # append-only file on a volume: queued detections, incidents and email retries survive a restart or power cut
     command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
@@ -19,6 +29,7 @@ services:
     restart: unless-stopped
 
   postgres:
+    <<: *logging
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-safety_monitor}
@@ -36,6 +47,7 @@ services:
     restart: unless-stopped
 
   cv_pipeline:
+    <<: *logging
     build: ./cv_pipeline
     environment:
       REDIS_URL: redis://redis:6379
@@ -43,6 +55,14 @@ services:
       MODELS_DIR: /models
       PLUGINS_DIR: /app/plugins
       MEDIA_DIR: /media
+      # days to keep incident snapshots and clips; empty = forever
+      MEDIA_KEEP_DAYS: ${MEDIA_KEEP_DAYS:-}
+      # several cameras: config/cameras.json (see config/cameras.example.json). Without it, the one camera below.
+      CAMERAS_FILE: /config/cameras.json
+      # face recognition: enrolled photos (console > People) and its switch (auto = on when the models are there)
+      FACES_DIR: /faces
+      FACE_RECOGNITION: ${FACE_RECOGNITION:-auto}
+      FACE_DEVICE: ${FACE_DEVICE:-cpu}
       CAMERA_ID: cam_01
       CAMERA_LOCATION: ${CAMERA_LOCATION:-Main site}
       PLUGIN_ID: ${PLUGIN_ID:-construction_safety}
@@ -52,6 +72,8 @@ services:
       - ./models:/models:ro
       - ./plugins:/app/plugins:ro
       - ./media:/media
+      - ./config:/config:ro
+      - ./faces:/faces:ro
     devices:
       - /dev/video0:/dev/video0
     # For GPU inference (requires NVIDIA Container Toolkit):
@@ -68,6 +90,7 @@ services:
     restart: unless-stopped
 
   event_engine:
+    <<: *logging
     build: ./event_engine
     environment:
       REDIS_URL: redis://redis:6379
@@ -82,6 +105,7 @@ services:
     restart: unless-stopped
 
   backend:
+    <<: *logging
     build: ./backend
     ports:
       - "127.0.0.1:8000:8000"
@@ -94,6 +118,11 @@ services:
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      # the console's public address: changes are only accepted from the console's own pages (backend/main.py)
+      CONSOLE_URL: ${CONSOLE_URL:-}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      # face photos of the people to recognise (console > People), read by the detector
+      FACES_DIR: /faces
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-dev-internal-token}
       # the rules page lists this plugin's rules (settings: backend/rule_settings.py)
       PLUGINS_DIR: /app/plugins
@@ -102,6 +131,7 @@ services:
     volumes:
       - ./media:/media:ro
       - ./plugins:/app/plugins:ro
+      - ./faces:/faces
     depends_on:
       postgres:
         condition: service_healthy
@@ -110,6 +140,7 @@ services:
     restart: unless-stopped
 
   ai_reporting:
+    <<: *logging
     build: ./ai_reporting
     environment:
       REDIS_URL: redis://redis:6379
@@ -143,6 +174,7 @@ services:
     restart: unless-stopped
 
   frontend:
+    <<: *logging
     build: ./frontend
     ports:
       - "127.0.0.1:3000:80"
