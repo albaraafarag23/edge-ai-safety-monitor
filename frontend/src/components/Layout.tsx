@@ -1,5 +1,5 @@
 import { BarChart3, Bell, Camera, ChevronDown, LayoutDashboard, ListChecks, LogOut, ScanFace, ShieldCheck, UserCog, Users } from "lucide-react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode, Suspense } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useIncidents } from "../api/queries";
 import { useAuth } from "../lib/auth";
@@ -369,7 +369,10 @@ export function AppShell() {
         <div className="lg:ps-64 print:!ps-0">
           <TopBar />
           <main className="px-4 py-8 sm:px-6 lg:px-10">
-            <Outlet />
+            {/* a page's code loading on first visit: keep the shell, show a quiet placeholder */}
+            <Suspense fallback={<div className="min-h-[50vh]" aria-busy="true" />}>
+              <Outlet />
+            </Suspense>
           </main>
         </div>
         <Toasts />

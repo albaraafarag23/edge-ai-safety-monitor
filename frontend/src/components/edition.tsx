@@ -115,12 +115,14 @@ export function AutoVideo({ name, label, className = "" }: { name: string; label
  * A numbered chapter: a full-screen photo with a huge title stays pinned while the chapter's
  * content (on paper) slides up over it.
  */
-export function Chapter({ id, n, title, kicker, photo, focus, children }: {
+export function Chapter({ id, n, title, kicker, photo, backdrop, focus, children }: {
   id: string;
   n: number;
   title: string;
   kicker: string;
-  photo: string;
+  /** the opener's photo, or `backdrop` for a typographic opener (e.g. a page of quoted text) */
+  photo?: string;
+  backdrop?: ReactNode;
   /** passed to Photo: keeps the subject in view when a phone crops the photo */
   focus?: string;
   children: ReactNode;
@@ -128,7 +130,13 @@ export function Chapter({ id, n, title, kicker, photo, focus, children }: {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="chapter relative scroll-mt-0">
       <div className="sticky top-0 -mb-[100svh] h-[100svh] overflow-hidden bg-ink" data-surface="dark">
-        <Photo name={photo} focus={focus} className="opener-photo absolute inset-0 h-full w-full object-cover" />
+        {photo ? (
+          <Photo name={photo} focus={focus} className="opener-photo absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <div className="opener-photo absolute inset-0" aria-hidden>
+            {backdrop}
+          </div>
+        )}
         <div className="opener-shade absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 to-black/70" aria-hidden />
         <div className="opener-title relative flex h-full flex-col justify-between px-5 pt-24 pb-14 sm:px-8 lg:ps-[17rem]">
           <h2

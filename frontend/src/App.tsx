@@ -1,21 +1,30 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect, type ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation, useParams } from "react-router-dom";
 import { AppShell } from "./components/Layout";
 import { RequireAuth } from "./lib/auth";
 import { CONSOLE_URL, IS_STATIC_SITE } from "./lib/site";
-import { Account } from "./pages/Account";
-import { Analytics } from "./pages/Analytics";
-import { Cameras } from "./pages/Cameras";
-import { People } from "./pages/People";
-import { IncidentDetail } from "./pages/IncidentDetail";
-import { Incidents } from "./pages/Incidents";
 import { Landing } from "./pages/Landing";
-import { Login } from "./pages/Login";
-import { NotFound } from "./pages/NotFound";
-import { Notifications } from "./pages/Notifications";
-import { Overview } from "./pages/Overview";
-import { Rules } from "./pages/Rules";
-import { Users } from "./pages/Users";
+
+// Console pages load when they are first opened, so the product page (most visitors) downloads only itself.
+const page = <K extends string>(name: K, load: () => Promise<Record<K, () => ReactNode>>) =>
+  lazy(() => load().then((m) => ({ default: m[name] })));
+const Account = page("Account", () => import("./pages/Account"));
+const Analytics = page("Analytics", () => import("./pages/Analytics"));
+const Cameras = page("Cameras", () => import("./pages/Cameras"));
+const People = page("People", () => import("./pages/People"));
+const IncidentDetail = page("IncidentDetail", () => import("./pages/IncidentDetail"));
+const Incidents = page("Incidents", () => import("./pages/Incidents"));
+const Login = page("Login", () => import("./pages/Login"));
+const NotFound = page("NotFound", () => import("./pages/NotFound"));
+const Notifications = page("Notifications", () => import("./pages/Notifications"));
+const Overview = page("Overview", () => import("./pages/Overview"));
+const Rules = page("Rules", () => import("./pages/Rules"));
+const Users = page("Users", () => import("./pages/Users"));
+
+/** While a page's code arrives (a fraction of a second): the paper background, no flash of anything else. */
+function Loading({ children }: { children: ReactNode }) {
+  return <Suspense fallback={<div className="min-h-[60vh] bg-paper" aria-busy="true" />}>{children}</Suspense>;
+}
 
 // links from before the console moved under /app
 function LegacyIncident() {
@@ -40,6 +49,7 @@ export function App() {
     );
   }
   return (
+    <Loading>
     <Routes>
       <Route index element={<Landing />} />
       <Route path="login" element={<Login />} />
@@ -68,5 +78,6 @@ export function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Loading>
   );
 }

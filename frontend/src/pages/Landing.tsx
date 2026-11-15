@@ -1,9 +1,8 @@
-import { ArrowRight, BellRing, Check, Cpu, Mail, ScanEye, Video } from "lucide-react";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { ArrowRight, BellRing, BookOpen, Check, Cpu, ExternalLink, Mail, ScanEye, Video } from "lucide-react";
+import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { LogoMark, PRODUCT_NAME } from "../components/Brand";
 import { CameraFrame } from "../components/CameraFrame";
-import { TryIt } from "../components/TryIt";
 import {
   AutoVideo,
   Chapter,
@@ -39,6 +38,7 @@ const TEXT = bilingual(
       { id: "rules", title: "Your rules" },
       { id: "console", title: "Console" },
       { id: "edge", title: "On the edge" },
+      { id: "regs", title: "The rulebook" },
     ] as ChapterInfo[],
     chaptersLabel: "Chapters",
     signIn: "Sign in",
@@ -51,13 +51,13 @@ const TEXT = bilingual(
     } as Record<DemoStatus, string>,
     demoOfflineHint: "The console runs on the on-site device, which is switched off at the moment",
     tagline: "Construction safety",
-    nav: { faq: "FAQ", team: "Team", tryIt: "Try it" },
+    nav: { faq: "FAQ", team: "Team", tryIt: "Try it", regs: "Ask the regulations", results: "Results" },
     severity: { CRITICAL: "CRITICAL", HIGH: "HIGH", MEDIUM: "MEDIUM" } as Record<Severity, string>,
     hero: {
       line1: "Every risk on site,",
       emphasis: "caught",
       line2: " as it happens.",
-      lead: `${P} turns your site cameras into a safety officer that never looks away. Seven chapters, one safer site.`,
+      lead: `${P} turns your site cameras into a safety officer that never looks away. Eight chapters, one safer site.`,
     },
     ppe: {
       title: "Hard hats & vests",
@@ -125,7 +125,7 @@ const TEXT = bilingual(
       leadTitle: "The report writes itself",
       lead:
         "When a rule fires, the incident appears on the console straight away, the supervisor gets an email with a snapshot " +
-        "and a short clip, and a formal report is written from the recorded facts by Claude, ready for the safety record.",
+        "and a short clip, and a formal report is written by AI (Google Gemini) from the recorded facts only, with the regulation it breaks, ready for the safety record.",
       videoLabel: "The console overview as new incidents arrive",
       cardTitle: "Live, with no refresh",
       cardLink: "How alerts work",
@@ -216,8 +216,62 @@ const TEXT = bilingual(
         ["Plugins", "Each site type is one config file: its models, classes, zones, rules and report style."],
         ["Works offline", "Detection, rules and the local console keep working without internet; email and AI wait."],
         ["Standard cameras", "Any USB camera works. The reference setup is a 12 MP Arducam with a 6 mm lens."],
-        ["The stack", "Jetson Orin Nano, YOLO11 + TensorRT, Redis Streams, FastAPI + PostgreSQL, Claude, React."],
+        ["The stack", "Jetson Orin Nano, YOLO11 + TensorRT, Redis Streams, FastAPI + PostgreSQL, Gemini or Claude, React."],
       ] as Pair[],
+    },
+    regs: {
+      title: "The rulebook",
+      kicker: "Every alert says which rule it breaks.",
+      leadTitle: "Cited, word for word",
+      lead:
+        "Each incident report quotes the clause of the official code of practice that the safety rule enforces, with the " +
+        "document, the clause number, the page and a link to the official PDF. The same clause is shown on the incident's page " +
+        "in the console, and on each rule in Safety rules.",
+      excerptLabel: "From an incident report",
+      excerptTitle: "Worker without a hard hat",
+      excerptHeading: "Regulation",
+      excerptWhere: "OSHJ-CoP-02, clause 5.13 “Personal Protective Equipment”, page 16",
+      excerptQuote:
+        "The client shall ensure that the principal contractor provides adequate personal protective equipment to their employees. " +
+        "… The minimum requirements include: … Safety helmets – Provide head protection from dropped objects which cannot be adequately controlled;",
+      excerptPdf: "Official PDF",
+      excerptCaptionTitle: "Added by the system, not the AI",
+      excerptCaption:
+        "The clause is put into the report by code after it is written, and the AI is told not to cite regulations itself, so a clause can't be made up.",
+      stats: [
+        ["10 / 11", "Construction rules that quote their clause. The eleventh, sleeping on site, has none, so it cites none."],
+        ["2 codes", "Sharjah Prevention and Safety Authority codes of practice: construction management, and working at height."],
+      ] as Pair[],
+      companionKicker: "Companion project",
+      companionTitle: "SiteSentry Regs",
+      companionText:
+        "Our assistant for construction-safety regulations. Ask in Arabic or English, for example “How high must a guard rail be?”, " +
+        "and it answers from the official codes, citing the exact clause. It is where SiteSentry's citations come from.",
+      companionStats: [
+        ["95%", "of questions find the clause with the answer in the top 3 results"],
+        ["42 / 43", "answers cite a clause that contains the answer"],
+      ] as Pair[],
+      companionButton: "Ask the regulations",
+      companionCode: "Source code",
+      list: [
+        ["Checked by hand", "Each rule's clause was found with SiteSentry Regs, then read in full; only clauses that really cover the rule were kept."],
+        ["In Arabic", "Arabic reports and the Arabic console use the code's Arabic headings, and say when the wording is quoted in English."],
+        ["Offline", "The clauses are stored with the rules on site, so reports cite them even without internet."],
+        ["In the console", "Safety rules shows each rule's clause; the exact wording and the official PDF are one click away."],
+      ] as Pair[],
+    },
+    results: {
+      title: "Measured, not promised",
+      lead: "What the system does on its own test sets and on the Jetson on site. Each figure comes from a measurement written up in the project's documentation.",
+      items: [
+        ["0.85", "mAP50 of the hard hat and vest model on 82 held-out test images (0.84 after TensorRT on the Jetson)."],
+        ["30 fps", "Live detection on the Jetson Orin Nano: 28 to 32 frames a second from a 30 fps camera, in 25 W mode."],
+        ["98%", "Of the smoking model's “smoking” answers are right; it finds 88.5% of smokers, and flags 0.6% of non-smokers."],
+        ["99%+", "Faces named right in a 40-person test, with no stranger named, down to faces 28 pixels wide."],
+        ["0.1–0.3 s", "From the camera to the live view in a browser over the internet, at up to 20 pictures a second."],
+        ["10 / 11", "Rules whose reports quote the official clause they enforce, word for word."],
+      ] as Pair[],
+      note: "The test sets are small and were made by the team, so these are checks of this system, not benchmark claims.",
     },
     faq: {
       title: "Questions, answered",
@@ -229,6 +283,9 @@ const TEXT = bilingual(
         ["Can we turn off rules we don't need?", "Yes. Admins and supervisors can switch any rule off or back on from the console, with no restart, for example if smoking is allowed on your site. Each rule can also be limited to working hours, given a different severity, or set to wait longer before alerting. The console shows who changed what and when."],
         ["How far away can it spot smoking?", "It looks at each person rather than at the cigarette, so what matters is how large the person appears: the closer and clearer, the better. It's best on a camera covering a no-smoking area, such as a fuel store or a site entrance. We are measuring the exact range on site."],
         ["Can the AI report make things up?", "It's instructed to use only the fields recorded for the incident, never to invent causes or names, and to write NOT SPECIFIED when something is missing. Recommended actions come from the site's own approved list. If the AI is unavailable, a fixed template is used instead."],
+        ["Which regulations does it cite?", "The Sharjah Prevention and Safety Authority's codes of practice for construction management (OSHJ-CoP-02) and working at height (OSHJ-CoP-04). Each rule's clause was found with our companion assistant, SiteSentry Regs, and checked by hand. A site that follows other regulations changes the clauses in its plugin."],
+        ["Does it recognise who it is?", "Only if the site wants it to. An admin adds a few photos of each person on the console's People page; the cameras then name those people, and everyone else stays “unknown”. The photos are kept on the device on site, and a name is shown as an automatic identification to confirm, not as a fact."],
+        ["Can it watch several cameras?", "Yes. One edge device watches several cameras with the same models, and each camera has its own zones. The console shows them side by side, and each incident says which camera saw it."],
         ["What happens if the internet goes down?", "Detection, the rules and the local console keep working, because they all run on site. Alert emails wait and are sent automatically once the connection is back (retried for up to a day), so none are lost. Without the AI, reports fall back to the template."],
         ["How does a supervisor deal with an incident?", "The console's front page lists what to handle first, each with the next step from the site's approved list. One tap on “I'm on it” tells everyone who is dealing with it, and “Done” closes it. Repeats of the same thing are grouped, so they can be closed together."],
         ["Is it only for construction?", "No. Each type of site is a plugin with its own model, zones, rules and report style. Construction is the first plugin; healthcare is in development."],
@@ -255,6 +312,7 @@ const TEXT = bilingual(
       ] as { name: string; role?: string }[],
     },
     closing: { line: "See your site ", emphasis: "live." },
+    companionFooter: "Companion project: SiteSentry Regs, construction-safety regulations with cited clauses",
     credits: (names: string) =>
       `Photos from Unsplash by ${names}. Console screens and recordings are from the running system in test mode.`,
   },
@@ -268,6 +326,7 @@ const TEXT = bilingual(
       { id: "rules", title: "قواعدك" },
       { id: "console", title: "لوحة التحكم" },
       { id: "edge", title: "في الموقع" },
+      { id: "regs", title: "اللوائح" },
     ],
     chaptersLabel: "الفصول",
     signIn: "تسجيل الدخول",
@@ -280,13 +339,13 @@ const TEXT = bilingual(
     },
     demoOfflineHint: "تعمل لوحة التحكم على جهاز الموقع، وهو مطفأ حاليًا",
     tagline: "سلامة مواقع البناء",
-    nav: { faq: "الأسئلة الشائعة", team: "الفريق", tryIt: "جرّبه" },
+    nav: { faq: "الأسئلة الشائعة", team: "الفريق", tryIt: "جرّبه", regs: "اسأل اللوائح", results: "النتائج" },
     severity: { CRITICAL: "حرج", HIGH: "مرتفع", MEDIUM: "متوسط" },
     hero: {
       line1: "كل خطر في الموقع،",
       emphasis: "يُرصد",
       line2: " لحظة حدوثه.",
-      lead: `يحوّل ${P} كاميرات موقعك إلى مسؤول سلامة لا يغفل لحظة. سبعة فصول، وموقع أكثر أمانًا.`,
+      lead: `يحوّل ${P} كاميرات موقعك إلى مسؤول سلامة لا يغفل لحظة. ثمانية فصول، وموقع أكثر أمانًا.`,
     },
     ppe: {
       title: "الخوذات والسترات",
@@ -354,7 +413,7 @@ const TEXT = bilingual(
       leadTitle: "التقرير يكتب نفسه",
       lead:
         "عند تحقق قاعدة، تظهر الحادثة فورًا في لوحة التحكم، ويتلقى المشرف بريدًا إلكترونيًا فيه لقطة ومقطع قصير، " +
-        "ويكتب Claude تقريرًا رسميًا من الوقائع المسجلة، جاهزًا لسجل السلامة.",
+        "ويكتب الذكاء الاصطناعي (Google Gemini) تقريرًا رسميًا من الوقائع المسجلة فقط، مع اللائحة المخالَفة، جاهزًا لسجل السلامة.",
       videoLabel: "لوحة التحكم مع وصول حوادث جديدة",
       cardTitle: "مباشر، دون تحديث الصفحة",
       cardLink: "كيف تعمل التنبيهات",
@@ -442,8 +501,61 @@ const TEXT = bilingual(
         ["الإضافات", "كل نوع من المواقع ملف إعدادات واحد: نماذجه وفئاته ومناطقه وقواعده وأسلوب تقاريره."],
         ["يعمل دون إنترنت", "يستمر الرصد والقواعد ولوحة التحكم المحلية دون إنترنت، وينتظر البريد والذكاء الاصطناعي عودته."],
         ["كاميرات عادية", "تعمل أي كاميرا USB. والإعداد المرجعي كاميرا Arducam بدقة 12 ميجابكسل وعدسة 6 مم."],
-        ["التقنيات", "Jetson Orin Nano، وYOLO11 + TensorRT، وRedis Streams، وFastAPI + PostgreSQL، وClaude، وReact."],
+        ["التقنيات", "Jetson Orin Nano، وYOLO11 + TensorRT، وRedis Streams، وFastAPI + PostgreSQL، وGemini أو Claude، وReact."],
       ],
+    },
+    regs: {
+      title: "اللوائح",
+      kicker: "كل تنبيه يذكر القاعدة التي خالفها.",
+      leadTitle: "مُقتبسة بنصّها الحرفي",
+      lead:
+        "يقتبس كل تقرير حادثة البند الذي تطبّقه قاعدة السلامة من دليل الممارسة الرسمي، مع اسم الوثيقة ورقم البند والصفحة " +
+        "ورابط الملف الرسمي. ويظهر البند نفسه في صفحة الحادثة في لوحة التحكم، وعلى كل قاعدة في صفحة قواعد السلامة.",
+      excerptLabel: "من تقرير حادثة",
+      excerptTitle: "عامل بدون خوذة",
+      excerptHeading: "اللائحة",
+      excerptWhere: "OSHJ-CoP-02، البند 5.13 «Personal Protective Equipment»، صفحة 16",
+      excerptQuote:
+        "The client shall ensure that the principal contractor provides adequate personal protective equipment to their employees. " +
+        "… The minimum requirements include: … Safety helmets – Provide head protection from dropped objects which cannot be adequately controlled;",
+      excerptPdf: "الملف الرسمي",
+      excerptCaptionTitle: "يضيفه النظام لا الذكاء الاصطناعي",
+      excerptCaption:
+        "يُضاف البند إلى التقرير برمجيًا بعد كتابته، ويُطلب من الذكاء الاصطناعي ألا يذكر اللوائح بنفسه، فلا يمكن اختلاق بند. النص الأصلي بالإنجليزية.",
+      stats: [
+        ["10 / 11", "من قواعد البناء تقتبس بندها. أما الحادية عشرة، النوم في الموقع، فلا بند لها، فلا تقتبس شيئًا."],
+        ["دليلان", "دليلا ممارسة من هيئة الوقاية والسلامة بالشارقة: إدارة السلامة في البناء، والعمل في الأماكن المرتفعة."],
+      ] as Pair[],
+      companionKicker: "مشروع مرافق",
+      companionTitle: "SiteSentry Regs",
+      companionText:
+        "مساعدنا للوائح السلامة في البناء. اسأل بالعربية أو الإنجليزية، مثل «ما الارتفاع المطلوب لدرابزين الحماية؟»، " +
+        "فيجيب من الأدلة الرسمية ويذكر البند بدقة. ومنه تأتي البنود التي يقتبسها SiteSentry.",
+      companionStats: [
+        ["95%", "من الأسئلة يجد البند الذي فيه الإجابة ضمن أول 3 نتائج"],
+        ["42 / 43", "إجابة تذكر بندًا يحتوي على الإجابة"],
+      ] as Pair[],
+      companionButton: "اسأل اللوائح",
+      companionCode: "الشيفرة المصدرية",
+      list: [
+        ["مُراجَعة يدويًا", "وُجد بند كل قاعدة باستخدام SiteSentry Regs ثم قُرئ كاملًا، ولم يُحتفظ إلا بالبنود التي تغطي القاعدة فعلًا."],
+        ["بالعربية", "تستخدم التقارير ولوحة التحكم بالعربية عناوين الدليل العربية، وتوضّح متى يكون النص مقتبسًا بالإنجليزية."],
+        ["دون إنترنت", "البنود محفوظة مع القواعد في الموقع، فتقتبسها التقارير حتى دون اتصال."],
+        ["في لوحة التحكم", "تعرض صفحة قواعد السلامة بند كل قاعدة، والنص الحرفي والملف الرسمي على بُعد نقرة."],
+      ] as Pair[],
+    },
+    results: {
+      title: "نتائج مقيسة لا وعود",
+      lead: "ما يحققه النظام على مجموعات الاختبار الخاصة به وعلى جهاز Jetson في الموقع. كل رقم من قياس موثّق في وثائق المشروع.",
+      items: [
+        ["0.85", "دقة mAP50 لنموذج الخوذة والسترة على 82 صورة اختبار لم تُستخدم في التدريب (0.84 بعد TensorRT على Jetson)."],
+        ["30 fps", "رصد مباشر على Jetson Orin Nano: من 28 إلى 32 إطارًا في الثانية من كاميرا بمعدل 30، في وضع 25 واط."],
+        ["98%", "من إجابات نموذج التدخين «يدخّن» صحيحة، ويرصد 88.5% من المدخنين، وينبّه خطأً على 0.6% من غير المدخنين."],
+        ["99%+", "من الوجوه سُمّيت صحيحًا في اختبار من 40 شخصًا، دون تسمية أي غريب، حتى وجوه بعرض 28 بكسل."],
+        ["0.1–0.3 ث", "من الكاميرا إلى البث المباشر في المتصفح عبر الإنترنت، بمعدل يصل إلى 20 صورة في الثانية."],
+        ["10 / 11", "قاعدة تقتبس تقاريرها بند اللائحة الرسمي الذي تطبّقه، بنصّه الحرفي."],
+      ] as Pair[],
+      note: "مجموعات الاختبار صغيرة وأعدّها الفريق، فهذه فحوص لهذا النظام لا ادعاءات مقارنة معيارية.",
     },
     faq: {
       title: "أسئلة وإجابات",
@@ -455,6 +567,9 @@ const TEXT = bilingual(
         ["هل يمكننا إيقاف القواعد التي لا نحتاج إليها؟", "نعم. يمكن للمسؤولين والمشرفين إيقاف أي قاعدة أو إعادة تشغيلها من لوحة التحكم دون إعادة تشغيل النظام، مثلًا إذا كان التدخين مسموحًا في موقعكم. ويمكن أيضًا قصر كل قاعدة على ساعات العمل، أو تغيير درجة خطورتها، أو جعلها تنتظر مدة أطول قبل التنبيه. وتعرض لوحة التحكم من غيّر ماذا ومتى."],
         ["من أي مسافة يمكنه رصد التدخين؟", "ينظر إلى كل شخص لا إلى السيجارة، لذلك المهم هو حجم الشخص في الصورة: كلما كان أقرب وأوضح كان أفضل. ويكون أفضل على كاميرا تغطي منطقة يُمنع فيها التدخين، مثل مخزن وقود أو مدخل الموقع. ونقيس المدى الدقيق حاليًا في الموقع."],
         ["هل يمكن أن يختلق تقرير الذكاء الاصطناعي معلومات؟", "يُطلب منه استخدام الحقول المسجلة للحادثة فقط، وعدم اختلاق أسباب أو أسماء أبدًا، وكتابة «غير محدد» عند غياب معلومة. وتأتي الإجراءات الموصى بها من القائمة المعتمدة للموقع. وإذا تعذّر الوصول إلى الذكاء الاصطناعي يُستخدم نموذج ثابت بدلًا منه."],
+        ["ما اللوائح التي يقتبسها؟", "أدلة الممارسة الصادرة عن هيئة الوقاية والسلامة بالشارقة لإدارة السلامة في البناء (OSHJ-CoP-02) والعمل في الأماكن المرتفعة (OSHJ-CoP-04). وُجد بند كل قاعدة باستخدام مساعدنا المرافق SiteSentry Regs ثم رُوجع يدويًا. والموقع الذي يتبع لوائح أخرى يغيّر البنود في ملف الإضافة الخاص به."],
+        ["هل يتعرّف على الأشخاص؟", "فقط إذا أراد الموقع ذلك. يضيف المسؤول بضع صور لكل شخص من صفحة الأشخاص في لوحة التحكم، فتسمّي الكاميرات هؤلاء الأشخاص ويبقى غيرهم «غير معروف». وتُحفظ الصور على الجهاز في الموقع، ويُعرض الاسم تعرّفًا تلقائيًا يحتاج إلى تأكيد لا حقيقة مؤكدة."],
+        ["هل يراقب عدة كاميرات؟", "نعم. يراقب جهاز واحد في الموقع عدة كاميرات بالنماذج نفسها، ولكل كاميرا مناطقها. وتعرضها لوحة التحكم جنبًا إلى جنب، وتذكر كل حادثة الكاميرا التي رصدتها."],
         ["ماذا يحدث إذا انقطع الإنترنت؟", "يستمر الرصد والقواعد ولوحة التحكم المحلية في العمل، لأنها كلها تعمل في الموقع. وتنتظر رسائل التنبيه ثم تُرسل تلقائيًا فور عودة الاتصال (مع إعادة المحاولة لمدة تصل إلى يوم)، فلا يضيع منها شيء. ودون الذكاء الاصطناعي تُكتب التقارير بالنموذج الثابت."],
         ["كيف يتعامل المشرف مع الحادثة؟", "تعرض الصفحة الأولى في لوحة التحكم ما يجب البدء به، ومع كل حادثة الخطوة التالية من قائمة الموقع المعتمدة. ضغطة واحدة على «أتولّى الأمر» تُعلم الجميع بمن يتعامل معها، و«تم» تغلقها. وتُجمع الحوادث المتكررة معًا ليمكن إغلاقها دفعة واحدة."],
         ["هل هو لمواقع البناء فقط؟", "لا. كل نوع من المواقع إضافة لها نموذجها ومناطقها وقواعدها وأسلوب تقاريرها. مواقع البناء هي الإضافة الأولى، والرعاية الصحية قيد التطوير."],
@@ -481,6 +596,7 @@ const TEXT = bilingual(
       ],
     },
     closing: { line: "شاهد موقعك ", emphasis: "مباشرةً." },
+    companionFooter: "مشروع مرافق: SiteSentry Regs، لوائح السلامة في البناء مع ذكر البنود",
     credits: (names: string) =>
       `الصور من Unsplash بعدسة ${names}. شاشات لوحة التحكم وتسجيلاتها من النظام أثناء تشغيله في وضع الاختبار.`,
   },
@@ -567,6 +683,12 @@ function TopBar({ surface }: { surface: "dark" | "light" }) {
           <a href="#try" className="opacity-80 hover:opacity-100">
             {t.nav.tryIt}
           </a>
+          <a href="#results" className="opacity-80 hover:opacity-100">
+            {t.nav.results}
+          </a>
+          <OutLink href={REGS_URL} className="inline-flex items-center gap-1 opacity-80 hover:opacity-100">
+            {t.nav.regs} <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+          </OutLink>
           <a href="#faq" className="opacity-80 hover:opacity-100">
             {t.nav.faq}
           </a>
@@ -663,7 +785,10 @@ function Card({ media, title, children, link, className = "", bare = false }: {
 function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div className="reveal border-t border-ink/20 pt-4">
-      <p className="font-display text-5xl font-semibold tracking-tight sm:text-6xl">{value}</p>
+      {/* figures read left to right in Arabic too, or "42 / 43" turns into "43 / 42" */}
+      <p className="font-display text-5xl font-semibold tracking-tight sm:text-6xl">
+        <bdi dir="ltr">{value}</bdi>
+      </p>
       <p className="mt-2 max-w-[16rem] text-sm leading-6 text-ink/60">{label}</p>
     </div>
   );
@@ -980,6 +1105,141 @@ function Closing() {
   );
 }
 
+// "Try it" (with the Markdown renderer for its sample report) loads after the first screen, keeping the first download small
+const TryIt = lazy(() => import("../components/TryIt").then((m) => ({ default: m.TryIt })));
+
+const REGS_URL = "https://sitesentry-regs.streamlit.app";
+const REGS_CODE = "https://github.com/albaraafarag23/sitesentry-regs";
+
+/** Opens a page of another site in a new tab, safely (no access back to this page). */
+function OutLink({ href, className = "", children }: { href: string; className?: string; children: ReactNode }) {
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+      {children}
+    </a>
+  );
+}
+
+/** The rulebook chapter's opener: the codes' own wording, set large and faint, instead of a photo. */
+function RulebookBackdrop() {
+  const lines = [
+    "5.13  Safety helmets – Provide head protection from dropped objects",
+    "5.13  High visibility vests to be worn by employees working on construction sites",
+    "5.9   Barrier off or cover over excavations or pits",
+    "5.3   The working platform is capable of carrying the load it was designed for",
+    "5.5.1 The entity shall protect people from falling objects",
+    "5.7   The site rules shall consider … Smoking; … Restricted areas",
+    "7.2   An appointed person … will telephone for an ambulance",
+  ];
+  return (
+    <div className="absolute inset-0 overflow-hidden bg-[#16130f]">
+      <div dir="ltr" className="absolute -inset-x-10 top-1/2 -translate-y-1/2 -rotate-3 space-y-3 font-serif text-[clamp(1.4rem,3.4vw,3.2rem)] leading-tight whitespace-nowrap text-paper/[0.09] italic">
+        {lines.map((line, i) => (
+          <p key={i} style={{ marginInlineStart: `${(i % 3) * 6}vw` }}>
+            {line}
+          </p>
+        ))}
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60" />
+    </div>
+  );
+}
+
+function RulebookChapter() {
+  const all = useText(TEXT);
+  const t = all.regs;
+  return (
+    <Chapter id="regs" n={8} title={t.title} kicker={t.kicker} backdrop={<RulebookBackdrop />}>
+      <Lead title={t.leadTitle}>{t.lead}</Lead>
+      <div className="mt-16 grid gap-10 xl:grid-cols-[1.35fr_1fr] xl:items-start">
+        <figure className="reveal">
+          <article className="rounded-md bg-white p-6 shadow-sm ring-1 ring-ink/10">
+            <div className="flex items-center justify-between border-b border-ink/10 pb-4">
+              <div>
+                <p className="text-xs font-semibold tracking-wide text-ink/40 uppercase">{t.excerptLabel}</p>
+                <p className="mt-1 font-display font-semibold">{t.excerptTitle}</p>
+              </div>
+              <span className="rounded bg-orange-100 px-2 py-0.5 text-xs font-bold text-orange-700">{all.severity.HIGH}</span>
+            </div>
+            <p className="mt-4 font-serif text-xl">{t.excerptHeading}</p>
+            <p className="mt-2 flex items-start gap-2 text-sm font-semibold text-ink/80">
+              <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" aria-hidden /> {t.excerptWhere}
+            </p>
+            <blockquote dir="ltr" lang="en" className="mt-3 border-s-2 border-amber-600/40 ps-4 text-start font-serif text-[15px] leading-relaxed text-ink/75 italic">
+              {t.excerptQuote}
+            </blockquote>
+            <OutLink
+              href="https://mc.spsa.shj.ae/media/documents/8ZTXXGJk0O0HgcHO0bs6g_OSHJ-CoP-02%20OSH%20Management%20in%20Construction%20Version%201%20English.pdf"
+              className="mt-4 inline-flex items-center gap-1 text-xs font-semibold text-ink/60 underline decoration-ink/25 underline-offset-2 hover:text-ink"
+            >
+              {t.excerptPdf} <ExternalLink className="h-3 w-3" aria-hidden />
+            </OutLink>
+          </article>
+          <figcaption className="mt-3">
+            <p className="font-display font-semibold">{t.excerptCaptionTitle}</p>
+            <p className="mt-0.5 max-w-md text-[15px] leading-6 text-ink/60">{t.excerptCaption}</p>
+          </figcaption>
+        </figure>
+        <Stats items={t.stats} className="grid gap-10 sm:grid-cols-2 xl:grid-cols-1" />
+      </div>
+
+      {/* the companion project, one click away */}
+      <div className="reveal mt-16 overflow-hidden rounded-md bg-ink text-paper">
+        <div className="grid gap-8 p-6 sm:p-10 lg:grid-cols-[1.3fr_1fr] lg:items-end">
+          <div>
+            <p className="font-serif text-lg text-amber-300 italic">{t.companionKicker}</p>
+            <p className="mt-1 font-display text-3xl font-semibold tracking-tight sm:text-4xl">{t.companionTitle}</p>
+            <p className="mt-4 max-w-xl leading-7 text-paper/70">{t.companionText}</p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <OutLink
+                href={REGS_URL}
+                className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-5 py-2.5 text-sm font-semibold text-ink transition hover:bg-amber-300"
+              >
+                {t.companionButton} <ExternalLink className="h-4 w-4" aria-hidden />
+              </OutLink>
+              <OutLink href={REGS_CODE} className="rounded-full px-4 py-2.5 text-sm font-semibold text-paper ring-1 ring-paper/30 transition hover:bg-white/10">
+                {t.companionCode}
+              </OutLink>
+            </div>
+          </div>
+          <dl className="grid grid-cols-2 gap-6">
+            {t.companionStats.map(([value, label]) => (
+              <div key={value} className="border-t border-paper/20 pt-3">
+                <dt className="font-display text-4xl font-semibold tracking-tight">
+                  <bdi dir="ltr">{value}</bdi>
+                </dt>
+                <dd className="mt-1 text-sm leading-5 text-paper/60">{label}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </div>
+      <DenseList items={t.list} />
+    </Chapter>
+  );
+}
+
+/** Measured results, each from a write-up in the project's documentation. */
+function Results() {
+  const t = useText(TEXT).results;
+  return (
+    <section id="results" className="paper-grain relative z-10 scroll-mt-16 border-b border-ink/10 bg-paper text-ink" data-surface="light">
+      <div className="px-5 py-24 sm:px-8 sm:py-32 lg:pe-12 lg:ps-[17rem]">
+        <div className="reveal max-w-3xl">
+          <Flourish text={t.title} as="h2" />
+          <p className="mt-6 max-w-2xl text-lg leading-8 text-ink/70">{t.lead}</p>
+        </div>
+        <div className="mt-16 grid gap-x-10 gap-y-12 sm:grid-cols-2 xl:grid-cols-3">
+          {t.items.map(([value, label]) => (
+            <Stat key={label} value={value} label={label} />
+          ))}
+        </div>
+        <p className="reveal mt-12 max-w-2xl font-serif text-lg text-ink/55 italic">{t.note}</p>
+      </div>
+    </section>
+  );
+}
+
 const CREDITS = [
   "Nicolas Beuret",
   "Heri Susilo",
@@ -1002,7 +1262,12 @@ function Footer() {
           <span className="font-display text-sm font-semibold">{P}</span>
           <span className="text-paper/50">© {new Date().getFullYear()}</span>
         </div>
-        <p className="max-w-2xl leading-5">{t.credits(CREDITS.join(", "))}</p>
+        <div className="max-w-2xl space-y-2 leading-5">
+          <OutLink href={REGS_URL} className="inline-flex items-center gap-1 text-paper/75 underline decoration-paper/25 underline-offset-2 hover:text-paper">
+            {t.companionFooter} <ExternalLink className="h-3 w-3" aria-hidden />
+          </OutLink>
+          <p>{t.credits(CREDITS.join(", "))}</p>
+        </div>
       </div>
     </footer>
   );
@@ -1018,13 +1283,34 @@ export function Landing() {
     document.title = t.docTitle;
   }, [t.docTitle]);
 
+  // A link straight to a chapter (…/#regs): the browser tries to jump before this page is built, so jump once it
+  // is, and again when the late-loading parts ("Try it", fonts) have settled and moved things.
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    if (!id) return;
+    const jump = () => document.getElementById(id)?.scrollIntoView({ block: "start" });
+    const timers = [0, 400, 1200].map((ms) => window.setTimeout(jump, ms));
+    document.fonts?.ready.then(jump).catch(() => {});
+    // a reader who starts scrolling has arrived: stop correcting
+    const stop = () => timers.forEach((x) => window.clearTimeout(x));
+    window.addEventListener("wheel", stop, { once: true, passive: true });
+    window.addEventListener("touchmove", stop, { once: true, passive: true });
+    return () => {
+      stop();
+      window.removeEventListener("wheel", stop);
+      window.removeEventListener("touchmove", stop);
+    };
+  }, []);
+
   return (
     <div className="bg-paper font-display text-ink">
       <TopBar surface={topSurface} />
       <ChapterIndex chapters={t.chapters} active={active} label={t.chaptersLabel} />
       <main>
         <Hero />
-        <TryIt />
+        <Suspense fallback={<section id="try" className="min-h-[100svh] bg-paper" aria-busy="true" />}>
+          <TryIt />
+        </Suspense>
         <PpeChapter />
         <SmokingChapter />
         <ZonesChapter />
@@ -1032,6 +1318,8 @@ export function Landing() {
         <RulesChapter />
         <ConsoleChapter />
         <EdgeChapter />
+        <RulebookChapter />
+        <Results />
         <Faq />
         <Team />
         <Closing />
