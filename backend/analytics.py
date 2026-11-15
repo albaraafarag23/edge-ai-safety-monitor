@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import Integer, case, cast, func, select, text
 
+import readcache
 from models import Incident, SessionLocal, iso
 
 router = APIRouter(tags=["analytics"])
@@ -19,6 +20,10 @@ async def analytics(days: int = Query(30, ge=1, le=365), tz: str = Query("UTC", 
         ZoneInfo(tz)
     except (ZoneInfoNotFoundError, ValueError):
         raise HTTPException(status_code=422, detail=f"Unknown time zone: {tz}")
+    return await readcache.cached(("analytics", days, tz), 30, lambda: _analytics(days, tz))
+
+
+async def _analytics(days: int, tz: str):
 
     now = datetime.utcnow()
     since = now - timedelta(days=days)

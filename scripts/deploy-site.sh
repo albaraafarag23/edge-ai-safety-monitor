@@ -38,9 +38,11 @@ export async function onRequest() {
   const headers = { "content-type": "application/json", "cache-control": "no-store" };
   try {
     const res = await fetch("$CONSOLE_URL/api/health", { signal: AbortSignal.timeout(6000) });
-    return new Response(JSON.stringify({ online: res.ok }), { status: res.ok ? 200 : 503, headers });
+    return new Response(JSON.stringify({ online: res.ok }), { headers });
   } catch {
-    return new Response(JSON.stringify({ online: false }), { status: 503, headers });
+    // 200 with online: false, not an error status: a console that is off is news, not a failure, and an error
+    // status would show up as an error in every visitor's browser console
+    return new Response(JSON.stringify({ online: false }), { headers });
   }
 }
 FUNCTION
@@ -54,6 +56,10 @@ cat > dist-site/_headers <<HEADERS
   Referrer-Policy: strict-origin-when-cross-origin
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+/edition/*
+  Cache-Control: public, max-age=604800
+/screenshots/*
+  Cache-Control: public, max-age=604800
 HEADERS
 
 echo "Publishing to Cloudflare Pages project '$PROJECT' (production branch: $BRANCH)"

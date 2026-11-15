@@ -77,6 +77,7 @@ async def update_user(user_id: int, body: UserPatch, me: User = Depends(auth.cur
             if value is not None:
                 setattr(user, field, value)
         await session.commit()
+        auth.forget_users()   # role, password or switch-off applies to the next request
         return user.to_dict()
 
 
@@ -90,6 +91,7 @@ async def reset_password(user_id: int, body: PasswordReset):
             raise HTTPException(status_code=404, detail="User not found")
         user.password_hash = auth.hash_password(body.password)
         await session.commit()
+        auth.forget_users()   # role, password or switch-off applies to the next request
 
 
 @account.post("/password")
@@ -102,5 +104,6 @@ async def change_own_password(body: PasswordChange, response: Response, me: User
         user = await session.get(User, me.id)
         user.password_hash = auth.hash_password(body.new_password)
         await session.commit()
+        auth.forget_users()   # role, password or switch-off applies to the next request
     auth.set_session_cookie(response, user)
     return user.to_dict()

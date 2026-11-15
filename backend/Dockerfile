@@ -11,4 +11,5 @@ COPY *.py ./
 # host, who owns the shared faces folder this service writes photos to.
 USER 1000:1000
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# no WebSocket compression: the live view sends JPEGs, which don't compress, so it only cost CPU
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--ws-per-message-deflate", "false"]

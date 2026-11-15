@@ -181,7 +181,7 @@ export function TryIt() {
                 n === index ? "bg-ink text-paper" : "bg-white text-ink/70 ring-1 ring-ink/10 hover:text-ink"
               }`}
             >
-              <img src={s.image} alt="" className="h-9 w-9 rounded-full object-cover" />
+              <img src={s.image.replace(/\.webp$/, "-thumb.webp")} alt="" width={36} height={36} className="h-9 w-9 rounded-full object-cover" />
               {t.scenes[s.key]}
             </button>
           ))}

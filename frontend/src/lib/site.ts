@@ -19,7 +19,8 @@ export function useDemoStatus(): DemoStatus {
       // itself (when the function isn't deployed, e.g. a local build)
       const viaSite = await fetch("/demo-health", { cache: "no-store", signal: AbortSignal.timeout(8000) }).catch(() => null);
       if (viaSite?.headers.get("content-type")?.includes("application/json")) {
-        if (!viaSite.ok) throw new Error(String(viaSite.status));
+        const body = (await viaSite.json().catch(() => null)) as { online?: boolean } | null;
+        if (!viaSite.ok || !body?.online) throw new Error("offline");
         return true;
       }
       const res = await fetch(`${CONSOLE_URL}/api/health`, { cache: "no-store", signal: AbortSignal.timeout(8000) });

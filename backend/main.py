@@ -15,6 +15,7 @@ from sqlalchemy import func, select, text
 
 import analytics
 import auth
+import readcache
 import cameras
 import people
 import rule_settings
@@ -96,6 +97,8 @@ async def consume_incidents(r: aioredis.Redis):
                 # acknowledge only after the commit succeeds; a failed save is re-read from the backlog
                 await session.commit()
             await r.xack(INCIDENT_STREAM, CONSUMER_GROUP, *handled)
+            if stored:
+                readcache.changed()
             for row in stored:
                 print(f"[Backend] Stored incident {row.event_id}", flush=True)
                 broadcaster.publish("incident", row.to_dict())
@@ -110,8 +113,19 @@ async def consume_incidents(r: aioredis.Redis):
                 await ensure_group(r)
 
 
+# BACKEND_ROLE=live: this process only serves the live camera view (docker-compose.yml `live`); the main
+# backend does everything else, including the background work, which must run exactly once
+LIVE_ONLY = os.getenv("BACKEND_ROLE", "").lower() == "live"
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if LIVE_ONLY:
+        cameras.init(REDIS_URL)
+        print("[Backend] Live view process ready", flush=True)
+        yield
+        await cameras.close()
+        return
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         # create_all never alters an existing table; until there are migrations (Alembic), columns added
@@ -241,17 +255,22 @@ async def list_incidents(
     if person_id:
         filters.append(Incident.meta["people"].contains([{"person_id": person_id}]))
 
-    async with SessionLocal() as session:
-        total = await session.scalar(select(func.count()).select_from(Incident).where(*filters))
-        rows = (await session.execute(
-            select(Incident, Report)
-            .outerjoin(Report, Report.event_id == Incident.event_id)
-            .where(*filters)
-            .order_by(Incident.created_at.desc())
-            .limit(limit).offset(offset)
-        )).all()
+    async def compute():
+        async with SessionLocal() as session:
+            total = await session.scalar(select(func.count()).select_from(Incident).where(*filters))
+            rows = (await session.execute(
+                select(Incident, Report)
+                .outerjoin(Report, Report.event_id == Incident.event_id)
+                .where(*filters)
+                .order_by(Incident.created_at.desc())
+                .limit(limit).offset(offset)
+            )).all()
+        return total, [incident.to_dict(report) for incident, report in rows]
+
+    key = ("incidents", limit, offset, severity, camera_id, event_type, status, person_id, hours)
+    total, items = await readcache.cached(key, 5, compute)
     response.headers["X-Total-Count"] = str(total)
-    return [incident.to_dict(report) for incident, report in rows]
+    return items
 
 
 @protected.get("/incidents/{event_id}")
@@ -274,6 +293,7 @@ async def set_status(event_id: str, body: StatusIn, user: User = Depends(auth.cu
         incident.status_updated_at = datetime.utcnow()
         incident.status_updated_by = user.name
         await session.commit()
+        readcache.changed()
         result = incident.to_dict(await session.get(Report, event_id))
     broadcaster.publish("status", {"event_id": event_id, "status": body.status, "by": user.name})
     return result
@@ -288,6 +308,7 @@ async def save_report(report: ReportIn):
             raise HTTPException(status_code=404, detail="Incident not found")
         await session.merge(Report(**report.model_dump()))
         await session.commit()
+        readcache.changed()
     broadcaster.publish("report", {"event_id": report.event_id, "generated_by": report.generated_by,
                                    "delivery_status": report.delivery.get("status")})
     return {"event_id": report.event_id}
@@ -314,6 +335,10 @@ async def list_reports(limit: int = Query(50, ge=1, le=200)):
 @protected.get("/stats")
 async def stats(hours: float = Query(24, gt=0, le=24 * 90)):
     """Counts for the overview page, over the last `hours`."""
+    return await readcache.cached(("stats", hours), 10, lambda: _stats(hours))
+
+
+async def _stats(hours: float):
     since = datetime.utcnow() - timedelta(hours=hours)
     recent = Incident.created_at >= since
 
@@ -345,6 +370,10 @@ async def stats(hours: float = Query(24, gt=0, le=24 * 90)):
 @protected.get("/filters")
 async def filter_options():
     """Values that exist in the data, for the dashboard's filter dropdowns."""
+    return await readcache.cached(("filters",), 60, _filter_options)
+
+
+async def _filter_options():
     async with SessionLocal() as session:
         cameras = (await session.execute(select(Incident.camera_id).distinct().order_by(Incident.camera_id))).scalars().all()
         types = (await session.execute(select(Incident.event_type).distinct().order_by(Incident.event_type))).scalars().all()

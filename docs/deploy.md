@@ -71,3 +71,23 @@ console's address is a private one, so those devices used to show "offline".
   database grows and, with SMTP set, supervisors get emails (repeats are held back by `NOTIFY_COOLDOWN_S`).
 - Failed sign-ins are limited: 5 per email and 20 per address in 15 minutes (in memory, reset on restart).
 - Screenshots on the product page are in `frontend/public/screenshots/`, captured from the console in test mode.
+
+## Load test
+
+`scripts/loadtest.py` signs in once, then simulates people browsing the console (the API calls each page
+makes, with a pause to read) and people watching the live camera. One Python process drives ~25 people before
+it becomes the bottleneck, so run four at once for 100. Measured 2026-11-15 on the laptop test copy (12,600
+incidents, a fake camera publishing 18.6 pictures a second):
+
+| Load | Pages (median / 95%) | Live view per viewer | Errors |
+|---|---|---|---|
+| 20 people + 5 watching | 15–70 ms / ≤220 ms | 17.5 pictures/s | 0 |
+| 100 people + 20 watching, before | ~1,400 ms / ~1,800 ms | 7–8 pictures/s | 0 |
+| 100 people + 20 watching, after | ~130–190 ms / ≤500 ms | 18.6 pictures/s (all of them) | 0 |
+
+What changed: the live view runs in its own process (`live` in docker-compose.yml, BACKEND_ROLE=live), one Redis
+reader per camera is shared by all its viewers, WebSocket compression is off (JPEGs don't compress), statistics,
+analytics and the incident list are cached for a few seconds and emptied on every change
+(`backend/readcache.py`), and the signed-in user is looked up at most every 5 s (cleared on any user change).
+The page process then tops out around 150 requests a second on one core, about 100 people actively clicking.
+The Jetson's cores are slower than the laptop's: run the test there too before a large demo.

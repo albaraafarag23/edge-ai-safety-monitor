@@ -98,6 +98,59 @@ async def latest_frame(camera_id: str = CameraId):
     return Response(frame, media_type="image/jpeg", headers=headers)
 
 
+class _CameraFeed:
+    """One reader per camera, however many people watch it: it checks Redis for a new picture every LIVE_POLL_S
+    and hands it to every viewer. Without it, each viewer polled Redis on its own (50 times a second each), and
+    20 viewers slowed the whole console down (load test: every request ~1.4 s instead of ~0.1 s)."""
+
+    def __init__(self, camera_id: str):
+        self.key = f"camera:{camera_id}:frame"
+        self.camera_id = camera_id
+        self.frame: bytes | None = None
+        self.at: bytes | None = None
+        self.marker = None            # the capture time, or the picture itself from a detector without one
+        self.viewers = 0
+        self.new = asyncio.Condition()
+        self.task: asyncio.Task | None = None
+
+    async def _run(self):
+        try:
+            while self.viewers > 0:
+                try:
+                    at = await _redis.get(f"{self.key}_at")   # small key first: the picture only when it is new
+                    if at is None or at != self.marker:
+                        frame, at = await _redis.mget(self.key, f"{self.key}_at")
+                        marker = at or frame
+                        if frame and marker != self.marker:
+                            self.frame, self.at, self.marker = frame, at, marker
+                            async with self.new:
+                                self.new.notify_all()
+                except Exception as e:   # Redis restarting: keep the viewers, try again
+                    print(f"[Backend] Live view of {self.camera_id}: {e}", flush=True)
+                    await asyncio.sleep(1)
+                await asyncio.sleep(LIVE_POLL_S)
+        finally:
+            _feeds.pop(self.camera_id, None)
+
+    def join(self):
+        self.viewers += 1
+        if self.task is None or self.task.done():
+            self.task = asyncio.create_task(self._run())
+
+    def leave(self):
+        self.viewers -= 1
+
+
+_feeds: dict[str, _CameraFeed] = {}
+
+
+def _feed(camera_id: str) -> _CameraFeed:
+    feed = _feeds.get(camera_id)
+    if feed is None:
+        feed = _feeds[camera_id] = _CameraFeed(camera_id)
+    return feed
+
+
 @ws_router.websocket("/{camera_id}/live")
 async def live(ws: WebSocket, camera_id: str = CameraId):
     """The live view, as fast as the browser's connection allows and never behind. Each message is one picture:
@@ -114,7 +167,6 @@ async def live(ws: WebSocket, camera_id: str = CameraId):
         await ws.close(code=1008)
         return
     await ws.accept()
-    key = f"camera:{camera_id}:frame"
     unanswered = 0
     answered = asyncio.Event()
 
@@ -125,6 +177,8 @@ async def live(ws: WebSocket, camera_id: str = CameraId):
             unanswered = max(0, unanswered - 1)   # extra answers can't open the window wider
             answered.set()
 
+    feed = _feed(camera_id)
+    feed.join()
     reader = asyncio.create_task(answers())
     last = None
     checked = time.monotonic()
@@ -141,20 +195,18 @@ async def live(ws: WebSocket, camera_id: str = CameraId):
                 await asyncio.wait({reader, waiter}, timeout=LIVE_RECHECK_S, return_when=asyncio.FIRST_COMPLETED)
                 waiter.cancel()
                 continue
-            # the small capture-time key first: the picture itself is fetched only when there is a new one
-            at = await _redis.get(f"{key}_at")
-            if at is not None and at == last:
-                await asyncio.sleep(LIVE_POLL_S)
-                continue
-            frame, at = await _redis.mget(key, f"{key}_at")
-            marker = at or frame   # the capture time, or the picture itself from a detector that doesn't send one
-            if not frame or marker == last:
-                await asyncio.sleep(LIVE_POLL_S)
-                continue
-            last = marker
+            if feed.marker is None or feed.marker == last:   # wait for the camera's next picture
+                try:
+                    async with feed.new:
+                        await asyncio.wait_for(feed.new.wait_for(lambda: feed.marker is not None and feed.marker != last),
+                                               timeout=LIVE_RECHECK_S)
+                except asyncio.TimeoutError:
+                    continue
+            frame, at, last = feed.frame, feed.at, feed.marker
             unanswered += 1
             await ws.send_bytes(struct.pack(">d", float(at or 0)) + frame)
     except (WebSocketDisconnect, RuntimeError):
         pass
     finally:
         reader.cancel()
+        feed.leave()

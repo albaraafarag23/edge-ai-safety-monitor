@@ -111,7 +111,7 @@ services:
     build: ./backend
     ports:
       - "127.0.0.1:8000:8000"
-    environment:
+    environment: &backend-env
       REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-monitor}:${POSTGRES_PASSWORD:-monitor123}@postgres:5432/${POSTGRES_DB:-safety_monitor}
       MEDIA_DIR: /media
@@ -134,6 +134,24 @@ services:
       - ./media:/media:ro
       - ./plugins:/app/plugins:ro
       - ./faces:/faces
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # The console's live camera view (WebSocket), in its own process on its own CPU core: streaming pictures to
+  # many viewers then can't slow the rest of the console down, nor the other way round. Same code as `backend`,
+  # started with BACKEND_ROLE=live (only the live view; no background work). nginx sends /api/cameras/*/live here.
+  live:
+    <<: *logging
+    build: ./backend
+    environment:
+      <<: *backend-env
+      BACKEND_ROLE: live
+    volumes:
+      - ./plugins:/app/plugins:ro
     depends_on:
       postgres:
         condition: service_healthy

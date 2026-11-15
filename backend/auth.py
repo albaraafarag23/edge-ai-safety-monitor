@@ -242,14 +242,33 @@ def same_site(headers) -> bool:
 
 # ---------- route guards (FastAPI dependencies) ----------
 
+USER_CACHE_S = 5   # a signed-in user is looked up at most this often; user changes clear it at once
+_users: dict[int, tuple[float, User | None]] = {}
+
+
+def forget_users():
+    """Call after changing a user (role, password, switched off), so the change applies to the next request."""
+    _users.clear()
+
+
 async def user_from_token(token: str | None) -> User | None:
-    """The signed-in, active user a session cookie belongs to, else None."""
+    """The signed-in, active user a session cookie belongs to, else None. Every request asks this, so the user is
+    kept for USER_CACHE_S seconds instead of read from the database each time."""
     claims = read_token(token)
-    if claims:
+    if not claims:
+        return None
+    uid = claims.get("uid")
+    hit = _users.get(uid)
+    if hit and time.monotonic() - hit[0] < USER_CACHE_S:
+        user = hit[1]
+    else:
         async with SessionLocal() as session:
-            user = await session.get(User, claims.get("uid"))
-        if user and user.active and hmac.compare_digest(claims.get("pv", ""), _password_fingerprint(user)):
-            return user
+            user = await session.get(User, uid)
+        if len(_users) > 1000:
+            _users.clear()
+        _users[uid] = (time.monotonic(), user)
+    if user and user.active and hmac.compare_digest(claims.get("pv", ""), _password_fingerprint(user)):
+        return user
     return None
 
 
