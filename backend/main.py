@@ -153,6 +153,18 @@ if CORS_ORIGINS:
                        expose_headers=["X-Total-Count"])
 
 
+def same_site(headers) -> bool:
+    """False if the request names another site as its Origin. Browsers always send Origin on changes and on
+    WebSocket connections; requests without one (ai_reporting, curl, scripts) aren't from a browser page."""
+    origin = headers.get("origin")
+    if not origin:
+        return True
+    # host names only: another port on the same host shares the cookie anyway
+    hosts = {urlsplit(f"//{h.strip()}").hostname for name in ("host", "x-forwarded-host")
+             for h in headers.get(name, "").split(",") if h.strip()}
+    return urlsplit(origin).hostname in hosts | OWN_HOSTS
+
+
 @app.middleware("http")
 async def same_site_changes_only(request: Request, call_next):
     """A change (POST, PATCH, PUT, DELETE) sent by a browser must come from the console's own pages.
@@ -160,13 +172,8 @@ async def same_site_changes_only(request: Request, call_next):
     Browsers put the page's address in the Origin header of such requests. If it names another site, that site
     is trying to act with the visitor's session (cross-site request forgery): refused, on top of the session
     cookie's SameSite=Lax. Requests without Origin (ai_reporting, curl, scripts) aren't from a browser page."""
-    origin = request.headers.get("origin")
-    if origin and request.method not in ("GET", "HEAD", "OPTIONS"):
-        # host names only: another port on the same host shares the cookie anyway
-        hosts = {urlsplit(f"//{h.strip()}").hostname for name in ("host", "x-forwarded-host")
-                 for h in request.headers.get(name, "").split(",") if h.strip()}
-        if urlsplit(origin).hostname not in hosts | OWN_HOSTS:
-            return JSONResponse({"detail": "Request from another site refused"}, status_code=403)
+    if request.method not in ("GET", "HEAD", "OPTIONS") and not same_site(request.headers):
+        return JSONResponse({"detail": "Request from another site refused"}, status_code=403)
     return await call_next(request)
 
 
@@ -368,6 +375,9 @@ async def events(request: Request):
 
 
 protected.include_router(cameras.router)
+# the live view's WebSocket checks the session itself (HTTP dependencies don't run on WebSockets)
+cameras.same_site = same_site
+app.include_router(cameras.ws_router)
 protected.include_router(zone_settings.router)
 protected.include_router(analytics.router)
 # for the summary email (ai_reporting); internal services only, like POST /reports

@@ -23,7 +23,9 @@ import numpy as np
 import redis
 
 BUFFER_SECONDS = 12
-BUFFER_FPS = 10        # frames kept per second (camera may run faster)
+BUFFER_FPS = 10        # frames kept per second for incident clips (camera may run faster)
+# pictures per second for the console's live view (each one JPEG-encoded, ~6 ms on the Jetson's CPU)
+LIVE_FPS = max(BUFFER_FPS, int(os.getenv("LIVE_FPS") or 20))
 MAX_WIDTH = 960        # buffered frames are downscaled to this width
 PRE_SECONDS = 5
 POST_SECONDS = 3
@@ -83,6 +85,7 @@ class MediaRecorder:
         self._frames = collections.deque()   # (frame_id, time, jpeg bytes)
         self._lock = threading.Lock()
         self._last_add = 0.0
+        self._last_kept = 0.0                # last frame kept for clips (BUFFER_FPS)
         self._next = None                    # the newest frame waiting to be buffered
         self._wake = threading.Event()
         threading.Thread(target=self._work, daemon=True, name=f"media-{camera_id}").start()
@@ -92,7 +95,8 @@ class MediaRecorder:
         """box_scale maps detection boxes onto `image` (0.5 when the frame was decoded at half the camera size).
         Returns at once: the frame is buffered by the recorder's thread. `image` must not be changed afterwards."""
         now = time.time()
-        if now - self._last_add < 1 / BUFFER_FPS:
+        # small slack, so a detector at exactly LIVE_FPS doesn't lose every other frame to timer jitter
+        if now - self._last_add < 0.9 / LIVE_FPS:
             return
         self._last_add = now
         self._next = (frame_id, now, image, detections, box_scale, captured or now)
@@ -122,6 +126,9 @@ class MediaRecorder:
         data = jpg.tobytes()
         if self.live_view:
             self.live_view.publish(data, annotated.shape[1], annotated.shape[0], captured or now)
+        if now - self._last_kept < 0.9 / BUFFER_FPS:   # live view gets every frame, clips BUFFER_FPS of them
+            return
+        self._last_kept = now
         with self._lock:
             self._frames.append((frame_id, now, data))
             while self._frames and self._frames[0][1] < now - BUFFER_SECONDS:
@@ -272,6 +279,6 @@ def remove_old_media(media_dir: Path, keep_days: float):
         print(f"[CV] Media: removed {removed} file(s) older than {keep_days:g} days", flush=True)
 
 
-MEDIA_SUMMARY = (f"buffer {BUFFER_SECONDS}s @ {BUFFER_FPS} fps, clips {PRE_SECONDS}s before + {POST_SECONDS}s after, "
+MEDIA_SUMMARY = (f"live view {LIVE_FPS} fps, buffer {BUFFER_SECONDS}s @ {BUFFER_FPS} fps, clips {PRE_SECONDS}s before + {POST_SECONDS}s after, "
                  f"{f'kept {MEDIA_KEEP_DAYS:g} days, ' if MEDIA_KEEP_DAYS else ''}"
                  f"{'H.264 via ffmpeg' if FFMPEG else 'MPEG-4 (ffmpeg not found)'}")

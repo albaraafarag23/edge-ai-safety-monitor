@@ -221,13 +221,21 @@ async def ensure_admin():
 
 # ---------- route guards (FastAPI dependencies) ----------
 
-async def current_user(request: Request) -> User:
-    claims = read_token(request.cookies.get(COOKIE_NAME))
+async def user_from_token(token: str | None) -> User | None:
+    """The signed-in, active user a session cookie belongs to, else None."""
+    claims = read_token(token)
     if claims:
         async with SessionLocal() as session:
             user = await session.get(User, claims.get("uid"))
         if user and user.active and hmac.compare_digest(claims.get("pv", ""), _password_fingerprint(user)):
             return user
+    return None
+
+
+async def current_user(request: Request) -> User:
+    user = await user_from_token(request.cookies.get(COOKIE_NAME))
+    if user:
+        return user
     raise HTTPException(status_code=401, detail="Not signed in")
 
 

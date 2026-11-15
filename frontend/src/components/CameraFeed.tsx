@@ -1,6 +1,6 @@
 import { CameraOff, Maximize2 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { cameraFrameUrl } from "../api/client";
+import { API_BASE, cameraFrameUrl } from "../api/client";
 import type { Camera } from "../api/types";
 import { bilingual, useText } from "../lib/i18n";
 
@@ -23,14 +23,29 @@ const TEXT = bilingual(
   },
 );
 
-const LIVE_MIN_GAP_MS = 100;   // the detector publishes at most 10 pictures a second
-const LIVE_FAILURES = 3;       // failed fetches in a row before the view shows offline
+const LIVE_MIN_GAP_MS = 100;   // picture-by-picture fallback: at most 10 a second
+const LIVE_FAILURES = 3;       // failures in a row before the view shows offline
+
+/** Shows a JPEG once it is decoded, so the view never flickers to a half-drawn picture. */
+async function decoded(blob: Blob): Promise<string> {
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.src = url;
+  try {
+    await img.decode();
+  } catch (e) {
+    URL.revokeObjectURL(url);
+    throw e;
+  }
+  return url;
+}
 
 /**
- * The newest picture of a camera, fetched again as soon as the last one is on screen. Unlike a Motion-JPEG
- * stream, which the server pushes whether or not the browser keeps up, nothing can pile up in the network's
- * buffers on the way: the picture is always at most one round trip old, instead of drifting seconds behind
- * after a slow moment. Pauses while the tab is in the background.
+ * The newest pictures of a camera, never seconds behind. Normally over a WebSocket (backend cameras.py `live`):
+ * the server pushes each new picture, up to ~20 a second, and this page answers each one it has put on screen;
+ * the server stops at two unanswered, so nothing piles up in the network's buffers and a slow link just gets
+ * fewer pictures. If WebSockets don't get through (an old browser, a strict proxy), it falls back to fetching
+ * the newest picture again as soon as the last one is shown (at most 10 a second, one round trip old).
  */
 function useLiveFrame(cameraId: string, active: boolean, onFail: () => void) {
   const [src, setSrc] = useState<string | null>(null);
@@ -46,46 +61,72 @@ function useLiveFrame(cameraId: string, active: boolean, onFail: () => void) {
     let timer: number | undefined;
     let shown: string | null = null;
     let failures = 0;
+    let socket: WebSocket | null = null;
     const controller = new AbortController();
 
-    const next = async () => {
+    const show = (url: string) => {
+      if (stopped) {
+        URL.revokeObjectURL(url);
+        return;
+      }
+      if (shown) URL.revokeObjectURL(shown);
+      shown = url;
+      setSrc(url);
+      failures = 0;
+    };
+    const failed = () => {
+      failures += 1;
+      if (failures >= LIVE_FAILURES) failRef.current();
+      return failures < LIVE_FAILURES;
+    };
+
+    // fallback: picture by picture
+    const pull = async () => {
       if (stopped) return;
       if (document.hidden) {
-        timer = window.setTimeout(next, 500);
+        timer = window.setTimeout(pull, 500);
         return;
       }
       const started = performance.now();
       try {
         const res = await fetch(`${cameraFrameUrl(cameraId)}?t=${Date.now()}`, { cache: "no-store", signal: controller.signal });
         if (!res.ok) throw new Error(String(res.status));
-        const url = URL.createObjectURL(await res.blob());
-        // decode before showing, so the view never flickers to a half-drawn picture
-        const img = new Image();
-        img.src = url;
-        await img.decode();
-        if (stopped) {
-          URL.revokeObjectURL(url);
-          return;
-        }
-        if (shown) URL.revokeObjectURL(shown);
-        shown = url;
-        setSrc(url);
-        failures = 0;
+        show(await decoded(await res.blob()));
       } catch {
-        if (stopped) return;
-        failures += 1;
-        if (failures >= LIVE_FAILURES) {
-          failRef.current();
-          return;
-        }
+        if (stopped || !failed()) return;
       }
-      timer = window.setTimeout(next, Math.max(0, LIVE_MIN_GAP_MS - (performance.now() - started)));
+      timer = window.setTimeout(pull, Math.max(0, LIVE_MIN_GAP_MS - (performance.now() - started)));
     };
-    next();
+
+    const connect = () => {
+      if (stopped) return;
+      let got = false;
+      const proto = window.location.protocol === "https:" ? "wss" : "ws";
+      socket = new WebSocket(`${proto}://${window.location.host}${API_BASE}/cameras/${encodeURIComponent(cameraId)}/live`);
+      socket.binaryType = "arraybuffer";
+      socket.onmessage = async (e) => {
+        got = true;
+        const ws = e.target as WebSocket;
+        try {
+          show(await decoded(new Blob([(e.data as ArrayBuffer).slice(8)], { type: "image/jpeg" })));
+        } catch {
+          /* a bad picture: skip it */
+        }
+        if (ws.readyState === WebSocket.OPEN) ws.send("1");   // on screen: send the next one
+      };
+      socket.onclose = () => {
+        if (stopped) return;
+        if (!got) pull();                                       // never worked here: picture by picture
+        else if (failed()) timer = window.setTimeout(connect, 1000);   // dropped (e.g. a restart): again
+      };
+    };
+    connect();
+
     return () => {
       stopped = true;
       controller.abort();
       window.clearTimeout(timer);
+      socket?.close();
       if (shown) URL.revokeObjectURL(shown);
     };
   }, [cameraId, active]);

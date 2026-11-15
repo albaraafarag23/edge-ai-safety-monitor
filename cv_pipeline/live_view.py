@@ -44,7 +44,7 @@ class LiveView:
             self._frames, self._window_start = 0, now
 
     def publish(self, jpeg: bytes, width: int, height: int, captured: float | None = None):
-        """Latest annotated frame (called by MediaRecorder, at most BUFFER_FPS times a second). `captured` is when
+        """Latest annotated frame (called by MediaRecorder, at most LIVE_FPS times a second). `captured` is when
         the camera frame was read (time.time()): stored next to it, so the stream can say how old a picture is."""
         prefix = f"camera:{self.camera_id}"
         now = time.time()
