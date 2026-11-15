@@ -11,6 +11,7 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 PLUGINS_DIR = os.getenv("PLUGINS_DIR", "./plugins")
 DETECTION_STREAM = "detections"
 INCIDENT_STREAM = "incidents"
+MISSING_TTL_S = 3
 CONSUMER_GROUP = "event_engine"
 CONSUMER_NAME = "engine_01"
 COOLDOWN_SECONDS = float(os.getenv("RULE_COOLDOWN_SECONDS", "10"))
@@ -98,6 +99,7 @@ def run(r, engine: RuleEngine):
     print(f"[EE] Listening on '{DETECTION_STREAM}'...", flush=True)
 
     last_refresh = 0.0
+    published = {}   # camera -> (what was last written to camera:<id>:missing, when)
     while True:
         if time.monotonic() - last_refresh >= SETTINGS_REFRESH_S:
             try:
@@ -134,11 +136,25 @@ def run(r, engine: RuleEngine):
                     print(f"[EE] Skipping message {event_id}: {type(e).__name__}: {e}", flush=True)
                     r.xack(DETECTION_STREAM, CONSUMER_GROUP, event_id)
                     continue
+                publish_missing(r, engine, detection.get("camera_id", ""), published)
                 for incident in incidents:
                     r.xadd(INCIDENT_STREAM, {"data": json.dumps(incident)}, maxlen=1000)
                     print(f"[EE] Incident {incident['event_id']}: {incident['camera_id']} {incident['event_type']}  "
                           f"severity={incident['severity']}  duration={incident['duration_seconds']}s", flush=True)
                 r.xack(DETECTION_STREAM, CONSUMER_GROUP, event_id)
+
+
+def publish_missing(r, engine, camera: str, published: dict):
+    """camera:<id>:missing = {track_id: [missing items]} for the detector's live picture (docs/contracts.md v2.9).
+    Written when it changes and at least once a second; it expires after MISSING_TTL_S, so a stopped engine
+    doesn't leave a stale label on anyone."""
+    value = json.dumps(engine.missing_now.get(camera) or {}, sort_keys=True)
+    last = published.get(camera)
+    now = time.monotonic()
+    if last and last[0] == value and now - last[1] < 1.0:
+        return
+    published[camera] = (value, now)
+    r.set(f"camera:{camera}:missing", value, ex=MISSING_TTL_S)
 
 
 if __name__ == "__main__":

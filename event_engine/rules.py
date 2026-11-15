@@ -201,6 +201,10 @@ class RuleEngine:
         self.site_tz = ZoneInfo(site_tz)   # active_hours are in site time
         self._active = {}       # (camera, rule_id) -> {"start": ts, "last": ts}
         self._last_fired = {}   # (camera, rule_id) -> ts
+        # camera -> {track_id: [missing items]} as of the last frame: who lacks which equipment right now, by the
+        # same rules that raise incidents (zones, switches and working hours included), before any waiting time.
+        # main.py publishes it, and the detector writes it on the person's box in the live picture.
+        self.missing_now = {}
         self.settings = {}      # plugin_id -> {rule_id: {"enabled": bool, <RULE_SETTINGS>...}} from the console
         # plugin_id -> {zone_id: {camera_id: [[x, y], ...]}}: zones drawn in the console for one camera, as
         # fractions of the picture (0-1), so they fit any camera resolution; turned into pixels with each
@@ -223,6 +227,7 @@ class RuleEngine:
             return []
         objects = event.get("detections", [])
         camera = event.get("camera_id", "")
+        missing_now = self.missing_now[camera] = {}
         now = _ts(event.get("timestamp"))
 
         incidents = []
@@ -244,6 +249,11 @@ class RuleEngine:
                     continue
 
             involved = CHECKS[rule["type"]](rule, objects, zone)
+            for o in involved:
+                track_id = (o.get("attributes") or {}).get("track_id")
+                if track_id is not None and o.get("missing_equipment"):
+                    items = missing_now.setdefault(str(track_id), [])
+                    items.extend(m for m in o["missing_equipment"] if m not in items)
             duration = self._track((camera, rule["rule_id"]), bool(involved), now,
                                    rule.get("grace_s", DEFAULT_GRACE_S))
             if duration is None or duration < rule.get("min_duration_s", 0):

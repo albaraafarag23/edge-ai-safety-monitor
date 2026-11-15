@@ -4,6 +4,7 @@ Only the newest frame is kept (one key per camera) and both keys expire after a 
 a stopped detector shows as offline. The backend reads them in backend/cameras.py.
 Redis errors are logged and skipped: the live view must never stop detection.
 """
+import json
 import time
 from datetime import datetime, timezone
 
@@ -26,6 +27,7 @@ class LiveView:
         self._fps = 0.0
         self._error_logged = False
         self.age_ms = 0.0      # how old the last published picture was when it was published
+        self._missing, self._missing_at = {}, 0.0
 
     def set_model(self, model: str):
         self.info["model"] = model
@@ -42,6 +44,18 @@ class LiveView:
         if now - self._window_start >= 2:
             self._fps = self._frames / (now - self._window_start)
             self._frames, self._window_start = 0, now
+
+    def missing(self) -> dict:
+        """{track_id: [missing items]} for this camera, as the rule engine last saw it (camera:<id>:missing,
+        docs/contracts.md v2.9). Read at most 10 times a second; {} when the engine or Redis doesn't answer."""
+        now = time.time()
+        if now - self._missing_at >= 0.1:
+            self._missing_at = now
+            try:
+                self._missing = json.loads(self.r.get(f"camera:{self.camera_id}:missing") or b"{}")
+            except (redis.exceptions.RedisError, ValueError):
+                self._missing = {}
+        return self._missing if isinstance(self._missing, dict) else {}
 
     def publish(self, jpeg: bytes, width: int, height: int, captured: float | None = None):
         """Latest annotated frame (called by MediaRecorder, at most LIVE_FPS times a second). `captured` is when

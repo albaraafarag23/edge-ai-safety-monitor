@@ -255,6 +255,18 @@ results.append(check("Tally: only the rule's subject is counted, not what is nea
 smoker = {"class_name": "smoking", "bbox": [0, 0, 10, 10], "attributes": named["attributes"]}
 results.append(check("Tally: the person smoking is counted (their name is on the smoking box)",
                      [v["person_id"] for v in _violators({"subject_classes": ["smoking"]}, [smoker])] == ["omar-ahmed"]))
+# --- who lacks what right now, for the label on the live picture ---
+eng = RuleEngine({PLUGIN["plugin_id"]: dict(PLUGIN, rules=[r for r in PLUGIN["rules"] if r["rule_id"] in ("RULE_PPE_01", "RULE_PPE_02")])})
+frame = {"timestamp": T0.isoformat(), "camera_id": "cam_01", "frame_id": 1, "plugin_id": PLUGIN["plugin_id"]}
+eng.process({**frame, "detections": [named, NO_HARDHAT]})   # bare head, and no vest found on the person
+results.append(check("Live label: a missing vest is known from the first frame, with no 'no vest' box from the model",
+                     eng.missing_now["cam_01"] == {"4": ["hard_hat", "safety_vest"]}, f"{eng.missing_now}"))
+eng.process({**frame, "detections": [named, HARDHAT, VEST]})
+results.append(check("Live label: it goes when the equipment is on", eng.missing_now["cam_01"] == {}, f"{eng.missing_now}"))
+eng.settings[PLUGIN["plugin_id"]] = {"RULE_PPE_02": {"enabled": False}}
+eng.process({**frame, "detections": [named, NO_HARDHAT]})
+results.append(check("Live label: a rule switched off in the console isn't shown",
+                     eng.missing_now["cam_01"] == {"4": ["hard_hat"]}, f"{eng.missing_now}"))
 results.append(check("Engine: a malformed detection raises, so main.py can skip it",
                      _raises(lambda: run([[{"class_name": "Person"}]], rules=["RULE_ZONE_01"]))))
 

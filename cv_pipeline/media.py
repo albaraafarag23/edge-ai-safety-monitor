@@ -56,15 +56,28 @@ LABELS = {"NO-Hardhat": "No hard hat", "NO-Safety Vest": "No safety vest", "Hard
           "smoking": "Smoking"}
 
 
-def annotate(image, detections, scale):
-    for d in detections:
+MISSING_LABELS = {"hard_hat": "no hard hat", "safety_vest": "no vest"}
+ALERT_COLOR = (0, 0, 255)
+
+
+def annotate(image, detections, scale, missing: dict | None = None):
+    """`missing` = {track_id: [items]} from the rule engine: the equipment each person lacks right now. It goes on
+    the person's own box (in red), because the model doesn't always draw a box for what is missing: a missing
+    vest is mostly known from no vest being found on the person."""
+    # people last: a hat's label sits where its wearer's label is, and the person's says more
+    for d in sorted(detections, key=lambda d: "track_id" in (d.get("attributes") or {})):
         x1, y1, x2, y2 = (int(v * scale) for v in d["bbox"])
         color = COLORS.get(d["class_name"], DEFAULT_COLOR)
-        cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
         label = LABELS.get(d["class_name"], d["class_name"])
-        name = (d.get("attributes") or {}).get("person_name")
+        who = d.get("attributes") or {}
+        name = who.get("person_name")
         if name and name.isascii():   # OpenCV's built-in font has Latin letters only
             label = name
+        lacks = (missing or {}).get(str(who.get("track_id"))) if "track_id" in who else None
+        if lacks:
+            label += ": " + ", ".join(MISSING_LABELS.get(m, "no " + str(m).replace("_", " ")) for m in lacks)
+            color = ALERT_COLOR
+        cv2.rectangle(image, (x1, y1), (x2, y2), color, 2)
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         cv2.rectangle(image, (x1, max(y1 - th - 6, 0)), (x1 + tw + 4, max(y1, th + 6)), color, -1)
         cv2.putText(image, label, (x1 + 2, max(y1 - 4, th + 2)), cv2.FONT_HERSHEY_SIMPLEX, 0.5,
@@ -124,7 +137,8 @@ class MediaRecorder:
         h, w = image.shape[:2]
         scale = min(1.0, MAX_WIDTH / w)
         small = cv2.resize(image, (int(w * scale), int(h * scale))) if scale < 1 else image.copy()
-        annotated = annotate(small, detections, scale * box_scale)
+        missing = self.live_view.missing() if self.live_view else None
+        annotated = annotate(small, detections, scale * box_scale, missing)
         data = None
         if self.live_view:
             ok, jpg = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, LIVE_QUALITY])

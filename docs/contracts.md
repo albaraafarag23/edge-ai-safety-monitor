@@ -1,5 +1,9 @@
 # Interface contracts
 
+Version 2.9 (2026-11-16): new Redis key `camera:<id>:missing` (event_engine → cv_pipeline): `{"<track_id>":
+["hard_hat", "safety_vest"]}`, the equipment each person lacks in the latest frame by the rules now in force
+(zones, console switches, working hours), before any waiting time. Expires after 3 s. The detector writes it on
+the person's box in the live picture, snapshots and clips ("Person: no hard hat, no vest"). Additive.
 Version 2.8 (2026-11-15): incidents get `metadata.violators`, the recognised people counted in the per-person
 tally. Additive. New Redis key `site:digest_time` (backend → ai_reporting): when the daily summary is sent.
 Version 2.7 (2026-11-15): reports (`markdown`, `markdown_ar`) may have a `## Regulation` section (Arabic

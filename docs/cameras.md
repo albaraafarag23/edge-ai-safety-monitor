@@ -47,6 +47,10 @@ and same-site check as the rest of the console): the server pushes each new pict
 slow link just gets fewer, always the newest. The browser decodes them in the background and paints them on a
 canvas at the screen's refresh. Where WebSockets don't get through, it fetches the newest picture one by one.
 
+A person who lacks required equipment gets it written on their own box, in red ("Person: no vest", or their
+name when they are recognised). It comes from the rule engine, so it follows the zones and rule switches set in
+the console; the model alone often draws no box for a missing vest, which is known from no vest being found.
+
 Measured 2026-11-15: through the public address (Tailscale Funnel) a picture arrives 0.1–0.3 s after the camera
 took it. With a 20 a second camera behind a 0.15 s round trip, the view shows 18.6 pictures a second (all sent),
 evenly spaced (±12 ms); with the earlier window of 2 it was 11 a second (±36 ms).
