@@ -259,6 +259,43 @@ def identify_people(faces: FaceIdentifier, unit: Unit, frame, detections: list[d
         d["attributes"] = {"track_id": track_id, **faces.identity(unit.camera_id, track_id)}
 
 
+class Profile:
+    """CV_PROFILE=1: every 10 s, how many frames the cameras delivered and the detector handled, and the average
+    milliseconds of each stage per handled frame. Off by default (costs almost nothing either way)."""
+    def __init__(self, units: list[Unit]):
+        self.on = os.getenv("CV_PROFILE", "") not in ("", "0", "false")
+        self.units, self.ms, self.handled = units, {}, 0
+        self.start, self.seen = time.monotonic(), {}
+
+    def add(self, stage: str, since: float) -> float:
+        now = time.perf_counter()
+        if self.on:
+            self.ms[stage] = self.ms.get(stage, 0.0) + (now - since) * 1000
+        return now
+
+    def speed(self, name: str, speed: dict):
+        """Ultralytics' own split of a predict call: preprocess, inference, postprocess (ms)."""
+        if self.on:
+            for k, v in speed.items():
+                key = f"{name}.{k[:3]}"
+                self.ms[key] = self.ms.get(key, 0.0) + (v or 0.0)
+
+    def frame(self):
+        if not self.on:
+            return
+        self.handled += 1
+        now = time.monotonic()
+        if now - self.start < 10:
+            return
+        dt = now - self.start
+        arrived = {u.camera_id: (u.camera.count - self.seen.get(u.camera_id, 0)) / dt for u in self.units}
+        self.seen = {u.camera_id: u.camera.count for u in self.units}
+        stages = "  ".join(f"{k} {v / self.handled:.1f}" for k, v in self.ms.items())
+        print(f"[CV] profile: camera {', '.join(f'{k} {v:.1f}' for k, v in arrived.items())} fps, "
+              f"handled {self.handled / dt:.1f} fps | ms/frame: {stages}", flush=True)
+        self.ms, self.handled, self.start = {}, 0, now
+
+
 def run_live_mode(r: redis.Redis, plugin: dict, units: list[Unit], settings: list[dict], faces: FaceIdentifier):
     from ultralytics import YOLO
 
@@ -282,6 +319,7 @@ def run_live_mode(r: redis.Redis, plugin: dict, units: list[Unit], settings: lis
     print(f"[CV] LIVE MODE — cameras={[(u.camera_id, u.camera.name) for u in units]}  "
           f"models={[m.model_path for m in cfg.models]}", flush=True)
 
+    prof = Profile(units)
     while units:
         new_frame.clear()
         busy = False
@@ -293,6 +331,7 @@ def run_live_mode(r: redis.Redis, plugin: dict, units: list[Unit], settings: lis
                     units.remove(unit)
                 continue
             busy = True
+            t = time.perf_counter()
             unit.seen = frame.n
             unit.frame_id += 1
             unit.live.set_frame_size(*unit.camera.frame_size)
@@ -300,21 +339,29 @@ def run_live_mode(r: redis.Redis, plugin: dict, units: list[Unit], settings: lis
             for m in cfg.models:   # main model, then each extra model (e.g. smoking) on the same frame
                 if (unit.frame_id - 1) % m.every_n_frames == 0:
                     model = loaded[m.model_path]
+                    name = os.path.splitext(os.path.basename(m.model_path))[0]
                     if m.crop_from:   # the main model's people are already in detections
                         unit.last[m.model_path] = classify_people(model, m, frame.image, detections, frame.scale)
+                        t = prof.add(name, t)
                     else:
-                        boxes = model.predict(frame.image, conf=m.min_confidence, classes=m.class_ids, imgsz=m.imgsz,
-                                              verbose=False)[0].boxes
-                        unit.last[m.model_path] = detect(model, m, boxes, frame.scale)
+                        result = model.predict(frame.image, conf=m.min_confidence, classes=m.class_ids,
+                                               imgsz=m.imgsz, verbose=False)[0]
+                        unit.last[m.model_path] = detect(model, m, result.boxes, frame.scale)
+                        t = prof.add(name, t)
+                        prof.speed(name, result.speed)
                         if m is cfg.models[0] and subject:
                             identify_people(faces, unit, frame, unit.last[m.model_path], subject)
+                            t = prof.add("faces", t)
                 detections += unit.last.get(m.model_path, [])
 
             message = detection_message(unit.camera_id, unit.frame_id, detections, model_name, unit.camera.frame_size)
             unit.recorder.add(unit.frame_id, frame.image, message["detections"], 1 / frame.scale)
+            t = prof.add("recorder", t)
             publish(r, message)
             unit.live.frame_processed()
             log_detections(unit, detections)
+            prof.add("publish", t)
+            prof.frame()
         if not busy:
             new_frame.wait(timeout=1)
 

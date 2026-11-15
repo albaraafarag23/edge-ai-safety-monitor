@@ -27,8 +27,14 @@ TensorRT builds are tied to the device and TensorRT version, so they are built o
 
 ```bash
 docker run --rm --ipc=host -v ~/sitesentry/models:/models ultralytics/ultralytics:latest-jetson-jetpack6 \
-  yolo export model=/models/construction_ppe.pt format=engine half=True imgsz=960 device=0 batch=1 workspace=4
+  yolo export model=/models/construction_ppe.pt format=engine half=True imgsz=544,960 device=0 batch=1 workspace=4
 ```
+
+`imgsz=544,960` builds the model for the camera's own shape (960×540 frames, rounded up to a multiple of 32).
+A square `imgsz=960` build pads every frame with grey to 960×960, almost half its work: 20.4 ms vs 11.7 ms per
+frame on the GPU, same detections (2026-11-15, 360 frames from incident clips: per rule class the two builds agree
+on 84–90% of boxes over the rule threshold, in both directions, with the same totals). The detector reads the
+size from the engine file itself, so the plugin's `imgsz` stays 960.
 
 Same for the smoking-act classifier: `model=/models/smoking_act.pt imgsz=320` (it classifies one person crop
 at a time, so `batch=1` fits). Takes 7–11 minutes per model. Close the browser and other apps first: with
@@ -88,3 +94,10 @@ What we learned:
   during TensorRT builds), 25 W didn't trigger it once. Use 25 W.
 
 Extra models (smoking, `smoking.engine`) run on the same frames and add their own time per frame.
+
+**GPU clock (2026-11-15).** Live, the GPU lowers its clock while it waits for the next frame (306 MHz of 918),
+so a frame took 21 ms instead of 8 and the detector managed 24–27 fps. Full `jetson_clocks` fixed it but set off
+the over-current protection within minutes (31 events), and so did a GPU floor of 918 MHz alone, at ~12 W total.
+A floor of **714 MHz** (`sudo bash jetson/gpu-clock.sh 714`, also at boot) gives 9.9 ms per frame, 28–32 fps
+(camera 33) and no over-current events. `CV_PROFILE=1` in `.env` prints fps and ms per stage every 10 s.
+`jetson/harden.sh`: SSH keys only, firewall (ufw), rpcbind off, and this GPU floor.

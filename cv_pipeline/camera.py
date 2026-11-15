@@ -51,6 +51,18 @@ class Frame:
         return image if image is not None else self.image
 
 
+def complete_jpeg(raw: np.ndarray) -> bool:
+    """True if the camera's JPEG arrived whole: it ends with the end-of-image marker (FF D9), allowing for the
+    zero padding some UVC cameras add. A frame cut off on the USB link would still decode, with its lower part
+    grey ("Corrupt JPEG data: premature end of data segment"): people would vanish from it for a frame."""
+    tail = raw[-64:]
+    nz = np.flatnonzero(tail)
+    if not len(nz):
+        return False
+    end = nz[-1]
+    return end >= 1 and tail[end] == 0xD9 and tail[end - 1] == 0xFF
+
+
 def safe_name(source) -> str:
     """The source without a stream's user:password, for logs."""
     text = str(source)
@@ -82,6 +94,8 @@ class Camera:
         self.cap = None
         self._frame: Frame | None = None
         self._count, self._ended = 0, False
+        self._damaged, self._damaged_logged = 0, 0.0
+        self._damaged_since = time.monotonic()
         self._lock = threading.Condition()
         self._wake = wake    # set on every new frame: one detector loop can wait on several cameras
         threading.Thread(target=self._read_loop, daemon=True, name=f"camera-{self.name}").start()
@@ -117,13 +131,24 @@ class Camera:
         return cap
 
     def _read(self):
+        """(ok, frame, raw). ok is None for a damaged frame: skipped, but the camera is fine."""
         ok, frame = self.cap.read()
         raw = None
         if ok and self.flag is not None:
             raw = frame.reshape(-1)
+            if not complete_jpeg(raw):
+                return None, None, None
             frame = cv2.imdecode(raw, self.flag)
             ok = frame is not None
         return ok, frame, raw
+
+    def _skip_damaged(self):
+        self._damaged += 1
+        now = time.monotonic()
+        if now - self._damaged_logged >= 300:
+            print(f"[CV] Camera {self.name}: skipped {self._damaged} cut-off frame(s) (USB) "
+                  f"in the last {now - self._damaged_since:.0f} s", flush=True)
+            self._damaged, self._damaged_logged, self._damaged_since = 0, now, now
 
     def _end(self):
         with self._lock:
@@ -150,6 +175,9 @@ class Camera:
                     time.sleep(min(failures, 5))
                     continue
             ok, frame, raw = self._read()
+            if ok is None:
+                self._skip_damaged()
+                continue
             if ok:
                 failures = 0
                 if self.is_file:   # play files back in real time, like a live camera,
@@ -175,6 +203,11 @@ class Camera:
         """The newest frame if it is newer than frame number `last`, else None. Never waits."""
         with self._lock:
             return self._frame if self._frame is not None and self._count != last else None
+
+    @property
+    def count(self) -> int:
+        """Frames read from the camera so far."""
+        return self._count
 
     @property
     def ended(self) -> bool:

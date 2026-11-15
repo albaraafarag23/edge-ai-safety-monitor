@@ -17,7 +17,7 @@ class PluginError(Exception):
 @dataclass
 class ModelConfig:
     model_path: str
-    imgsz: int
+    imgsz: int | list[int]           # a TensorRT build's own input size [height, width] when it has one
     class_ids: list[int]             # model class ids passed to YOLO
     thresholds: dict[str, float]     # class_name -> min confidence
     every_n_frames: int = 1          # run on every n-th frame only, reuse the last result in between
@@ -98,7 +98,8 @@ def build_config(plugin: dict, model_names: list[dict[int, str]], models_dir: st
         if not thresholds:
             raise PluginError(f"[{pid}] none of the classes listed for {Path(path).name} exist in it "
                               f"(model classes: {sorted(name_to_id)})")
-        models.append(ModelConfig(model_path=path, imgsz=int(spec.get("imgsz", det.get("imgsz", 640))),
+        models.append(ModelConfig(model_path=path,
+                                  imgsz=engine_imgsz(path) or int(spec.get("imgsz", det.get("imgsz", 640))),
                                   class_ids=sorted(name_to_id[n] for n in thresholds), thresholds=thresholds,
                                   every_n_frames=max(1, int(spec.get("every_n_frames", 1))),
                                   crop_from=spec.get("crop_from"), crop=int(spec.get("crop", 384))))
@@ -171,3 +172,22 @@ if __name__ == "__main__":
         print("WARNING:", w)
     for m in cfg.models:
         print(f"OK: model={m.model_path} imgsz={m.imgsz} thresholds={m.thresholds} class_ids={m.class_ids}")
+
+
+def engine_imgsz(path: str) -> list[int] | None:
+    """The input size [height, width] an Ultralytics TensorRT build was made for, from the metadata at the start
+    of the .engine file (4-byte length + JSON). A build for the camera's own shape (e.g. 544x960 for 960x540
+    frames) skips the grey padding a square 960x960 one needs, which is almost half its work. None otherwise."""
+    if not str(path).endswith(".engine"):
+        return None
+    try:
+        with open(path, "rb") as f:
+            n = int.from_bytes(f.read(4), "little")
+            if not 0 < n < 1_000_000:
+                return None
+            size = json.loads(f.read(n)).get("imgsz")
+    except (OSError, ValueError):
+        return None
+    if isinstance(size, list) and len(size) == 2 and all(isinstance(v, int) and v > 0 for v in size):
+        return size
+    return None

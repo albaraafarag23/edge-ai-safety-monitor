@@ -1,6 +1,9 @@
 # Detector image for the Jetson Orin Nano (JetPack 6): Ultralytics' Jetson image already has CUDA,
 # TensorRT and NVIDIA's PyTorch build. Used by docker-compose.jetson.yml, see jetson/README.md.
-FROM ultralytics/ultralytics:latest-jetson-jetpack6
+# Pinned to the exact build the TensorRT engines were made with (pulled 2026-10-09): a newer "latest" can bring
+# another TensorRT, and engines only load in the version that built them. To update: pull, rebuild the engines
+# (jetson/README.md), then put the new digest here (docker image inspect ... --format '{{index .RepoDigests 0}}').
+FROM ultralytics/ultralytics:latest-jetson-jetpack6@sha256:ff4f25b3c136c536482ae8001a73fbd44c4d341d5cf031e9553899b1c99c6785
 
 WORKDIR /app
 
