@@ -82,20 +82,21 @@ const TEXT = bilingual(
     smoking: {
       title: "Smoking",
       kicker: "Clear air around the fuel store and the gate.",
-      leadTitle: "A second pair of eyes for one small thing",
+      leadTitle: "It watches the act, not the cigarette",
       lead:
-        `A cigarette is tiny next to a hard hat, so ${P} runs a second, dedicated model next to the PPE detector, on ` +
-        "the same frames. Put it on a camera that covers a no-smoking area, such as a fuel store, gas cylinders or the site entrance.",
+        `A cigarette is too small to find reliably from across a site, so ${P} looks at each person instead: their head ` +
+        "and upper body. A second model decides whether they are smoking (a cigarette, vape, pipe or shisha at the mouth, " +
+        "or smoke coming out), only holding one, or neither. Only smoking raises an alert.",
       stats: [
-        ["0.82", "mAP50 on 111 held-out test images (CigDet dataset)."],
-        ["4.4 ms", "Per image for the smoking model on a laptop GPU."],
-        ["2 models", "The PPE detector and the smoking model look at the same frames, side by side."],
+        ["88.5%", "Of smokers found in held-out test photos."],
+        ["98%", "Of its \"smoking\" answers are right."],
+        ["0.6%", "Of non-smokers flagged by mistake. Construction workers in the test: none."],
       ] as Pair[],
       list: [
+        ["Holding isn't smoking", "It was trained to tell a cigarette in the hand from one at the mouth, and on look-alikes such as drinking or a phone call."],
+        ["Two seconds, not one frame", "Smoking has to be seen for two seconds before an alert fires."],
         ["Separate switch", "Smoking is its own rule. Sites that allow it switch it off in one click."],
-        ["Two seconds, not one frame", "A cigarette has to stay visible for two seconds before an alert fires."],
         ["Approved actions", "The report suggests putting it out, checking for nearby fuel, and a toolbox-talk reminder."],
-        ["Vaping", "In development: it needs a model trained on vapes, and it will be a separate rule."],
       ] as Pair[],
     },
     zones: {
@@ -203,7 +204,7 @@ const TEXT = bilingual(
       facts: ["1080p camera, 30 frames a second", "YOLO + TensorRT on an NVIDIA Jetson", "Zones, distances, time and working hours", "Photo, video clip and written report"],
       steps: [
         ["See", "A camera on site streams to an NVIDIA Jetson edge device, which analyses the video right there."],
-        ["Detect", "YOLO models optimised with TensorRT find people, PPE, machinery and cigarettes in every frame."],
+        ["Detect", "YOLO models optimised with TensorRT find people, PPE and machinery in every frame, and check each person for smoking."],
         ["Decide", "The rule engine checks zones, distances, durations and working hours, so glimpses don't raise alarms."],
         ["Respond", "The incident is stored, the report is written and the supervisor is alerted with the evidence."],
       ] as Pair[],
@@ -226,7 +227,7 @@ const TEXT = bilingual(
         ["Does video leave the site?", "Video is analysed on the edge device on site. For each incident, a snapshot and a short clip are stored on site and attached to the supervisor's email. The AI that writes the report only receives the text facts of the incident, never images."],
         ["How do you avoid false alarms?", "Rules have minimum durations and grace periods: a hard hat has to be missing for several seconds, not one frame, before an alert fires. Repeats of the same rule on the same camera are held back for a few minutes."],
         ["Can we turn off rules we don't need?", "Yes. Admins and supervisors can switch any rule off or back on from the console, with no restart, for example if smoking is allowed on your site. Each rule can also be limited to working hours, given a different severity, or set to wait longer before alerting. The console shows who changed what and when."],
-        ["How far away can it spot smoking?", "A cigarette is much smaller than a hard hat, so smoking detection works at close range, within a few metres of the camera. It's best on a camera covering a no-smoking area, such as a fuel store or a site entrance. Vaping detection is in development."],
+        ["How far away can it spot smoking?", "It looks at each person rather than at the cigarette, so what matters is how large the person appears: the closer and clearer, the better. It's best on a camera covering a no-smoking area, such as a fuel store or a site entrance. We are measuring the exact range on site."],
         ["Can the AI report make things up?", "It's instructed to use only the fields recorded for the incident, never to invent causes or names, and to write NOT SPECIFIED when something is missing. Recommended actions come from the site's own approved list. If the AI is unavailable, a fixed template is used instead."],
         ["What happens if the internet goes down?", "Detection, the rules and the local console keep working, because they all run on site. Alert emails wait and are sent automatically once the connection is back (retried for up to a day), so none are lost. Without the AI, reports fall back to the template."],
         ["How does a supervisor deal with an incident?", "The console's front page lists what to handle first, each with the next step from the site's approved list. One tap on “I'm on it” tells everyone who is dealing with it, and “Done” closes it. Repeats of the same thing are grouped, so they can be closed together."],
@@ -310,20 +311,21 @@ const TEXT = bilingual(
     smoking: {
       title: "التدخين",
       kicker: "هواء نقي حول مخزن الوقود والبوابة.",
-      leadTitle: "عين ثانية لشيء صغير",
+      leadTitle: "يراقب فعل التدخين لا السيجارة",
       lead:
-        `السيجارة صغيرة جدًا مقارنةً بالخوذة، لذلك يشغّل ${P} نموذجًا ثانيًا مخصصًا لها بجانب كاشف معدات الوقاية، على ` +
-        "الإطارات نفسها. ضعه على كاميرا تغطي منطقة يُمنع فيها التدخين، مثل مخزن الوقود أو أسطوانات الغاز أو مدخل الموقع.",
+        `السيجارة أصغر من أن تُرصد بدقة من بعيد، لذلك ينظر ${P} إلى كل شخص بدلًا منها: رأسه والجزء العلوي من جسمه. ` +
+        "ويحدّد نموذج ثانٍ هل يدخّن (سيجارة أو سيجارة إلكترونية أو غليون أو شيشة عند الفم، أو دخان يخرج منه)، " +
+        "أم يحملها فقط، أم لا هذا ولا ذاك. ولا يُطلق التنبيه إلا عند التدخين.",
       stats: [
-        ["0.82", "دقة mAP50 على 111 صورة اختبار لم تُستخدم في التدريب (مجموعة بيانات CigDet)."],
-        ["4.4 ms", "لكل صورة لنموذج التدخين على معالج رسومات حاسوب محمول."],
-        ["نموذجان", "ينظر كاشف معدات الوقاية ونموذج التدخين إلى الإطارات نفسها جنبًا إلى جنب."],
+        ["88.5%", "من المدخنين رُصدوا في صور اختبار لم تُستخدم في التدريب."],
+        ["98%", "من إجاباته «يدخّن» صحيحة."],
+        ["0.6%", "من غير المدخنين يُنبَّه عليهم خطأً. ولم يُنبَّه على أي عامل بناء في الاختبار."],
       ],
       list: [
+        ["الحمل ليس تدخينًا", "دُرّب على التمييز بين سيجارة في اليد وأخرى عند الفم، وعلى حالات مشابهة مثل الشرب أو مكالمة هاتفية."],
+        ["ثانيتان لا إطار واحد", "يجب أن يُرى التدخين ثانيتين قبل إطلاق التنبيه."],
         ["مفتاح مستقل", "التدخين قاعدة مستقلة، ويمكن للمواقع التي تسمح به إيقافها بنقرة واحدة."],
-        ["ثانيتان لا إطار واحد", "يجب أن تظل السيجارة ظاهرة ثانيتين قبل إطلاق التنبيه."],
         ["إجراءات معتمدة", "يقترح التقرير إطفاءها، والتحقق من عدم وجود وقود قريب، والتذكير بالأمر في اجتماع السلامة."],
-        ["السجائر الإلكترونية", "قيد التطوير: تحتاج إلى نموذج مدرَّب عليها، وستكون قاعدة مستقلة."],
       ],
     },
     zones: {
@@ -428,7 +430,7 @@ const TEXT = bilingual(
       facts: ["كاميرا 1080p بمعدل 30 إطارًا في الثانية", "YOLO وTensorRT على NVIDIA Jetson", "المناطق والمسافات والوقت وساعات العمل", "صورة ومقطع فيديو وتقرير مكتوب"],
       steps: [
         ["الرؤية", "تبث كاميرا في الموقع إلى جهاز طرفي من NVIDIA Jetson يحلل الفيديو في مكانه."],
-        ["الرصد", "نماذج YOLO مُسرَّعة بـ TensorRT تجد الأشخاص ومعدات الوقاية والآليات والسجائر في كل إطار."],
+        ["الرصد", "نماذج YOLO مُسرَّعة بـ TensorRT تجد الأشخاص ومعدات الوقاية والآليات في كل إطار، وتتحقق من كل شخص هل يدخّن."],
         ["القرار", "يفحص محرك القواعد المناطق والمسافات والمدد وساعات العمل، فلا تُطلق اللمحات العابرة إنذارات."],
         ["الاستجابة", "تُحفظ الحادثة ويُكتب التقرير ويُنبَّه المشرف مع الأدلة."],
       ],
@@ -451,7 +453,7 @@ const TEXT = bilingual(
         ["هل يغادر الفيديو الموقع؟", "يُحلَّل الفيديو على الجهاز الطرفي في الموقع. ولكل حادثة تُحفظ لقطة ومقطع قصير في الموقع ويُرفقان ببريد المشرف. أما الذكاء الاصطناعي الذي يكتب التقرير فلا يتلقى إلا الوقائع النصية للحادثة، ولا صور أبدًا."],
         ["كيف تتجنبون الإنذارات الكاذبة؟", "للقواعد مدد دنيا وفترات سماح: يجب أن تغيب الخوذة عدة ثوانٍ، لا إطارًا واحدًا، قبل إطلاق التنبيه. وتُؤجَّل تكرارات القاعدة نفسها على الكاميرا نفسها بضع دقائق."],
         ["هل يمكننا إيقاف القواعد التي لا نحتاج إليها؟", "نعم. يمكن للمسؤولين والمشرفين إيقاف أي قاعدة أو إعادة تشغيلها من لوحة التحكم دون إعادة تشغيل النظام، مثلًا إذا كان التدخين مسموحًا في موقعكم. ويمكن أيضًا قصر كل قاعدة على ساعات العمل، أو تغيير درجة خطورتها، أو جعلها تنتظر مدة أطول قبل التنبيه. وتعرض لوحة التحكم من غيّر ماذا ومتى."],
-        ["من أي مسافة يمكنه رصد التدخين؟", "السيجارة أصغر بكثير من الخوذة، لذلك يعمل رصد التدخين من مسافة قريبة، في حدود بضعة أمتار من الكاميرا. ويكون أفضل على كاميرا تغطي منطقة يُمنع فيها التدخين، مثل مخزن وقود أو مدخل الموقع. ورصد السجائر الإلكترونية قيد التطوير."],
+        ["من أي مسافة يمكنه رصد التدخين؟", "ينظر إلى كل شخص لا إلى السيجارة، لذلك المهم هو حجم الشخص في الصورة: كلما كان أقرب وأوضح كان أفضل. ويكون أفضل على كاميرا تغطي منطقة يُمنع فيها التدخين، مثل مخزن وقود أو مدخل الموقع. ونقيس المدى الدقيق حاليًا في الموقع."],
         ["هل يمكن أن يختلق تقرير الذكاء الاصطناعي معلومات؟", "يُطلب منه استخدام الحقول المسجلة للحادثة فقط، وعدم اختلاق أسباب أو أسماء أبدًا، وكتابة «غير محدد» عند غياب معلومة. وتأتي الإجراءات الموصى بها من القائمة المعتمدة للموقع. وإذا تعذّر الوصول إلى الذكاء الاصطناعي يُستخدم نموذج ثابت بدلًا منه."],
         ["ماذا يحدث إذا انقطع الإنترنت؟", "يستمر الرصد والقواعد ولوحة التحكم المحلية في العمل، لأنها كلها تعمل في الموقع. وتنتظر رسائل التنبيه ثم تُرسل تلقائيًا فور عودة الاتصال (مع إعادة المحاولة لمدة تصل إلى يوم)، فلا يضيع منها شيء. ودون الذكاء الاصطناعي تُكتب التقارير بالنموذج الثابت."],
         ["كيف يتعامل المشرف مع الحادثة؟", "تعرض الصفحة الأولى في لوحة التحكم ما يجب البدء به، ومع كل حادثة الخطوة التالية من قائمة الموقع المعتمدة. ضغطة واحدة على «أتولّى الأمر» تُعلم الجميع بمن يتعامل معها، و«تم» تغلقها. وتُجمع الحوادث المتكررة معًا ليمكن إغلاقها دفعة واحدة."],
