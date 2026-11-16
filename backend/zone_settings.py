@@ -22,7 +22,7 @@ from sqlalchemy import func, select, text
 
 import auth
 from models import SessionLocal, User, ZoneDrawing, iso
-from rule_settings import PLUGIN_ID, load_plugin
+from rule_settings import load_plugin, plugin_id
 
 ZONES_KEY = "zones:settings:{plugin_id}"
 RESYNC_S = 30
@@ -70,7 +70,7 @@ def _zone_dict(zone_id: str, zone: dict, plugin: dict, camera_id: str, row: Zone
 
 
 async def _rows(camera_id: str | None = None) -> list[ZoneDrawing]:
-    query = select(ZoneDrawing).where(ZoneDrawing.plugin_id == PLUGIN_ID)
+    query = select(ZoneDrawing).where(ZoneDrawing.plugin_id == plugin_id())
     if camera_id:
         query = query.where(ZoneDrawing.camera_id == camera_id)
     async with SessionLocal() as session:
@@ -86,12 +86,12 @@ async def import_old_drawings():
         try:
             old = (await session.execute(text(
                 "SELECT zone_id, polygon, changed_by, changed_at FROM zone_settings WHERE plugin_id = :p"),
-                {"p": PLUGIN_ID})).all()
+                {"p": plugin_id()})).all()
         except Exception:   # no such table: a fresh install
             return
         for zone_id, polygon, changed_by, changed_at in old:
             camera_id = (plugin.get("zones", {}).get(zone_id) or {}).get("camera_id") or "cam_01"
-            session.add(ZoneDrawing(plugin_id=PLUGIN_ID, camera_id=camera_id, zone_id=zone_id, polygon=polygon,
+            session.add(ZoneDrawing(plugin_id=plugin_id(), camera_id=camera_id, zone_id=zone_id, polygon=polygon,
                                     changed_by=changed_by, changed_at=changed_at))
         await session.commit()
         if old:
@@ -100,7 +100,7 @@ async def import_old_drawings():
 
 async def sync_redis():
     rows = await _rows()
-    key = ZONES_KEY.format(plugin_id=PLUGIN_ID)
+    key = ZONES_KEY.format(plugin_id=plugin_id())
     async with _redis.pipeline(transaction=True) as pipe:
         pipe.delete(key)
         if rows:
@@ -150,16 +150,16 @@ async def draw_zone(zone_id: str, body: ZoneShape, camera_id: str = CAMERA_ID,
                     me: User = Depends(auth.can_handle_incidents)):
     plugin, zone = _plugin_zone(zone_id)
     async with SessionLocal() as session:
-        row = await session.get(ZoneDrawing, (PLUGIN_ID, camera_id, zone_id))
+        row = await session.get(ZoneDrawing, (plugin_id(), camera_id, zone_id))
         if not row:
-            row = ZoneDrawing(plugin_id=PLUGIN_ID, camera_id=camera_id, zone_id=zone_id)
+            row = ZoneDrawing(plugin_id=plugin_id(), camera_id=camera_id, zone_id=zone_id)
             session.add(row)
         row.polygon = body.polygon
         row.changed_by = me.name
         row.changed_at = datetime.utcnow()
         await session.commit()
     try:
-        await _redis.hset(ZONES_KEY.format(plugin_id=PLUGIN_ID), _field(camera_id, zone_id), _value(row))
+        await _redis.hset(ZONES_KEY.format(plugin_id=plugin_id()), _field(camera_id, zone_id), _value(row))
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Saved, but the detector couldn't be updated yet: {e}")
     print(f"[Backend] {me.name} drew zone {zone_id} on {camera_id} ({len(row.polygon)} points)", flush=True)
@@ -171,12 +171,12 @@ async def reset_zone(zone_id: str, camera_id: str = CAMERA_ID, me: User = Depend
     """Back to the plugin's own polygon (on a camera the plugin doesn't put the zone on: the zone goes away)."""
     plugin, zone = _plugin_zone(zone_id)
     async with SessionLocal() as session:
-        row = await session.get(ZoneDrawing, (PLUGIN_ID, camera_id, zone_id))
+        row = await session.get(ZoneDrawing, (plugin_id(), camera_id, zone_id))
         if row:
             await session.delete(row)
             await session.commit()
     try:
-        await _redis.hdel(ZONES_KEY.format(plugin_id=PLUGIN_ID), _field(camera_id, zone_id))
+        await _redis.hdel(ZONES_KEY.format(plugin_id=plugin_id()), _field(camera_id, zone_id))
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Saved, but the detector couldn't be updated yet: {e}")
     print(f"[Backend] {me.name} removed the drawing of zone {zone_id} on {camera_id}", flush=True)

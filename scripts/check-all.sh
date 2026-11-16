@@ -14,6 +14,15 @@ step() { printf '\n== %s\n' "$*"; }
 step "Rule engine tests"
 (cd event_engine && python3 test_rules.py | tail -1 && python3 test_demo_plugin.py | tail -1 && python3 test_hospital_plugin.py | tail -1)
 
+step "Rule drives: what a box accepts and refuses"
+(cd plugin_loader && python3 test_pack.py | tail -1)
+# plugin_source.py is copied into each service (each builds its image from its own folder): the copies must match
+for d in cv_pipeline event_engine backend ai_reporting; do
+  cmp -s plugin_loader/plugin_source.py "$d/plugin_source.py" \
+    || { echo "$d/plugin_source.py differs from plugin_loader/plugin_source.py: copy it over"; exit 1; }
+done
+echo "plugin_source.py: 4 copies identical"
+
 step "Person tracker tests"
 (cd cv_pipeline && python3 test_tracker.py | tail -1)
 

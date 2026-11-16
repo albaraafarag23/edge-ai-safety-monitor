@@ -54,6 +54,8 @@ services:
       SOURCE: ${CV_SOURCE:-0}
       MODELS_DIR: /models
       PLUGINS_DIR: /app/plugins
+      # where the rules come from: fixed (PLUGIN_ID) or drive (a signed rule drive, docs/plugin-drives.md)
+      PLUGIN_SOURCE: ${PLUGIN_SOURCE:-fixed}
       MEDIA_DIR: /media
       # days to keep incident snapshots and clips; empty = forever
       MEDIA_KEEP_DAYS: ${MEDIA_KEEP_DAYS:-}
@@ -81,6 +83,7 @@ services:
       # trained models (construction_ppe.pt, smoking.pt, ...), see training/README.md
       - ./models:/models:ro
       - ./plugins:/app/plugins:ro
+      - plugin_slot:/plugin_slot:ro
       - ./media:/media
       - ./config:/config:ro
       - ./faces:/faces:ro
@@ -105,12 +108,15 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
       PLUGINS_DIR: /app/plugins
+      # where the rules come from: fixed (PLUGIN_ID) or drive (a signed rule drive, docs/plugin-drives.md)
+      PLUGIN_SOURCE: ${PLUGIN_SOURCE:-fixed}
       # rule working hours (set in the console) are in this time zone
       SITE_TIMEZONE: ${SITE_TIMEZONE:-Africa/Cairo}
       # how strong a face match must be to count someone in the per-person tally (docs/faces.md)
       TALLY_MIN_FACE_SCORE: ${TALLY_MIN_FACE_SCORE:-0.50}
     volumes:
       - ./plugins:/app/plugins:ro
+      - plugin_slot:/plugin_slot:ro
     depends_on:
       redis:
         condition: service_healthy
@@ -141,11 +147,14 @@ services:
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-dev-internal-token}
       # the rules page lists this plugin's rules (settings: backend/rule_settings.py)
       PLUGINS_DIR: /app/plugins
+      # where the rules come from: fixed (PLUGIN_ID) or drive (a signed rule drive, docs/plugin-drives.md)
+      PLUGIN_SOURCE: ${PLUGIN_SOURCE:-fixed}
       PLUGIN_ID: ${PLUGIN_ID:-construction_safety}
       SITE_TIMEZONE: ${SITE_TIMEZONE:-Africa/Cairo}
     volumes:
       - ./media:/media:ro
       - ./plugins:/app/plugins:ro
+      - plugin_slot:/plugin_slot:ro
       - ./faces:/faces
     depends_on:
       postgres:
@@ -165,6 +174,7 @@ services:
       BACKEND_ROLE: live
     volumes:
       - ./plugins:/app/plugins:ro
+      - plugin_slot:/plugin_slot:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -180,6 +190,8 @@ services:
       BACKEND_URL: http://backend:8000
       INTERNAL_API_TOKEN: ${INTERNAL_API_TOKEN:-dev-internal-token}
       PLUGINS_DIR: /app/plugins
+      # where the rules come from: fixed (PLUGIN_ID) or drive (a signed rule drive, docs/plugin-drives.md)
+      PLUGIN_SOURCE: ${PLUGIN_SOURCE:-fixed}
       MEDIA_DIR: /media
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       # or Gemini (the key SiteSentry Regs uses), when there is no Claude key; LLM_PROVIDER=claude|gemini picks one
@@ -205,6 +217,7 @@ services:
       DIGEST_TIME: ${DIGEST_TIME:-}
     volumes:
       - ./plugins:/app/plugins:ro
+      - plugin_slot:/plugin_slot:ro
       - ./media:/media:ro
     depends_on:
       - backend
@@ -219,6 +232,27 @@ services:
       - backend
     restart: unless-stopped
 
+  # Watches the USB ports for a signed rule drive and puts its rule set into plugin_slot (docs/plugin-drives.md).
+  # Only with PLUGIN_SOURCE=drive and COMPOSE_PROFILES=drives. Privileged: it mounts drives (read-only, noexec).
+  plugin_loader:
+    <<: *logging
+    build: ./plugin_loader
+    profiles: ["drives"]
+    privileged: true
+    environment:
+      REDIS_URL: redis://redis:6379
+      PLUGIN_KEYS_DIR: /keys
+    volumes:
+      - plugin_slot:/plugin_slot
+      - ./config/plugin_keys:/keys:ro
+      - /dev:/dev
+      - /sys:/sys:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
+  plugin_slot:

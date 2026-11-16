@@ -18,6 +18,7 @@ import auth
 import readcache
 import cameras
 import people
+import plugin_source
 import rule_settings
 import site_settings
 import zone_settings
@@ -119,6 +120,31 @@ async def consume_incidents(r: aioredis.Redis):
 LIVE_ONLY = os.getenv("BACKEND_ROLE", "").lower() == "live"
 
 
+async def follow_plugin(r):
+    """Keeps up with the live plugin (a rule drive going in or out, plugin_source.py). On a change: the rule
+    settings and zones of the new plugin go to Redis at once, cached answers are dropped, and the console is told
+    over the live stream so it reloads the rules."""
+    last_state = None
+    while True:
+        try:
+            raw = await r.get(plugin_source.STATUS_KEY)
+            changed = rule_settings.set_live_plugin(plugin_source.active_id(raw))
+            state = plugin_source.status(raw)
+            if changed or (state.get("state"), state.get("at")) != last_state:
+                last_state = (state.get("state"), state.get("at"))
+                if changed:
+                    print(f"[Backend] Live plugin: {rule_settings.plugin_id()}", flush=True)
+                    await rule_settings.sync_redis()
+                    await zone_settings.sync_redis()
+                readcache.changed()
+                broadcaster.publish("plugin", {"plugin_id": rule_settings.plugin_id(), **state})
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:   # Redis away for a moment: the next round catches up
+            print(f"[Backend] Couldn't check the live plugin: {e}", flush=True)
+        await asyncio.sleep(1.5)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     if LIVE_ONLY:
@@ -144,8 +170,11 @@ async def lifespan(app: FastAPI):
     switches_task = asyncio.create_task(rule_settings.keep_synced(REDIS_URL))
     zones_task = asyncio.create_task(zone_settings.keep_synced(REDIS_URL))
     site_task = asyncio.create_task(site_settings.keep_synced(REDIS_URL))
+    plugin_task = asyncio.create_task(follow_plugin(r))
 
     yield
+
+    plugin_task.cancel()
 
     task.cancel()
     switches_task.cancel()

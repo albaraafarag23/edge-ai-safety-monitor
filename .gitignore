@@ -45,3 +45,6 @@ frontend/functions/
 faces/*
 !faces/.gitkeep
 config/cameras.json
+
+# a rule-drive signing key must never be committed (docs/plugin-drives.md)
+*.pem

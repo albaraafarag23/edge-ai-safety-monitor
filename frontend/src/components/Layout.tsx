@@ -1,7 +1,7 @@
 import { BarChart3, Bell, Camera, ChevronDown, LayoutDashboard, ListChecks, LogOut, ScanFace, ShieldCheck, UserCog, Users } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode, Suspense } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { useIncidents } from "../api/queries";
+import { useIncidents, useRules } from "../api/queries";
 import { useAuth } from "../lib/auth";
 import { SEVERITY_STYLES, timeAgo } from "../lib/format";
 import { bilingual, LanguageSwitch, useText } from "../lib/i18n";
@@ -9,6 +9,7 @@ import { LiveProvider, useLive } from "../lib/live";
 import { isUnread, useNotificationPrefs } from "../lib/notifications";
 import { incidentTitle, roleLabel, severityLabel, usePluginText } from "../lib/terms";
 import { Logo } from "./Brand";
+import { RuleDriveNotice } from "./RuleDriveNotice";
 import { SeverityBadge } from "./ui";
 
 const TEXT = bilingual(
@@ -283,6 +284,10 @@ function UserMenu() {
 function SideNav() {
   const nav = useNav();
   const t = useText(TEXT);
+  // the live rule set's own name (it changes when a rule drive goes in or out); the old fixed label until loaded
+  const rules = useRules();
+  const plugin = usePluginText();
+  const ruleSet = rules.data ? plugin.pluginName(rules.data.plugin_name) : t.pluginName;
   return (
     <aside className="hidden bg-ink text-paper/70 print:!hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
       <div className="px-5 py-5">
@@ -316,7 +321,7 @@ function SideNav() {
         </ol>
       </nav>
       <div className="space-y-1 border-t border-white/10 px-5 py-4">
-        <p className="font-serif text-base text-paper/80 italic">{t.pluginName}</p>
+        <p className="font-serif text-base text-paper/80 italic">{ruleSet}</p>
         <LiveIndicator />
       </div>
     </aside>
@@ -369,6 +374,7 @@ export function AppShell() {
         <div className="lg:ps-64 print:!ps-0">
           <TopBar />
           <main className="px-4 py-8 sm:px-6 lg:px-10">
+            <RuleDriveNotice />
             {/* a page's code loading on first visit: keep the shell, show a quiet placeholder */}
             <Suspense fallback={<div className="min-h-[50vh]" aria-busy="true" />}>
               <Outlet />

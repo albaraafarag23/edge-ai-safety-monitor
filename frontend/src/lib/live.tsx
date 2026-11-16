@@ -74,6 +74,12 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       qc.invalidateQueries({ queryKey: keys.report(event_id) });
       qc.invalidateQueries({ queryKey: keys.incidents });
     });
+    // a rule drive went in or came out: the rules, zones and plugin words are another plugin's now
+    source.addEventListener("plugin", () => {
+      qc.invalidateQueries({ queryKey: keys.rules });
+      qc.invalidateQueries({ queryKey: ["zones"] });
+      qc.invalidateQueries({ queryKey: ["stats"] });
+    });
     source.addEventListener("status", () => {
       qc.invalidateQueries({ queryKey: keys.incidents });
       qc.invalidateQueries({ queryKey: ["stats"] });

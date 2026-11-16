@@ -232,6 +232,18 @@ export interface SafetyRules {
   rules: SafetyRule[];
   zones?: Record<string, string>; // zone id -> English name
   translations?: { ar?: PluginTranslation };
+  /** Where the rules come from: fixed on the box, or a rule drive (docs/plugin-drives.md). */
+  source?: { mode: "fixed" | "drive"; base: boolean; drive?: RuleDrive };
+}
+
+/** The drive watcher's last word about the USB ports. */
+export interface RuleDrive {
+  state?: "none" | "loading" | "active" | "refused";
+  plugin_id?: string;
+  name?: string;
+  version?: string;
+  reason?: "unsigned" | "wrong_drive" | "damaged" | "no_keys" | "too_new" | "unreadable";
+  at?: string;
 }
 
 /** PATCH /rules/{id}: only the fields sent change; null resets a field to the plugin's value. */

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import redis
 
+import plugin_source
 from rules import RuleEngine
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
@@ -28,14 +29,26 @@ SETTINGS_REFRESH_S = 2.0
 RECONNECT_MIN_S, RECONNECT_MAX_S = 1.0, 10.0
 
 
-def load_plugins(plugins_dir: str) -> dict:
-    plugins = {}
-    for path in Path(plugins_dir).glob("*.json"):
-        with open(path) as f:
-            plugin = json.load(f)
-            plugins[plugin["plugin_id"]] = plugin
+class PluginChanged(Exception):
+    """The live plugin is another one now (a rule drive went in or out): load the plugins again."""
+
+
+def load_plugins(plugins_dir: str | None = None) -> dict:
+    """Every plugin the engine may get detections for (plugin_source.py: built-in, and a rule drive's)."""
+    if plugins_dir:   # tests and tools that point at one folder
+        plugins = {}
+        for path in Path(plugins_dir).glob("*.json"):
+            with open(path) as f:
+                plugin = json.load(f)
+                plugins[plugin["plugin_id"]] = plugin
+    else:
+        plugins = plugin_source.load_all()
     print(f"[EE] Loaded plugins: {list(plugins.keys())}", flush=True)
     return plugins
+
+
+def new_engine() -> RuleEngine:
+    return RuleEngine(load_plugins(), cooldown_s=COOLDOWN_SECONDS, site_tz=SITE_TIMEZONE)
 
 
 def refresh_settings(r, engine: RuleEngine):
@@ -72,7 +85,7 @@ def ensure_group(r):
 
 def main():
     r = redis.from_url(REDIS_URL, decode_responses=True)
-    engine = RuleEngine(load_plugins(PLUGINS_DIR), cooldown_s=COOLDOWN_SECONDS, site_tz=SITE_TIMEZONE)
+    engine = new_engine()
 
     # A Redis restart must not restart the engine: that would lose the rule state (how long each
     # violation has lasted, cooldowns). redis-py reconnects on the next command, so wait and retry.
@@ -85,6 +98,12 @@ def main():
                 print("[EE] Redis is back", flush=True)
                 wait = 0.0
             run(r, engine)
+        except PluginChanged as e:
+            print(f"[EE] The live plugin is now '{e}': loading the plugins again", flush=True)
+            try:
+                engine = new_engine()
+            except ValueError as error:   # a drive's plugin the engine can't run: keep going without it
+                print(f"[EE] That plugin can't be used ({error}); rules stay as they were", flush=True)
         except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
             wait = min(wait * 2, RECONNECT_MAX_S) if wait else RECONNECT_MIN_S
             print(f"[EE] Redis unreachable ({e}), retrying in {wait:.0f} s", flush=True)
@@ -100,9 +119,13 @@ def run(r, engine: RuleEngine):
 
     last_refresh = 0.0
     published = {}   # camera -> (what was last written to camera:<id>:missing, when)
+    live = plugin_source.active_id(r.get(plugin_source.STATUS_KEY))
     while True:
         if time.monotonic() - last_refresh >= SETTINGS_REFRESH_S:
             try:
+                now_live = plugin_source.active_id(r.get(plugin_source.STATUS_KEY))
+                if now_live != live:
+                    raise PluginChanged(now_live)
                 refresh_settings(r, engine)
             except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError):
                 raise

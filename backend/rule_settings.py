@@ -20,10 +20,25 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 
 import auth
+import plugin_source
 from models import RuleSetting, SessionLocal, User, iso
 
 PLUGINS_DIR = os.getenv("PLUGINS_DIR", "/app/plugins")
-PLUGIN_ID = os.getenv("PLUGIN_ID", "construction_safety")
+# The live plugin (plugin_source.py): fixed by plugin_id(), or whatever rule drive is plugged in. main.py's
+# follow_plugin keeps it up to date; everything here and in zone_settings.py asks plugin_id() each time.
+_live_plugin = plugin_source.active_id(None)
+
+
+def plugin_id() -> str:
+    return _live_plugin
+
+
+def set_live_plugin(value: str) -> bool:
+    """True when it changed."""
+    global _live_plugin
+    changed = value != _live_plugin
+    _live_plugin = value
+    return changed
 SITE_TIMEZONE = os.getenv("SITE_TIMEZONE", "Africa/Cairo")
 SETTINGS_KEY = "rules:settings:{plugin_id}"
 RESYNC_S = 30
@@ -59,11 +74,7 @@ class RuleChange(BaseModel):
 
 
 def load_plugin() -> dict | None:
-    for path in Path(PLUGINS_DIR).glob("*.json"):
-        plugin = json.loads(path.read_text())
-        if plugin.get("plugin_id") == PLUGIN_ID:
-            return plugin
-    return None
+    return plugin_source.load(plugin_id())
 
 
 def usable(rule: dict) -> bool:
@@ -81,7 +92,7 @@ def _engine_value(row: RuleSetting) -> str:
 
 
 async def _rows(session) -> dict[str, RuleSetting]:
-    rows = (await session.scalars(select(RuleSetting).where(RuleSetting.plugin_id == PLUGIN_ID))).all()
+    rows = (await session.scalars(select(RuleSetting).where(RuleSetting.plugin_id == plugin_id()))).all()
     return {row.rule_id: row for row in rows}
 
 
@@ -89,7 +100,7 @@ async def sync_redis():
     """Copy the settings from Postgres to Redis."""
     async with SessionLocal() as session:
         rows = await _rows(session)
-    key = SETTINGS_KEY.format(plugin_id=PLUGIN_ID)
+    key = SETTINGS_KEY.format(plugin_id=plugin_id())
     async with _redis.pipeline(transaction=True) as pipe:
         pipe.delete(key)
         if rows:
@@ -149,10 +160,18 @@ def _rule_dict(plugin: dict, rule: dict, row: RuleSetting | None) -> dict:
 async def list_rules():
     plugin = load_plugin()
     if not plugin:
-        raise HTTPException(status_code=503, detail=f"Plugin '{PLUGIN_ID}' not found")
+        raise HTTPException(status_code=503, detail=f"Plugin '{plugin_id()}' not found")
     async with SessionLocal() as session:
         rows = await _rows(session)
-    return {"plugin_id": PLUGIN_ID, "plugin_name": plugin.get("name", PLUGIN_ID), "timezone": SITE_TIMEZONE,
+    try:
+        drive = plugin_source.status(await _redis.get(plugin_source.STATUS_KEY)) if _redis else {}
+    except Exception:
+        drive = {}
+    return {"plugin_id": plugin_id(), "plugin_name": plugin.get("name", plugin_id()), "timezone": SITE_TIMEZONE,
+            # where the rules come from (plugin_source.py): "fixed", or "drive" with the loader's last word
+            # ({"state": none|loading|active|refused, "reason", "name", ...}) and whether no rules are live
+            "source": {"mode": plugin_source.SOURCE, "base": plugin_id() == plugin_source.BASE_ID,
+                       **({"drive": drive} if plugin_source.SOURCE == "drive" else {})},
             "rules": [_rule_dict(plugin, r, rows.get(r["rule_id"])) for r in plugin.get("rules", [])],
             # for the console's other languages: zone ids (incidents carry the English zone name) and the
             # plugin's own translations of rule and zone names (docs/plugins.md)
@@ -175,9 +194,9 @@ async def change_rule(rule_id: str, body: RuleChange, me: User = Depends(auth.ca
         raise HTTPException(status_code=422, detail="Working hours must start and end at different times")
 
     async with SessionLocal() as session:
-        row = await session.get(RuleSetting, (PLUGIN_ID, rule_id))
+        row = await session.get(RuleSetting, (plugin_id(), rule_id))
         if not row:
-            row = RuleSetting(plugin_id=PLUGIN_ID, rule_id=rule_id, enabled=True, overrides={})
+            row = RuleSetting(plugin_id=plugin_id(), rule_id=rule_id, enabled=True, overrides={})
             session.add(row)
         if "enabled" in sent and body.enabled is not None:
             row.enabled = body.enabled
@@ -196,7 +215,7 @@ async def change_rule(rule_id: str, body: RuleChange, me: User = Depends(auth.ca
         await session.commit()
 
     try:
-        await _redis.hset(SETTINGS_KEY.format(plugin_id=PLUGIN_ID), rule_id, _engine_value(row))
+        await _redis.hset(SETTINGS_KEY.format(plugin_id=plugin_id()), rule_id, _engine_value(row))
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Saved, but the detector couldn't be updated yet: {e}")
     print(f"[Backend] {me.name} changed {rule_id}: enabled={row.enabled} {overrides}", flush=True)

@@ -1,0 +1,26 @@
+{
+  "plugin_id": "base",
+  "name": "No rule set",
+  "version": "1.0.0",
+  "about": "What the box runs with no rule drive plugged in (PLUGIN_SOURCE=drive, docs/plugin-drives.md): people are seen and named on the live picture, nothing is checked and nothing raises an incident. The model is the general COCO one, so it belongs to no domain.",
+  "report": {
+    "audience": "the site manager",
+    "tone": "plain and factual"
+  },
+  "detection": {
+    "model": "yolo11n.pt",
+    "imgsz": 640,
+    "default_confidence": 0.5,
+    "classes": {
+      "person": {}
+    }
+  },
+  "zones": {},
+  "rules": [],
+  "translations": {
+    "ar": {
+      "plugin_name": "بلا قواعد",
+      "classes": {"person": "شخص"}
+    }
+  }
+}

@@ -21,6 +21,7 @@ import httpx
 import redis
 
 import digest
+import plugin_source
 import notify
 import outbox
 from report import (email_names, GEMINI_MODEL, LANGUAGES, MODEL, approved_actions, arabic_names, generate_from_template,
@@ -48,11 +49,8 @@ RECONNECT_MIN_S, RECONNECT_MAX_S = 1.0, 10.0
 
 
 def load_plugins() -> dict:
-    plugins = {}
-    for path in Path(PLUGINS_DIR).glob("*.json"):
-        plugin = json.loads(path.read_text())
-        plugins[plugin["plugin_id"]] = plugin
-    return plugins
+    """The plugins known now (plugin_source.py); a rule drive's plugin is added when its first incident comes."""
+    return plugin_source.load_all()
 
 
 @dataclass
@@ -239,6 +237,10 @@ def handle(r, incident: dict, plugins: dict, client, last_notified: dict):
         return
     last_notified[key] = (now, event_id)
 
+    if incident.get("plugin_id") not in plugins:   # a rule drive plugged in after this service started
+        found = plugin_source.load(incident.get("plugin_id") or "")
+        if found:
+            plugins[found["plugin_id"]] = found   # kept: its incidents may still be reported after the drive is out
     plugin = plugins.get(incident.get("plugin_id"), {})
     actions = {lang: approved_actions(plugin, meta.get("rule_id"), lang) for lang in REPORT_LANGUAGES}
 

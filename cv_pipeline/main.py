@@ -18,6 +18,7 @@ import cv2
 import numpy as np
 import redis
 
+import plugin_source
 from camera import Camera
 from faces import FaceIdentifier
 from live_view import LiveView
@@ -46,7 +47,7 @@ CAMERA_CONTROLS = os.getenv("CAMERA_CONTROLS") or "power_line_frequency=1"
 CAMERA_FPS = int(os.getenv("CAMERA_FPS") or 30)   # 50 Hz mains
 CAMERA_ID = os.getenv("CAMERA_ID", "cam_01")
 CAMERA_LOCATION = os.getenv("CAMERA_LOCATION") or None  # shown in the dashboard, e.g. "North gate"
-PLUGIN_ID = os.getenv("PLUGIN_ID", "construction_safety")
+PLUGIN_ID = plugin_source.FIXED_ID   # main() replaces it with the live plugin (a rule drive's, or the base one)
 STREAM_KEY = "detections"
 # detections waiting for the rule engine; older ones are dropped (about a minute at 30 frames a second in all)
 STREAM_MAXLEN = 2000
@@ -373,14 +374,49 @@ def run_live_mode(r: redis.Redis, plugin: dict, units: list[Unit], settings: lis
             new_frame.wait(timeout=1)
 
 
-def main():
+def live_plugin(r) -> str:
+    """The plugin to run (plugin_source.py). In drive mode the loader's word in Redis decides; if Redis can't be
+    asked right now, the base plugin runs (no rules) and the watcher below corrects it."""
     try:
-        plugin = load_plugin(PLUGINS_DIR, PLUGIN_ID)
-    except PluginError as e:
-        raise SystemExit(f"[CV] {e}")
+        return plugin_source.active_id(r.get(plugin_source.STATUS_KEY))
+    except redis.exceptions.RedisError:
+        return plugin_source.active_id(None)
+
+
+def follow_plugin(r, running: str):
+    """Ends the process when another plugin should run (a rule drive went in or came out): Docker starts the
+    detector again, and it loads that plugin and its models. Simple, and nothing of the old plugin stays loaded."""
+    def watch():
+        while True:
+            time.sleep(1)
+            try:
+                wanted = plugin_source.active_id(r.get(plugin_source.STATUS_KEY))
+            except redis.exceptions.RedisError:
+                continue   # no word is not a change
+            if wanted != running:
+                print(f"[CV] The live plugin is now '{wanted}' (was '{running}'): restarting to load it", flush=True)
+                os._exit(0)
+    if plugin_source.SOURCE == "drive":
+        threading.Thread(target=watch, daemon=True, name="plugin-watch").start()
+
+
+def main():
+    global PLUGIN_ID, MODELS_DIR
+    r = redis.from_url(REDIS_URL, decode_responses=True)
+    PLUGIN_ID = live_plugin(r)
+    plugin = plugin_source.load(PLUGIN_ID)
+    if plugin is None:
+        if plugin_source.from_drive(PLUGIN_ID):   # the drive came out between the loader's word and this read
+            print(f"[CV] Plugin '{PLUGIN_ID}' is not in the slot any more, starting again", flush=True)
+            time.sleep(2)
+            raise SystemExit(0)
+        raise SystemExit(f"[CV] Plugin '{PLUGIN_ID}' not found in {plugin_source.PLUGINS_DIR}")
+    MODELS_DIR = plugin_source.models_dir(PLUGIN_ID, MODELS_DIR)
+    print(f"[CV] Plugin: {plugin.get('name', PLUGIN_ID)} ({PLUGIN_ID})"
+          + (" from a rule drive" if plugin_source.from_drive(PLUGIN_ID) else ""), flush=True)
+    follow_plugin(r, PLUGIN_ID)
     settings = camera_settings()
 
-    r = redis.from_url(REDIS_URL, decode_responses=True)
     units = []
     for c in settings:
         live = LiveView(REDIS_URL, c["id"], PLUGIN_ID, "test" if TEST_MODE else "live", c.get("location"))
