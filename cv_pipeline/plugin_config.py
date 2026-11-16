@@ -6,7 +6,7 @@ for each class. Rules are checked against what the models can actually detect, s
 never fire stops startup.
 """
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 
@@ -23,13 +23,17 @@ class ModelConfig:
     every_n_frames: int = 1          # run on every n-th frame only, reuse the last result in between
     crop_from: str | None = None     # classifier: runs on a crop of each box of this class (e.g. Person)
     crop: int = 384                  # crop size the classifier was trained on
+    # class_name -> widest believable box, as a fraction of the frame width (e.g. Person 0.6: a dark, grainy
+    # empty room once came back as one frame-wide "Person" at 0.8 confidence)
+    max_width: dict[str, float] = field(default_factory=dict)
 
     @property
     def min_confidence(self) -> float:
         return min(self.thresholds.values())
 
-    def keep(self, class_name: str, confidence: float) -> bool:
-        return confidence >= self.thresholds.get(class_name, 1.1)
+    def keep(self, class_name: str, confidence: float, width_fraction: float = 0.0) -> bool:
+        return (confidence >= self.thresholds.get(class_name, 1.1)
+                and width_fraction <= self.max_width.get(class_name, 1.0))
 
 
 @dataclass
@@ -89,12 +93,17 @@ def build_config(plugin: dict, model_names: list[dict[int, str]], models_dir: st
             continue
         default_conf = float(spec.get("default_confidence", 0.4))
         name_to_id = {name: i for i, name in names.items()}
-        thresholds = {}
+        thresholds, max_width = {}, {}
         for name, opts in spec.get("classes", {}).items():
             if name not in name_to_id:
                 warnings.append(f"[{pid}] class '{name}' is not in {Path(path).name}, it will never be detected")
                 continue
             thresholds[name] = float((opts or {}).get("confidence", default_conf))
+            if (opts or {}).get("max_width") is not None:
+                limit = float(opts["max_width"])
+                if not 0 < limit <= 1:
+                    raise PluginError(f"[{pid}] class '{name}': max_width must be a fraction of the frame width (0-1)")
+                max_width[name] = limit
         if not thresholds:
             raise PluginError(f"[{pid}] none of the classes listed for {Path(path).name} exist in it "
                               f"(model classes: {sorted(name_to_id)})")
@@ -102,7 +111,8 @@ def build_config(plugin: dict, model_names: list[dict[int, str]], models_dir: st
                                   imgsz=engine_imgsz(path) or int(spec.get("imgsz", det.get("imgsz", 640))),
                                   class_ids=sorted(name_to_id[n] for n in thresholds), thresholds=thresholds,
                                   every_n_frames=max(1, int(spec.get("every_n_frames", 1))),
-                                  crop_from=spec.get("crop_from"), crop=int(spec.get("crop", 384))))
+                                  crop_from=spec.get("crop_from"), crop=int(spec.get("crop", 384)),
+                                  max_width=max_width))
 
     if not models or models[0].model_path != model_paths(plugin, models_dir, model_override, engine)[0]:
         raise PluginError(f"[{pid}] the main model is required")

@@ -219,17 +219,18 @@ def run_test_mode(r: redis.Redis, plugin: dict, units: list[Unit]):
         time.sleep(1 / SYNTHETIC_FPS)
 
 
-def detect(model, cfg_model, boxes, scale: float = 1.0) -> list[dict]:
-    """scale maps boxes from the frame the model saw back to camera pixels (see camera.py)."""
-    return [
-        {
-            "class_name": model.names[int(b.cls[0])],
-            "confidence": round(float(b.conf[0]), 3),
-            "bbox": [round(v * scale, 1) for v in b.xyxy[0].tolist()],
-        }
-        for b in boxes
-        if cfg_model.keep(model.names[int(b.cls[0])], float(b.conf[0]))
-    ]
+def detect(model, cfg_model, boxes, scale: float = 1.0, frame_width: int = 0) -> list[dict]:
+    """scale maps boxes from the frame the model saw back to camera pixels (see camera.py). frame_width (of the
+    frame the model saw) lets a class's max_width drop boxes too wide to be real."""
+    found = []
+    for b in boxes:
+        name, conf = model.names[int(b.cls[0])], float(b.conf[0])
+        x1, y1, x2, y2 = b.xyxy[0].tolist()
+        width = (x2 - x1) / frame_width if frame_width else 0.0
+        if cfg_model.keep(name, conf, width):
+            found.append({"class_name": name, "confidence": round(conf, 3),
+                          "bbox": [round(v * scale, 1) for v in (x1, y1, x2, y2)]})
+    return found
 
 
 def classify_people(model, cfg_model, frame, detections: list[dict], scale: float = 1.0) -> list[dict]:
@@ -354,7 +355,7 @@ def run_live_mode(r: redis.Redis, plugin: dict, units: list[Unit], settings: lis
                     else:
                         result = model.predict(frame.image, conf=m.min_confidence, classes=m.class_ids,
                                                imgsz=m.imgsz, verbose=False)[0]
-                        unit.last[m.model_path] = detect(model, m, result.boxes, frame.scale)
+                        unit.last[m.model_path] = detect(model, m, result.boxes, frame.scale, frame.image.shape[1])
                         t = prof.add(name, t)
                         prof.speed(name, result.speed)
                         if m is cfg.models[0] and subject:

@@ -12,7 +12,9 @@
     "imgsz": 640,
     "default_confidence": 0.5,
     "classes": {
-      "person": {}
+      "person": {
+        "max_width": 0.6
+      }
     }
   },
   "zones": {},

@@ -10,7 +10,7 @@ and `PLUGIN_ID` picks the plugin to use.
 | `model` | Model file inside `MODELS_DIR` (set `MODEL_PATH` to override, e.g. a TensorRT `.engine`) |
 | `imgsz` | Inference image size |
 | `default_confidence` | Threshold for classes that don't set their own |
-| `classes` | `{class_name: {"confidence": x}}`. Only these classes are detected and sent on |
+| `classes` | `{class_name: {"confidence": x, "max_width": w}}`. Only these classes are detected and sent on. Optional `max_width` (0-1, fraction of the frame width) drops boxes wider than any real one: `Person` uses 0.6, because a dark, grainy empty room once came back as one frame-wide "Person" at 0.8 confidence |
 | `extra_models` | Optional list of more models run on the same frames, each with its own `model`, `imgsz`, `default_confidence` and `classes` (e.g. `smoking.pt` for `cigarette`). Their detections are merged into one message; `model` in the message becomes `construction_ppe.pt+smoking.pt`. Optional `every_n_frames` (default 1) runs an extra model only on every n-th frame and reuses its last result in between, to save time on slow-changing things like smoking. An extra model with `crop_from` (e.g. `"Person"`) is a classifier, not a detector: it classifies a head-and-upper-body crop of each of the main model's boxes of that class (`crop`: crop size it was trained on, default 384; `imgsz`: its input size) and sends that region as a box of each class over its threshold. `smoking_act.pt` works this way and sends `smoking` |
 
 Model files live in `models/` (mounted at `/models` in Docker; git-ignored). Each extra model costs
