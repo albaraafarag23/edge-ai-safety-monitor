@@ -32,7 +32,11 @@ def _database_url() -> str:
 
 
 DATABASE_URL = _database_url()
-engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
+# Supabase's "transaction pooler" (port 6543) can't keep asyncpg's prepared statements between requests
+_POOLED = ":6543/" in DATABASE_URL
+engine = create_async_engine(DATABASE_URL, pool_pre_ping=True,
+                             connect_args={"statement_cache_size": 0, "prepared_statement_cache_size": 0}
+                             if _POOLED else {})
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 ROLES = ("overseer", "manager", "supervisor", "viewer")

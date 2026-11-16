@@ -52,7 +52,8 @@ Tests: `cd portal && python -m pytest -q test_portal.py` (a software passkey; al
 
 ## Putting it online (Render + Neon, free)
 
-1. Neon: create a project (region Frankfurt), copy the connection string.
+1. Database: Neon (asks for a card) or Supabase (free without one: Project > Connect > "Session pooler" string,
+   region Frankfurt; free projects pause after 7 days without use). Copy the connection string.
 2. Render: New > Blueprint > this repository; it reads `render.yaml`. Type the secrets it asks for: `DATABASE_URL`
    (Neon), `OVERSEER_EMAIL`, and the portal's own Gmail (`SMTP_*`, an App Password).
 3. If Render gives a different address than `PORTAL_URL` in `render.yaml`, change `PORTAL_URL` to it before anyone

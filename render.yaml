@@ -7,7 +7,7 @@ services:
     dockerfilePath: ./portal/Dockerfile
     dockerContext: .
     plan: free                # sleeps after 15 minutes without visitors; the first visit then takes ~30-60 s
-    region: frankfurt         # same region as the Neon database
+    region: frankfurt         # same region as the database
     healthCheckPath: /health
     buildFilter:
       paths: ["portal/**", "frontend/**", "render.yaml"]
@@ -18,7 +18,7 @@ services:
       - key: OVERSEER_NAME
         value: Albaraa Farag
       # Secrets and personal details: typed into the Render dashboard, never stored in this file.
-      - key: DATABASE_URL       # Neon connection string
+      - key: DATABASE_URL       # Postgres connection string (Supabase session pooler, or Neon)
         sync: false
       - key: OVERSEER_EMAIL     # first start prints the overseer's one-time setup link in the Render log
         sync: false
