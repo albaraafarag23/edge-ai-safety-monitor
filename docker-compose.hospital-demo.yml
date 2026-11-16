@@ -1,0 +1,46 @@
+# The hospital plugin demo on a laptop: its own copy of the stack (docs/plugins.md, "The second plugin").
+# Needs models/medical_ppe.pt and the demo video (training/README.md, training/make_hospital_demo.py).
+#   docker compose -p hospital -f docker-compose.yml -f docker-compose.hospital-demo.yml up -d --build
+# Console at http://localhost:3006. Plays outputs/hospital_demo/media/demo/hospital.mp4 as the camera.
+services:
+  redis:
+    ports: !override []
+  postgres:
+    ports: !override []
+  backend:
+    ports: !override []
+    environment:
+      PLUGIN_ID: hospital_safety
+      COOKIE_SECURE: "false"
+    volumes: !override
+      - ./outputs/hospital_demo/media:/media:ro
+      - ./plugins:/app/plugins:ro
+      - ./outputs/hospital_demo/faces:/faces
+  live:
+    environment:
+      PLUGIN_ID: hospital_safety
+  cv_pipeline:
+    environment:
+      PLUGIN_ID: hospital_safety
+      TEST_MODE: "false"
+      SOURCE: /media/demo/hospital.mp4
+      CAMERA_LOCATION: Ward 3
+    volumes: !override
+      - ./models:/models:ro
+      - ./plugins:/app/plugins:ro
+      - ./outputs/hospital_demo/media:/media
+      - ./outputs/hospital_demo/config:/config:ro
+      - ./outputs/hospital_demo/faces:/faces:ro
+    devices: !reset []
+  event_engine:
+    environment:
+      PLUGIN_ID: hospital_safety
+  ai_reporting:
+    environment:
+      PLUGIN_ID: hospital_safety
+    volumes: !override
+      - ./outputs/hospital_demo/media:/media:ro
+      - ./plugins:/app/plugins:ro
+  frontend:
+    ports: !override
+      - "127.0.0.1:3006:80"

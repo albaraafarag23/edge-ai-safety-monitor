@@ -50,6 +50,9 @@ USB camera ──> cv_pipeline (Jetson GPU: YOLO + TensorRT, smoking classifier,
               ai_reporting (report EN/AR, regulation clause, email) <──┘
 ```
 
+A second plugin, `plugins/hospital_safety.json` (masks and gowns in an isolation room, a medication store,
+room capacity, smoking), runs on the same code with its own model: `docs/plugins.md`.
+
 One plugin file per domain (`plugins/construction_safety.json`) says which classes the models look for, which
 rules apply, the zones, the recommended actions, the regulation clauses and the Arabic text. Message formats
 between services: `docs/contracts.md`.

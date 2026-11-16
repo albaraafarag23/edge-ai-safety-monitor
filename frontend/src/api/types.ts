@@ -221,6 +221,8 @@ export interface PluginTranslation {
   plugin_name?: string;
   rules?: Record<string, { name?: string; description?: string; requires?: string; recommended_actions?: string[] }>;
   zones?: Record<string, string>;
+  items?: Record<string, string>; // the plugin's own words for its equipment ("mask" -> "كمامة")
+  classes?: Record<string, string>; // and for what its models detect
 }
 
 export interface SafetyRules {

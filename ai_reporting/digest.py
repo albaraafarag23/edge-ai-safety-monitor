@@ -19,7 +19,7 @@ import httpx
 
 import email_template as et
 import notify
-from report import arabic_names
+from report import arabic_names, email_names
 
 DIGEST_TIME = os.getenv("DIGEST_TIME", "").strip()
 LAST_SENT_KEY = "ai_reporting:digest:last_date"
@@ -158,8 +158,7 @@ def open_items(summary: dict, lang: str, plugin: dict) -> tuple[list[tuple[str, 
             # Arabic zone names are kept by zone id; the group only has the English name
             zone_id = next((zid for zid, z in plugin.get("zones", {}).items() if z.get("name") == group.get("location")), None)
             group = {**group, "metadata": {**(group.get("metadata") or {}), "zone_id": zone_id}}
-        names = arabic_names(group, plugin) if lang == "ar" else None
-        title, _ = et.headline(group, lang, names)
+        title, _ = et.headline(group, lang, email_names(group, plugin, lang))
         if n > 1:
             title += f" · {_times(n, lang)}"
         place = _place(group.get("location"), lang, plugin) or et.TEXT[lang]["camera"].format(id=group.get("camera_id"))

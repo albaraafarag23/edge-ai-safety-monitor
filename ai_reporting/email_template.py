@@ -72,6 +72,11 @@ def _items(meta: dict, lang: str, names: dict) -> str:
     return " and ".join(found) or "safety equipment"
 
 
+def _a(items: str) -> str:
+    """"a hard hat", "a mask", but "gloves": no article before a plural."""
+    return items if items.split(" and ")[0].endswith("s") else f"a {items}"
+
+
 def _zone(incident: dict, lang: str = "en", names: dict | None = None) -> str | None:
     if lang == "ar" and names and names.get("location"):
         return names["location"]
@@ -85,14 +90,15 @@ def headline(incident: dict, lang: str = "en", names: dict | None = None) -> tup
     meta = incident.get("metadata") or {}
     kind = incident.get("event_type")
     items = _items(meta, lang, names)
+    person = names.get("person") or ("عامل" if lang == "ar" else "worker")   # the plugin's word (docs/plugins.md)
     if lang == "ar":
         zone = _zone(incident, lang, names) or "منطقة محظورة"
         plain = {
-            "PPE_MISSING": (f"عامل بدون {items}", f"رُصد عامل بدون {items}."),
+            "PPE_MISSING": (f"{person} بدون {items}", f"رُصد {person} بدون {items}."),
             "RESTRICTED_ZONE_ENTRY": (f"دخول إلى {zone}", f"دخل شخص إلى {zone}."),
             "LOITERING_HAZARD_ZONE": (f"شخص يبقى في {zone}", f"يبقى شخص في {zone} منذ فترة."),
             "ZONE_OVER_CAPACITY": (f"عدد زائد في {zone}", f"يوجد أشخاص أكثر من المسموح في {zone}."),
-            "PERSON_NEAR_MACHINERY": ("عامل قريب جدًا من آلة", "اقترب عامل أكثر من اللازم من آلة تعمل."),
+            "PERSON_NEAR_MACHINERY": (f"{person} قريب جدًا من آلة", f"اقترب {person} أكثر من اللازم من آلة تعمل."),
             "SMOKING": ("تدخين في الموقع", "رُصد شخص يدخّن في الموقع."),
             "VAPING": ("سيجارة إلكترونية في الموقع", "رُصد شخص يستخدم سيجارة إلكترونية في الموقع."),
             "FOOD_IN_RESTRICTED_ZONE": (f"طعام أو شراب في {zone}", f"تُرك طعام أو شراب في {zone}."),
@@ -103,11 +109,12 @@ def headline(incident: dict, lang: str = "en", names: dict | None = None) -> tup
         return plain.get(kind, (event, f"رُصدت حادثة: {event}."))
     zone = _zone(incident) or "a restricted area"
     plain = {
-        "PPE_MISSING": (f"Worker without a {items}", f"A worker was seen without a {items}."),
+        "PPE_MISSING": (f"{person.capitalize()} without {_a(items)}", f"A {person} was seen without {_a(items)}."),
         "RESTRICTED_ZONE_ENTRY": (f"Someone entered {zone}", f"Someone walked into {zone}."),
         "LOITERING_HAZARD_ZONE": (f"Someone staying in {zone}", f"Someone has been staying in {zone}."),
         "ZONE_OVER_CAPACITY": (f"Too many people in {zone}", f"There are too many people in {zone}."),
-        "PERSON_NEAR_MACHINERY": ("Worker too close to machinery", "A worker got too close to working machinery."),
+        "PERSON_NEAR_MACHINERY": (f"{person.capitalize()} too close to machinery",
+                                  f"A {person} got too close to working machinery."),
         "SMOKING": ("Smoking on site", "Someone was seen smoking on site."),
         "VAPING": ("Vaping on site", "Someone was seen vaping on site."),
         "FOOD_IN_RESTRICTED_ZONE": (f"Food or drink in {zone}", f"Food or drink was left in {zone}."),

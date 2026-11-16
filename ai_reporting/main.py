@@ -23,7 +23,7 @@ import redis
 import digest
 import notify
 import outbox
-from report import (GEMINI_MODEL, LANGUAGES, MODEL, approved_actions, arabic_names, generate_from_template,
+from report import (email_names, GEMINI_MODEL, LANGUAGES, MODEL, approved_actions, arabic_names, generate_from_template,
                     misspelt_names,
                     generate_with_claude, generate_with_gemini, missing_sections, rule_regulations,
                     with_regulations)
@@ -255,7 +255,7 @@ def handle(r, incident: dict, plugins: dict, client, last_notified: dict):
 
     email_lang = EMAIL_LANGUAGE if EMAIL_LANGUAGE in reports else "en"
     email = {"lang": email_lang, "markdown": reports[email_lang][0], "actions": actions[email_lang],
-             "names": arabic_names(incident, plugin) if email_lang == "ar" else None}
+             "names": email_names(incident, plugin, email_lang)}
     delivery = send_or_queue(r, incident, markdown, generated_by, email, markdown_ar=markdown_ar)
     store(r, event_id, markdown, generated_by, delivery, markdown_ar=markdown_ar)
     languages = " + ".join(f"{lang} by {by}" for lang, (_, by) in reports.items())

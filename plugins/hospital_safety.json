@@ -1,0 +1,366 @@
+{
+  "plugin_id": "hospital_safety",
+  "name": "Hospital Infection Control",
+  "version": "0.1.0",
+  "report": {
+    "audience": "the infection prevention and control nurse",
+    "tone": "formal and factual, suitable for a hospital's infection control record",
+    "person": "staff member"
+  },
+  "detection": {
+    "model": "medical_ppe.pt",
+    "imgsz": 640,
+    "default_confidence": 0.4,
+    "classes": {
+      "Person": {
+        "confidence": 0.5
+      },
+      "Coverall": {},
+      "Mask": {},
+      "Gloves": {},
+      "Goggles": {},
+      "Face Shield": {}
+    },
+    "extra_models": [
+      {
+        "model": "smoking_act.pt",
+        "crop_from": "Person",
+        "crop": 384,
+        "imgsz": 320,
+        "every_n_frames": 3,
+        "default_confidence": 0.5,
+        "classes": {
+          "smoking": {}
+        }
+      }
+    ]
+  },
+  "zones": {
+    "isolation_room": {
+      "name": "Isolation room",
+      "camera_id": "cam_01",
+      "polygon": [
+        [
+          864,
+          0
+        ],
+        [
+          1920,
+          0
+        ],
+        [
+          1920,
+          1080
+        ],
+        [
+          864,
+          1080
+        ]
+      ]
+    },
+    "medication_store": {
+      "name": "Medication store",
+      "camera_id": "cam_01",
+      "polygon": [
+        [
+          0,
+          0
+        ],
+        [
+          576,
+          0
+        ],
+        [
+          576,
+          1080
+        ],
+        [
+          0,
+          1080
+        ]
+      ]
+    }
+  },
+  "rules": [
+    {
+      "rule_id": "RULE_MASK_01",
+      "name": "Mask",
+      "type": "ppe",
+      "description": "A mask is required in the isolation room",
+      "zone": "isolation_room",
+      "subject_classes": [
+        "Person"
+      ],
+      "required": [
+        {
+          "name": "mask",
+          "present_classes": [
+            "Mask"
+          ]
+        }
+      ],
+      "min_duration_s": 3,
+      "event_type": "PPE_MISSING",
+      "severity": "HIGH",
+      "recommended_actions": [
+        "Ask the staff member to leave the room and put on a mask before going back in.",
+        "Check that masks are stocked at the room's entrance.",
+        "Record the breach in the infection control log."
+      ]
+    },
+    {
+      "rule_id": "RULE_GOWN_01",
+      "name": "Gown",
+      "type": "ppe",
+      "description": "A gown or coverall is required in the isolation room",
+      "zone": "isolation_room",
+      "subject_classes": [
+        "Person"
+      ],
+      "required": [
+        {
+          "name": "gown",
+          "present_classes": [
+            "Coverall"
+          ]
+        }
+      ],
+      "min_duration_s": 3,
+      "event_type": "PPE_MISSING",
+      "severity": "HIGH",
+      "recommended_actions": [
+        "Ask the staff member to leave the room and put on a gown before going back in.",
+        "Check that gowns are stocked at the room's entrance.",
+        "Record the breach in the infection control log."
+      ]
+    },
+    {
+      "rule_id": "RULE_GLOVES_01",
+      "name": "Gloves",
+      "type": "ppe",
+      "description": "Gloves are required in the isolation room",
+      "zone": "isolation_room",
+      "subject_classes": [
+        "Person"
+      ],
+      "required": [
+        {
+          "name": "gloves",
+          "present_classes": [
+            "Gloves"
+          ]
+        }
+      ],
+      "min_duration_s": 3,
+      "event_type": "PPE_MISSING",
+      "severity": "MEDIUM",
+      "recommended_actions": [
+        "Ask the staff member to put on gloves before touching the patient or the surroundings.",
+        "Check that gloves in every size are stocked at the room's entrance."
+      ],
+      "enabled": false,
+      "requires": "A model that finds gloves more reliably (this one finds about 6 in 10)"
+    },
+    {
+      "rule_id": "RULE_EYES_01",
+      "name": "Eye protection",
+      "type": "ppe",
+      "description": "Goggles or a face shield are required in the isolation room",
+      "zone": "isolation_room",
+      "subject_classes": [
+        "Person"
+      ],
+      "required": [
+        {
+          "name": "eye_protection",
+          "present_classes": [
+            "Goggles",
+            "Face Shield"
+          ]
+        }
+      ],
+      "min_duration_s": 3,
+      "event_type": "PPE_MISSING",
+      "severity": "MEDIUM",
+      "recommended_actions": [
+        "Ask the staff member to put on goggles or a face shield before going back in.",
+        "Check that eye protection is stocked at the room's entrance."
+      ],
+      "enabled": false,
+      "requires": "A model that finds goggles and face shields more reliably (this one finds 6 to 7 in 10)"
+    },
+    {
+      "rule_id": "RULE_ZONE_01",
+      "name": "Medication store",
+      "type": "zone",
+      "description": "Someone entered the medication store",
+      "zone": "medication_store",
+      "subject_classes": [
+        "Person"
+      ],
+      "min_duration_s": 2,
+      "grace_s": 3,
+      "event_type": "RESTRICTED_ZONE_ENTRY",
+      "severity": "HIGH",
+      "recommended_actions": [
+        "Confirm who entered the medication store and whether they were authorised.",
+        "Check that the door was locked and that controlled medicines are accounted for.",
+        "Report an unauthorised entry to the pharmacy lead and security."
+      ]
+    },
+    {
+      "rule_id": "RULE_ZONE_02",
+      "name": "Isolation room capacity",
+      "type": "zone",
+      "description": "More people in the isolation room than allowed",
+      "zone": "isolation_room",
+      "subject_classes": [
+        "Person"
+      ],
+      "max_count": 3,
+      "min_duration_s": 5,
+      "event_type": "ZONE_OVER_CAPACITY",
+      "severity": "MEDIUM",
+      "recommended_actions": [
+        "Ask anyone not needed for the patient's care to leave the room.",
+        "Remind visitors and staff of the room's limit at the door."
+      ]
+    },
+    {
+      "rule_id": "RULE_SMOKE_01",
+      "name": "Smoking",
+      "type": "presence",
+      "description": "Someone is smoking inside the hospital (cigarette, vape, pipe or shisha at the mouth)",
+      "subject_classes": [
+        "smoking"
+      ],
+      "min_duration_s": 2,
+      "event_type": "SMOKING",
+      "severity": "HIGH",
+      "recommended_actions": [
+        "Ask the person to stop at once: smoking is not allowed anywhere in the building.",
+        "Check that no oxygen cylinders or oxygen lines are near where they were smoking.",
+        "Report it to the ward supervisor and security."
+      ]
+    },
+    {
+      "rule_id": "RULE_POSE_01",
+      "personal": false,
+      "name": "Patient fall",
+      "type": "pose",
+      "planned": true,
+      "requires": "A pose model that tracks body position",
+      "description": "A patient has fallen or is lying on the floor",
+      "subject_classes": [
+        "Person"
+      ],
+      "min_duration_s": 5,
+      "event_type": "PERSON_DOWN",
+      "severity": "CRITICAL",
+      "recommended_actions": [
+        "Send a nurse to the patient immediately.",
+        "Do not move the patient before they have been assessed for injury.",
+        "Record the fall in the patient's notes and the incident system."
+      ]
+    }
+  ],
+  "translations": {
+    "ar": {
+      "plugin_name": "مكافحة العدوى في المستشفى",
+      "person": "أحد العاملين",
+      "items": {
+        "mask": "كمامة",
+        "gown": "رداء واقٍ",
+        "gloves": "قفازات",
+        "eye_protection": "واقي العينين"
+      },
+      "classes": {
+        "Person": "شخص",
+        "Coverall": "رداء واقٍ",
+        "Mask": "كمامة",
+        "Gloves": "قفازات",
+        "Goggles": "نظارات واقية",
+        "Face Shield": "واقي الوجه",
+        "smoking": "تدخين"
+      },
+      "zones": {
+        "isolation_room": "غرفة العزل",
+        "medication_store": "مخزن الأدوية"
+      },
+      "rules": {
+        "RULE_MASK_01": {
+          "name": "الكمامة",
+          "description": "الكمامة إلزامية في غرفة العزل",
+          "recommended_actions": [
+            "اطلب من العامل مغادرة الغرفة وارتداء كمامة قبل العودة إليها.",
+            "تأكد من توفر الكمامات عند مدخل الغرفة.",
+            "سجّل المخالفة في سجل مكافحة العدوى."
+          ]
+        },
+        "RULE_GOWN_01": {
+          "name": "الرداء الواقي",
+          "description": "الرداء الواقي إلزامي في غرفة العزل",
+          "recommended_actions": [
+            "اطلب من العامل مغادرة الغرفة وارتداء رداء واقٍ قبل العودة إليها.",
+            "تأكد من توفر الأردية الواقية عند مدخل الغرفة.",
+            "سجّل المخالفة في سجل مكافحة العدوى."
+          ]
+        },
+        "RULE_GLOVES_01": {
+          "name": "القفازات",
+          "description": "القفازات إلزامية في غرفة العزل",
+          "requires": "نموذج يرصد القفازات بدقة أعلى (النموذج الحالي يرصد نحو 6 من كل 10)",
+          "recommended_actions": [
+            "اطلب من العامل ارتداء القفازات قبل لمس المريض أو ما حوله.",
+            "تأكد من توفر القفازات بكل المقاسات عند مدخل الغرفة."
+          ]
+        },
+        "RULE_EYES_01": {
+          "name": "حماية العينين",
+          "description": "النظارات الواقية أو واقي الوجه إلزامي في غرفة العزل",
+          "requires": "نموذج يرصد النظارات الواقية وواقي الوجه بدقة أعلى (النموذج الحالي يرصد 6 إلى 7 من كل 10)",
+          "recommended_actions": [
+            "اطلب من العامل ارتداء نظارات واقية أو واقي الوجه قبل العودة إلى الغرفة.",
+            "تأكد من توفر وسائل حماية العينين عند مدخل الغرفة."
+          ]
+        },
+        "RULE_ZONE_01": {
+          "name": "مخزن الأدوية",
+          "description": "دخل شخص إلى مخزن الأدوية",
+          "recommended_actions": [
+            "تحقق ممن دخل مخزن الأدوية وهل كان مصرحًا له.",
+            "تأكد من أن الباب كان مقفلًا ومن جرد الأدوية الخاضعة للرقابة.",
+            "أبلغ مسؤول الصيدلية والأمن عن أي دخول غير مصرح به."
+          ]
+        },
+        "RULE_ZONE_02": {
+          "name": "سعة غرفة العزل",
+          "description": "عدد الأشخاص في غرفة العزل أكثر من المسموح",
+          "recommended_actions": [
+            "اطلب ممن لا تستدعي رعاية المريض وجوده مغادرة الغرفة.",
+            "ذكّر الزوار والعاملين بالحد المسموح عند باب الغرفة."
+          ]
+        },
+        "RULE_SMOKE_01": {
+          "name": "التدخين",
+          "description": "شخص يدخّن داخل المستشفى (سيجارة أو سيجارة إلكترونية أو غليون أو شيشة عند الفم)",
+          "recommended_actions": [
+            "اطلب من الشخص التوقف فورًا: التدخين ممنوع في كل أنحاء المبنى.",
+            "تأكد من عدم وجود أسطوانات أو خطوط أكسجين قرب مكان التدخين.",
+            "أبلغ مشرف القسم والأمن."
+          ]
+        },
+        "RULE_POSE_01": {
+          "name": "سقوط مريض",
+          "description": "مريض سقط أو ممدد على الأرض",
+          "requires": "نموذج لوضعيات الجسم يتتبع حركة الجسم",
+          "recommended_actions": [
+            "أرسل ممرضًا إلى المريض فورًا.",
+            "لا تحرّك المريض قبل تقييم إصابته.",
+            "سجّل السقوط في ملف المريض وفي نظام الحوادث."
+          ]
+        }
+      }
+    }
+  }
+}

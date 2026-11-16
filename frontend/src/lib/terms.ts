@@ -109,9 +109,15 @@ export function incidentTitle(i: { event_type: string; metadata?: { missing_equi
 /** The people face recognition identified in an incident, by name in the current language. */
 export const incidentPeople = (i: { metadata?: { people?: { person_name: string; person_name_ar?: string }[] } }): string[] =>
   (i.metadata?.people ?? []).map((p) => (ar() && p.person_name_ar) || p.person_name);
-export const itemLabel = (item: string) => (ar() && ITEM_AR[item]) || humanizeItem(item);
+// A plugin's own words for its equipment and classes (translations.ar.items / .classes), kept from the last
+// GET /rules, so a new domain needs no change here (usePluginText keeps them up to date).
+let pluginWords: PluginTranslation = {};
+export const setPluginWords = (t: PluginTranslation | undefined) => {
+  pluginWords = t ?? {};
+};
+export const itemLabel = (item: string) => (ar() && (pluginWords.items?.[item] || ITEM_AR[item])) || humanizeItem(item);
 /** A detector class name as shown to people (the model's own name in English). */
-export const classLabel = (name: string) => (ar() && CLASS_AR[name]) || name;
+export const classLabel = (name: string) => (ar() && (pluginWords.classes?.[name] || CLASS_AR[name])) || name;
 export const notSpecified = () => (ar() ? "غير محدد" : "Not specified");
 
 /**
@@ -120,6 +126,8 @@ export const notSpecified = () => (ar() ? "غير محدد" : "Not specified");
  */
 export function usePluginText() {
   const rules = useRules();
+  // the console's layout calls this on every page, so itemLabel / classLabel have the plugin's words too
+  setPluginWords(rules.data?.translations?.ar);
   const t: PluginTranslation = (ar() && rules.data?.translations?.ar) || {};
   const zoneByName = new Map(Object.entries(rules.data?.zones ?? {}).map(([id, name]) => [name, id]));
   return {

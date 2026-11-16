@@ -40,6 +40,21 @@ Copy a trained model into `models/` under the name the plugin uses (`models/` is
 
     cp outputs/runs/<name>/weights/best.pt models/construction_ppe.pt
 
+## Hospital model (`models/medical_ppe.pt`)
+For the second plugin (`plugins/hospital_safety.json`). Data: CPPE-5 (github.com/Rishit-dagli/CPPE-Dataset; code
+Apache-2.0, photos collected from the web, so research use), 1,029 photos of medical protective equipment in five
+classes. It doesn't mark people, so `build_medical_ppe.py` adds them with a large COCO model (yolo11x, confidence
+0.5) and writes the YOLO layout (850 / 134 / 29 after removing 16 photos repeated across splits):
+
+    # train.parquet and test.parquet from huggingface.co/datasets/rishitdagli/cppe-5 into data/cppe5/raw
+    python training/build_medical_ppe.py data/cppe5/raw --out data/medical_ppe
+    python training/train.py data/medical_ppe/data.yaml --model yolo11s.pt --name medical_ppe_s --epochs 100 --imgsz 640
+    cp outputs/runs/medical_ppe_s/weights/best.pt models/medical_ppe.pt
+
+Validation (134 photos): mAP50 0.80; recall gown 0.96, mask 0.83, face shield 0.70, goggles 0.60, gloves 0.58.
+CPPE-5's own test split is only 29 photos (mAP50 0.91 there), so the validation figures are the ones to trust.
+Limits: the photos are mostly close-ups of people fully dressed; nothing was tested on a ward camera.
+
 ## Smoking model (`models/smoking.pt`)
 A second, small model that only finds cigarettes. It runs next to the main model (`extra_models` in the plugin).
 Data: CigDet (Mendeley Data, CC BY 4.0, doi:10.17632/6hyrr8typ7.1), 557 images, one class. Copied into the YOLO

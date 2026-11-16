@@ -93,6 +93,40 @@ the reader's language. Anything missing falls back to the English text. `recomme
 order as the English list; the Arabic version of the AI report picks from it. The detector and the rule engine
 ignore this section.
 
+## Words the plugin brings with it
+So a new domain needs no change to the code, a plugin can name things itself (all optional):
+- `report.person`: what its people are called in alert emails ("worker" by default; the hospital plugin says
+  "staff member"), and `translations.ar.person` for Arabic.
+- `translations.ar.items`: Arabic for the `name` of each required item (`"mask": "كمامة"`), used in incident
+  titles, reports and emails. English shows the name itself with `_` as a space.
+- `translations.ar.classes`: Arabic for the classes its models detect.
+
+## The second plugin: `hospital_safety.json`
+Infection control in a hospital, built to show that a new domain is a new file plus a model: the same four rule
+types, no code specific to hospitals.
+
+| Rule | What | State |
+|---|---|---|
+| `RULE_MASK_01`, `RULE_GOWN_01` | mask / gown required in the isolation room (`ppe`) | in use |
+| `RULE_ZONE_01` | someone in the medication store (`zone`) | in use |
+| `RULE_ZONE_02` | more than 3 people in the isolation room (`zone` with `max_count`) | in use |
+| `RULE_SMOKE_01` | smoking anywhere (`presence`, the same smoking model as construction) | in use |
+| `RULE_GLOVES_01`, `RULE_EYES_01` | gloves, goggles or face shield | listed, switched off: the model misses too many |
+| `RULE_POSE_01` | patient fall | planned (needs a pose model) |
+
+Model `models/medical_ppe.pt`: YOLO11s at 640 trained on CPPE-5 (`training/build_medical_ppe.py`,
+`training/README.md`). On 134 validation photos it found 96% of gowns, 83% of masks, 70% of face shields, 60% of
+goggles and 58% of gloves; a `ppe` rule fires when the item is *not* found on a person, so only the first two
+are reliable enough to raise alarms. No regulation clauses are attached: SiteSentry Regs holds construction
+codes only. Tests: `event_engine/test_hospital_plugin.py` (16).
+
+Demo on a laptop, as its own copy of the stack (console at http://localhost:3006):
+
+    docker compose -p hospital -f docker-compose.yml -f docker-compose.hospital-demo.yml up -d --build
+
+It plays a video of the 29 CPPE-5 test photos as the camera (`python training/make_hospital_demo.py` makes it). Known false alarms seen in it: a full-face
+respirator is not counted as a mask, and a person cut off at the picture's edge is judged on what is visible.
+
 ## Startup checks
 - A class missing from the model prints a warning and is skipped.
 - A rule using a class not in `detection.classes` stops startup (disabled rules are skipped).

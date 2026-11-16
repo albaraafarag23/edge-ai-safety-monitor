@@ -137,9 +137,21 @@ def arabic_names(incident: dict, plugin: dict) -> dict:
         "rule_name": rule_t.get("name"),
         "rule_description": rule_t.get("description"),
         "location": zone or (None if incident.get("location") in (None, "", "NOT SPECIFIED") else incident.get("location")),
-        "missing_equipment": [ITEM_AR.get(m, m) for m in meta.get("missing_equipment") or []],
-        "detected_entities": [CLASS_AR.get(c, c) for c in meta.get("detected_entities") or []],
+        # a plugin's own words for its equipment and classes win (translations.ar.items / .classes, docs/plugins.md)
+        "missing_equipment": [(t.get("items") or {}).get(m) or ITEM_AR.get(m, m)
+                              for m in meta.get("missing_equipment") or []],
+        "detected_entities": [(t.get("classes") or {}).get(c) or CLASS_AR.get(c, c)
+                              for c in meta.get("detected_entities") or []],
+        "person": t.get("person") or "عامل",
     }
+
+
+def email_names(incident: dict, plugin: dict, lang: str) -> dict:
+    """The words the alert email needs in `lang`: all the Arabic names, or for English just what the plugin
+    calls the people it watches (report.person: "worker" on a site, "staff member" in a hospital)."""
+    if lang == "ar":
+        return arabic_names(incident, plugin)
+    return {"person": (plugin.get("report") or {}).get("person") or "worker"}
 
 
 def people_names(incident: dict, lang: str = "en") -> list[str]:
