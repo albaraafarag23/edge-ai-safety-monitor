@@ -45,9 +45,10 @@ _hits: dict[str, collections.deque] = collections.defaultdict(collections.deque)
 
 
 def client_address(request: Request) -> str:
-    # Render puts the visitor's address first in X-Forwarded-For
+    # the proxy in front (Tailscale Funnel, Render) appends the address it saw; anything before it came from the
+    # visitor and could be made up, so the last entry is the one to trust
     forwarded = request.headers.get("x-forwarded-for", "")
-    return forwarded.split(",")[0].strip() or (request.client.host if request.client else "?")
+    return forwarded.split(",")[-1].strip() or (request.client.host if request.client else "?")
 
 
 def limit(request: Request, bucket: str, per_15_min: int):
