@@ -205,6 +205,9 @@ class RuleEngine:
         # same rules that raise incidents (zones, switches and working hours included), before any waiting time.
         # main.py publishes it, and the detector writes it on the person's box in the live picture.
         self.missing_now = {}
+        # camera -> {track_id: that person's box}: the detector falls back on it when a person's track number has
+        # just changed (it does when someone is very close to the camera), so the label doesn't flicker off
+        self.missing_boxes = {}
         self.settings = {}      # plugin_id -> {rule_id: {"enabled": bool, <RULE_SETTINGS>...}} from the console
         # plugin_id -> {zone_id: {camera_id: [[x, y], ...]}}: zones drawn in the console for one camera, as
         # fractions of the picture (0-1), so they fit any camera resolution; turned into pixels with each
@@ -228,6 +231,7 @@ class RuleEngine:
         objects = event.get("detections", [])
         camera = event.get("camera_id", "")
         missing_now = self.missing_now[camera] = {}
+        missing_boxes = self.missing_boxes[camera] = {}
         now = _ts(event.get("timestamp"))
 
         incidents = []
@@ -253,6 +257,7 @@ class RuleEngine:
                 track_id = (o.get("attributes") or {}).get("track_id")
                 if track_id is not None and o.get("missing_equipment"):
                     items = missing_now.setdefault(str(track_id), [])
+                    missing_boxes[str(track_id)] = o["bbox"]
                     items.extend(m for m in o["missing_equipment"] if m not in items)
             duration = self._track((camera, rule["rule_id"]), bool(involved), now,
                                    rule.get("grace_s", DEFAULT_GRACE_S))

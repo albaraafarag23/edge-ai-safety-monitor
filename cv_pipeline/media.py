@@ -60,10 +60,33 @@ MISSING_LABELS = {"hard_hat": "no hard hat", "safety_vest": "no vest"}
 ALERT_COLOR = (0, 0, 255)
 
 
+def _overlap(a, b) -> float:
+    """How much two boxes are the same box (intersection over union, 0-1)."""
+    w = min(a[2], b[2]) - max(a[0], b[0])
+    h = min(a[3], b[3]) - max(a[1], b[1])
+    if w <= 0 or h <= 0:
+        return 0.0
+    return w * h / ((a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - w * h)
+
+
+def lacking(missing: dict | None, track_id, bbox) -> list:
+    """What this person lacks, from the rule engine's {track_id: {"items", "bbox"}}: by their track number, or,
+    when that has just changed (it does when someone is very close to the camera), by the box in the same place."""
+    if not missing:
+        return []
+    mine = missing.get(str(track_id))
+    if mine is None:
+        mine = max((m for m in missing.values() if isinstance(m, dict) and m.get("bbox")),
+                   key=lambda m: _overlap(m["bbox"], bbox), default=None)
+        if mine is None or _overlap(mine["bbox"], bbox) < 0.5:
+            return []
+    return (mine.get("items") if isinstance(mine, dict) else mine) or []
+
+
 def annotate(image, detections, scale, missing: dict | None = None):
-    """`missing` = {track_id: [items]} from the rule engine: the equipment each person lacks right now. It goes on
-    the person's own box (in red), because the model doesn't always draw a box for what is missing: a missing
-    vest is mostly known from no vest being found on the person."""
+    """`missing` = {track_id: {"items": [...], "bbox": [...]}} from the rule engine: the equipment each person
+    lacks right now. It goes on the person's own box (in red), because the model doesn't always draw a box for
+    what is missing: a missing vest is mostly known from no vest being found on the person."""
     # people last: a hat's label sits where its wearer's label is, and the person's says more
     for d in sorted(detections, key=lambda d: "track_id" in (d.get("attributes") or {})):
         x1, y1, x2, y2 = (int(v * scale) for v in d["bbox"])
@@ -73,7 +96,7 @@ def annotate(image, detections, scale, missing: dict | None = None):
         name = who.get("person_name")
         if name and name.isascii():   # OpenCV's built-in font has Latin letters only
             label = name
-        lacks = (missing or {}).get(str(who.get("track_id"))) if "track_id" in who else None
+        lacks = lacking(missing, who.get("track_id"), d["bbox"]) if "track_id" in who else None
         if lacks:
             label += ": " + ", ".join(MISSING_LABELS.get(m, "no " + str(m).replace("_", " ")) for m in lacks)
             color = ALERT_COLOR

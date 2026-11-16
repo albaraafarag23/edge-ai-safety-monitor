@@ -145,10 +145,13 @@ def run(r, engine: RuleEngine):
 
 
 def publish_missing(r, engine, camera: str, published: dict):
-    """camera:<id>:missing = {track_id: [missing items]} for the detector's live picture (docs/contracts.md v2.9).
+    """camera:<id>:missing = {track_id: {"items": [...], "bbox": [...]}} for the detector's live picture
+    (docs/contracts.md v2.9).
     Written when it changes and at least once a second; it expires after MISSING_TTL_S, so a stopped engine
     doesn't leave a stale label on anyone."""
-    value = json.dumps(engine.missing_now.get(camera) or {}, sort_keys=True)
+    boxes = engine.missing_boxes.get(camera) or {}
+    value = json.dumps({track: {"items": items, "bbox": boxes.get(track)}
+                        for track, items in (engine.missing_now.get(camera) or {}).items()}, sort_keys=True)
     last = published.get(camera)
     now = time.monotonic()
     if last and last[0] == value and now - last[1] < 1.0:
