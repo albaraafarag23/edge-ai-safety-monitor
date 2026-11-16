@@ -16,6 +16,7 @@ step "Rule engine tests"
 
 step "Rule drives: what a box accepts and refuses"
 (cd plugin_loader && python3 test_pack.py | tail -1)
+(cd plugin_loader && python3 test_licence.py | tail -1)
 # plugin_source.py is copied into each service (each builds its image from its own folder): the copies must match
 for d in cv_pipeline event_engine backend ai_reporting; do
   cmp -s plugin_loader/plugin_source.py "$d/plugin_source.py" \

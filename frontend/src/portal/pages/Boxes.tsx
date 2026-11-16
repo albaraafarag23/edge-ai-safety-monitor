@@ -33,6 +33,13 @@ export const BOX_TEXT = bilingual(
     failed: "That didn't work. Try again.",
     cancelled: "The passkey prompt was closed, so nothing was changed.",
     silentNote: "Its rules keep running on site for up to 7 days without the portal.",
+    drives: "Cancelled rule drives",
+    drivesLead: "A drive reported lost, stolen or replaced. Every box refuses it from its next check-in. The serial is printed by scripts/plugin-drive.py when the drive is made.",
+    driveSerial: "Drive serial",
+    driveNote: "Why (optional)",
+    cancelDrive: "Cancel this drive",
+    allowAgain: "Allow again",
+    noCancelled: "No drive is cancelled.",
   },
   {
     title: "الأجهزة",
@@ -60,6 +67,13 @@ export const BOX_TEXT = bilingual(
     failed: "لم ينجح ذلك. حاول مرة أخرى.",
     cancelled: "أُغلقت نافذة مفتاح المرور، فلم يتغير شيء.",
     silentNote: "تستمر قواعده في العمل في الموقع حتى 7 أيام دون البوابة.",
+    drives: "وحدات القواعد الملغاة",
+    drivesLead: "وحدة أُبلغ عن فقدها أو سرقتها أو استبدالها. ترفضها كل الأجهزة من اتصالها التالي. يطبع scripts/plugin-drive.py الرقم التسلسلي عند صنع الوحدة.",
+    driveSerial: "الرقم التسلسلي للوحدة",
+    driveNote: "السبب (اختياري)",
+    cancelDrive: "إلغاء هذه الوحدة",
+    allowAgain: "السماح من جديد",
+    noCancelled: "لا توجد وحدات ملغاة.",
   },
 );
 
@@ -177,6 +191,62 @@ export function BoxCards({ boxes }: { boxes: Box[] }) {
   );
 }
 
+function CancelledDrives() {
+  const t = useText(BOX_TEXT);
+  const locale = useLocale();
+  const qc = useQueryClient();
+  const list = useQuery({ queryKey: ["cancelled-drives"],
+    queryFn: () => get<{ serial: string; note: string | null; by: string; at: string }[]>("/drives/cancelled") });
+  const [serial, setSerial] = useState("");
+  const [note, setNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const run = async (fn: () => Promise<unknown>) => {
+    setError(null);
+    try {
+      await fn();
+      return true;
+    } catch (err) {
+      setError(cancelledByBrowser(err) ? t.cancelled : problem(err, t.failed));
+      return false;
+    } finally {
+      await qc.invalidateQueries({ queryKey: ["cancelled-drives"] });
+    }
+  };
+  return (
+    <Panel title={t.drives}>
+      <p className="mb-4 text-sm text-[#4a4439]">{t.drivesLead}</p>
+      <form className="mb-4 flex flex-wrap items-end gap-2.5" onSubmit={async (e) => {
+        e.preventDefault();
+        if (await run(() => send("/drives/cancelled", { serial: serial.trim(), note: note.trim() || null }))) {
+          setSerial("");
+          setNote("");
+        }
+      }}>
+        <label className="min-w-52 flex-1 text-sm font-medium">{t.driveSerial}
+          <input required dir="ltr" pattern="[A-Za-z0-9._:\-]{3,128}" value={serial} onChange={(e) => setSerial(e.target.value)} className={FIELD} />
+        </label>
+        <label className="min-w-52 flex-1 text-sm font-medium">{t.driveNote}
+          <input value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} className={FIELD} />
+        </label>
+        <button type="submit" className={BTN}>{t.cancelDrive}</button>
+      </form>
+      {error && <p role="alert" className="mb-3 rounded-xl bg-[#fff1e6] px-3.5 py-2.5 text-sm text-[#9a3412]">{error}</p>}
+      {list.data?.length === 0 ? <p className="text-sm text-[#4a4439]">{t.noCancelled}</p> : (
+        <ul className="flex flex-col divide-y divide-[#ece8df]">
+          {list.data?.map((d) => (
+            <li key={d.serial} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
+              <span><span dir="ltr" className="font-semibold">{d.serial}</span>{d.note ? ` · ${d.note}` : ""} · {d.by}, {when(d.at, locale)}</span>
+              <button type="button" className={BTN_LINE} onClick={() => run(() => send(`/drives/cancelled/${encodeURIComponent(d.serial)}`, undefined, "DELETE"))}>
+                {t.allowAgain}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
 export function Boxes() {
   const t = useText(BOX_TEXT);
   const boxes = useQuery({ queryKey: ["boxes"], queryFn: () => get<Box[]>("/boxes"), refetchInterval: 30_000 });
@@ -194,6 +264,7 @@ export function Boxes() {
         </section>
       )}
       {others.length > 0 && <BoxCards boxes={others} />}
+      <CancelledDrives />
     </>
   );
 }

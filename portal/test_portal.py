@@ -392,6 +392,15 @@ def test_boxes(loop):
         odd = await box.post("/api/box/checkin", {"health": {}, "events": [{"kind": "x; drop", "summary": "x"}]})
         assert odd.status_code == 200   # skipped, the check-in still counts
 
+        # a cancelled rule drive goes to every box in its licence; allowed again, it's gone
+        assert (await o.post("/api/drives/cancelled", json={"serial": "LOST-0001", "note": "lost on site"})).status_code == 200
+        r = (await box.post("/api/box/checkin", {"health": {}})).json()
+        assert read_signed(r["licence"], portal_key)["cancelled_drives"] == ["LOST-0001"]
+        assert (await m.get("/api/drives/cancelled")).status_code == 403
+        assert (await o.delete("/api/drives/cancelled/LOST-0001")).status_code == 200
+        r = (await box.post("/api/box/checkin", {"health": {}})).json()
+        assert read_signed(r["licence"], portal_key)["cancelled_drives"] == []
+
         # blocking: the box keeps checking in but gets nothing
         await o.patch(f"/api/boxes/{bid}", json={"status": "blocked"})
         r = (await box.post("/api/box/checkin", {"health": {}})).json()

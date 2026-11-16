@@ -36,7 +36,7 @@ TEST_SERIAL = os.getenv("DRIVE_TEST_SERIAL", "")
 LICENCE_REQUIRED = os.getenv("LICENCE_REQUIRED", "").lower() == "true"
 LICENCE_KEY = "site:licence"
 LICENCE_RETRY_S = 30
-LICENCE_REASONS = {"no_licence", "licence_expired", "not_licensed"}
+LICENCE_REASONS = {"no_licence", "licence_expired", "not_licensed", "drive_cancelled"}
 
 
 def now() -> str:
@@ -147,14 +147,17 @@ class Announcer:
             print(f"[Loader] Redis not reachable ({e}), will say it again", flush=True)
 
 
-def licence_problem(r, plugin_id: str) -> str | None:
-    """Why the licence doesn't allow this rule set right now (None: it does, or no licence is needed)."""
-    if not LICENCE_REQUIRED:
-        return None
+def licence_problem(r, plugin_id: str, drive_serial: str | None = None) -> str | None:
+    """Why the licence doesn't allow this rule set right now (None: it does, or no licence is needed). A drive the
+    portal cancelled (lost, stolen) is refused whenever the box has a licence, required or not."""
     try:
         licence = json.loads(r.get(LICENCE_KEY) or "null")
     except (redis.exceptions.RedisError, ValueError):
         licence = None
+    if drive_serial and isinstance(licence, dict) and drive_serial in (licence.get("cancelled_drives") or []):
+        return "drive_cancelled"
+    if not LICENCE_REQUIRED:
+        return None
     if not isinstance(licence, dict):
         return "no_licence"
     if float(licence.get("valid_until") or 0) < time.time():
@@ -170,7 +173,7 @@ def take(drive: dict, source: Path, keys, announce: Announcer) -> bool:
     announce.say("loading", **about)
     try:
         manifest, plugin = pack.verify(source, drive["serial"], keys)
-        problem = licence_problem(announce.r, manifest["plugin_id"])
+        problem = licence_problem(announce.r, manifest["plugin_id"], drive["serial"])
         if problem:
             raise pack.Refused(problem, manifest["plugin_id"])
         fill_slot(source, manifest)
@@ -202,6 +205,7 @@ def main():
     announce.say("none")
     current = None     # the partition whose rule set is live, or was refused: don't look at it again until it goes
     live = None        # plugin_id running from it, if any
+    live_serial = None  # and that drive's serial
     retry_at = 0.0     # refused for the licence only: try the drive again from this time (licences can arrive)
     ignored = set()    # drives with no rule set on them (someone's own stick): not mounted again while they stay in
     while True:
@@ -212,9 +216,9 @@ def main():
             clear_slot()
             announce.say("none")
             current, live = None, None
-        elif current and live and licence_problem(announce.r, live):   # the licence ran out while it was in
+        elif current and live and licence_problem(announce.r, live, live_serial):   # licence ran out, drive cancelled
             clear_slot()
-            announce.say("refused", reason=licence_problem(announce.r, live), detail=live)
+            announce.say("refused", reason=licence_problem(announce.r, live, live_serial), detail=live)
             current, live, retry_at = None, None, time.time() + LICENCE_RETRY_S
         if current is None and time.time() < retry_at:
             announce.repeat()
@@ -235,6 +239,7 @@ def main():
                     if source.is_dir():   # a drive without a rule set on it is none of our business
                         if take(drive, source, pack.load_public_keys(KEYS_DIR), announce):
                             current, live = drive["device"], json.loads(announce.value).get("plugin_id")
+                            live_serial = drive["serial"]
                         elif json.loads(announce.value).get("reason") in LICENCE_REASONS:
                             retry_at = time.time() + LICENCE_RETRY_S   # not "current": try again later
                         else:

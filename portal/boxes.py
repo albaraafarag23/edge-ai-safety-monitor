@@ -29,7 +29,7 @@ from sqlalchemy import select
 import audit
 import mailer
 import security as sec
-from models import Box, Company, PortalKey, Site, User, UserSite, SessionLocal, now
+from models import Box, CancelledDrive, Company, PortalKey, Site, User, UserSite, SessionLocal, now
 from security import Signed, aware, fresh, signed_in
 
 LICENCE_DAYS = 7
@@ -230,6 +230,7 @@ async def checkin(request: Request):
     if box.status == "approved" and site and company and company.active:
         answer.update(site=site.name, company=company.name, people=await site_people(site),
                       licence=await sign({"serial": box.serial, "plugins": box.plugins or [],
+                                          "cancelled_drives": await cancelled_serials(),
                                           "issued": int(time.time()),
                                           "valid_until": int(time.time()) + LICENCE_DAYS * 86400}))
     return answer
@@ -325,6 +326,57 @@ async def change_box(box_id: int, body: BoxPatch, me: Signed = Depends(fresh)):
                        + (f" (rule sets: {', '.join(box.plugins or []) or 'none'})" if body.plugins is not None else "")
                        + ".", site.company_id if site else None, serial=box.serial)
     return {"id": box.id, "status": box.status, "plugins": box.plugins}
+
+
+# ---------- cancelled rule drives ----------
+
+async def cancelled_serials() -> list[str]:
+    async with SessionLocal() as session:
+        return sorted((await session.scalars(select(CancelledDrive.serial))).all())
+
+
+class CancelIn(BaseModel):
+    serial: str = Field(min_length=3, max_length=128, pattern=r"^[A-Za-z0-9._:-]+$")
+    note: str | None = Field(None, max_length=200)
+
+
+@router.get("/drives/cancelled")
+async def cancelled_drives(me: Signed = Depends(signed_in)):
+    if me.user.role != "overseer":
+        raise HTTPException(status_code=403, detail="You can't do that")
+    async with SessionLocal() as session:
+        rows = (await session.scalars(select(CancelledDrive).order_by(CancelledDrive.cancelled_at.desc()))).all()
+    return [{"serial": r.serial, "note": r.note, "by": r.cancelled_by, "at": aware(r.cancelled_at)} for r in rows]
+
+
+@router.post("/drives/cancelled")
+async def cancel_drive(body: CancelIn, me: Signed = Depends(fresh)):
+    if me.user.role != "overseer":
+        raise HTTPException(status_code=403, detail="You can't do that")
+    async with SessionLocal() as session:
+        if await session.get(CancelledDrive, body.serial):
+            raise HTTPException(status_code=409, detail="That drive is already cancelled")
+        session.add(CancelledDrive(serial=body.serial, note=(body.note or "").strip() or None,
+                                   cancelled_by=me.user.name))
+        await session.commit()
+    await audit.record(me.user, "drive_cancelled", f"{me.user.name} cancelled rule drive {body.serial}"
+                       + (f" ({body.note.strip()})" if body.note and body.note.strip() else "")
+                       + ". Every box refuses it from its next check-in.", serial=body.serial)
+    return {"serial": body.serial}
+
+
+@router.delete("/drives/cancelled/{serial}")
+async def restore_drive(serial: str, me: Signed = Depends(fresh)):
+    if me.user.role != "overseer":
+        raise HTTPException(status_code=403, detail="You can't do that")
+    async with SessionLocal() as session:
+        row = await session.get(CancelledDrive, serial)
+        if not row:
+            raise HTTPException(status_code=404, detail="That drive isn't cancelled")
+        await session.delete(row)
+        await session.commit()
+    await audit.record(me.user, "drive_restored", f"{me.user.name} allowed rule drive {serial} again.", serial=serial)
+    return {"serial": serial}
 
 
 # ---------- one-click sign-in to a site's console ----------

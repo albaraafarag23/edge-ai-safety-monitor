@@ -149,6 +149,15 @@ class Box(Base):
     silent_noted: Mapped[bool | None] = mapped_column(Boolean)     # "went silent" already logged
 
 
+class CancelledDrive(Base):
+    """A rule drive that no box may use any more (lost, stolen, replaced). Sent to every box in its licence."""
+    __tablename__ = "cancelled_drives"
+    serial: Mapped[str] = mapped_column(String(128), primary_key=True)   # the USB stick's serial, as on the drive
+    note: Mapped[str | None] = mapped_column(String(200))
+    cancelled_by: Mapped[str] = mapped_column(String(120))
+    cancelled_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
 class PortalKey(Base):
     """The portal's own signing key (Ed25519): licences and one-click sign-in tokens for the boxes. Made on the
     first start. Boxes pin its public half the first time they register."""

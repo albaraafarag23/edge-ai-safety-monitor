@@ -195,6 +195,7 @@ async def publish(row: BoxLink, error: str | None = None):
     licence = read_signed(row.licence or "", row.portal_key)
     if licence:
         await _redis.set(LICENCE_KEY, json.dumps({"serial": licence.get("serial"), "plugins": licence.get("plugins"),
+                                                   "cancelled_drives": licence.get("cancelled_drives") or [],
                                                    "valid_until": licence.get("valid_until")}))
     await _redis.set(STATUS_KEY, json.dumps({
         "portal": PORTAL_URL, "serial": BOX_SERIAL, "status": row.status, "site": row.site, "company": row.company,

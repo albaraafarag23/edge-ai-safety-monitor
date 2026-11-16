@@ -88,6 +88,9 @@ name). Code: `backend/portal_link.py` (box) and `portal/boxes.py` (portal).
   set and hasn't run out; otherwise the console says why (no licence / not licensed / ran out). A box that can't
   reach the portal keeps its rules for 7 days from its last good check-in. Fixed mode (`PLUGIN_SOURCE=fixed`, the
   graduation Jetson) doesn't check licences.
+- **Cancelled rule drives.** The overseer cancels a lost, stolen or replaced drive by its serial (Boxes page;
+  passkey again). The serial list goes to every box in its licence (`cancelled_drives`), and the drive loader
+  refuses a cancelled drive whenever the box has a licence, even with `LICENCE_REQUIRED=false`.
 - **Silent boxes.** 10 minutes without a check-in: logged, and the overseer and that company's managers are
   emailed (once, until it's back).
 - **Open console.** Managers, supervisors and viewers see "Open console" next to their site. The portal signs a
