@@ -137,6 +137,10 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       # the SiteSentry portal (docs/portal.md): empty = this box works on its own. BOX_SERIAL: its name there.
       PORTAL_URL: ${PORTAL_URL:-}
+      # what people's browsers open (when the box reaches the portal by another, internal address)
+      PORTAL_PUBLIC_URL: ${PORTAL_PUBLIC_URL:-}
+      # risky changes on the console ask "confirm it's you" first: auto = when linked to the portal
+      CONFIRM_CHANGES: ${CONFIRM_CHANGES:-auto}
       BOX_SERIAL: ${BOX_SERIAL:-}
       PORTAL_CHECKIN_S: ${PORTAL_CHECKIN_S:-60}
       # the shared read-only account for visitors; both empty = there is none (backend/auth.py ensure_demo)

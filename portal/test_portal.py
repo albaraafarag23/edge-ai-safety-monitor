@@ -380,6 +380,18 @@ def test_boxes(loop):
         for a in ("box_waiting", "box_key_mismatch", "box_assigned", "console_opened", "box_silent", "box_back"):
             assert a in actions, a
 
+        # what happened on the box arrives with a check-in: logged in the chain; failed sign-ins are emailed
+        SENT.clear()
+        r = await box.post("/api/box/checkin", {"health": {}, "events": [
+            {"kind": "rule_changed", "actor": "Mona", "summary": "Mona switched off the rule \"Smoking\"."},
+            {"kind": "signin_failed", "summary": "Failed console sign-in for x@y.example from 1.2.3.4."}]})
+        assert r.status_code == 200, r.text
+        entries = (await o.get("/api/audit")).json()["entries"]
+        assert any(e["action"] == "box_rule_changed" and "Delta Build, Main site" in e["summary"] for e in entries)
+        assert any("warning" in x[1] for x in SENT)
+        odd = await box.post("/api/box/checkin", {"health": {}, "events": [{"kind": "x; drop", "summary": "x"}]})
+        assert odd.status_code == 200   # skipped, the check-in still counts
+
         # blocking: the box keeps checking in but gets nothing
         await o.patch(f"/api/boxes/{bid}", json={"status": "blocked"})
         r = (await box.post("/api/box/checkin", {"health": {}})).json()

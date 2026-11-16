@@ -20,6 +20,8 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import select
 
 import auth
+import confirm
+import box_events
 import plugin_source
 from models import RuleSetting, SessionLocal, User, iso
 
@@ -180,7 +182,8 @@ async def list_rules():
 
 
 @router.patch("/{rule_id}")
-async def change_rule(rule_id: str, body: RuleChange, me: User = Depends(auth.require_manager)):
+async def change_rule(rule_id: str, body: RuleChange, me: User = Depends(auth.require_manager),
+                      _: None = Depends(confirm.required)):
     plugin = load_plugin()
     rule = next((r for r in (plugin or {}).get("rules", []) if r["rule_id"] == rule_id), None)
     if not rule:
@@ -213,10 +216,35 @@ async def change_rule(rule_id: str, body: RuleChange, me: User = Depends(auth.re
         row.changed_by = me.name
         row.changed_at = datetime.utcnow()
         await session.commit()
-
     try:
         await _redis.hset(SETTINGS_KEY.format(plugin_id=plugin_id()), rule_id, _engine_value(row))
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Saved, but the detector couldn't be updated yet: {e}")
     print(f"[Backend] {me.name} changed {rule_id}: enabled={row.enabled} {overrides}", flush=True)
+    what = {f: getattr(body, f) for f in sent}
+    what = {k: (v.model_dump() if isinstance(v, BaseModel) else v) for k, v in what.items()}
+    name = rule.get("name", rule_id)
+    if set(what) == {"enabled"}:
+        summary = f"{me.name} switched {'on' if what['enabled'] else 'off'} the rule \"{name}\"."
+    else:
+        summary = f"{me.name} changed the rule \"{name}\": " + "; ".join(_plain(k, v) for k, v in what.items()) + "."
+    await box_events.note("rule_changed", summary, me.name, rule_id=rule_id, change=what)
+
     return _rule_dict(plugin, rule, row)
+
+
+def _plain(field: str, value) -> str:
+    """A rule setting in words, for the portal's security log."""
+    if field == "enabled":
+        return "switched on" if value else "switched off"
+    if value is None:
+        return f"{field.replace('_', ' ')} back to the default"
+    if field == "min_duration_s":
+        return f"alert after {value} s"
+    if field == "cooldown_s":
+        return f"repeat every {value} s"
+    if field == "max_count":
+        return f"at most {value} people"
+    if field == "active_hours" and isinstance(value, dict):
+        return f"working hours {value.get('start')}-{value.get('end')}"
+    return f"{field.replace('_', ' ')} {value}"

@@ -2,7 +2,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Fingerprint } from "lucide-react";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { bilingual, LanguageSwitch, useText } from "../../lib/i18n";
 import { acceptInvite, ApiError, cancelledByBrowser, get, requestDevice, signInWithPasskey, type Invite } from "../api";
 import { BTN, FIELD, Logo, WORDS } from "../shell";
@@ -118,6 +118,7 @@ export function SignIn() {
   const t = useText(TEXT);
   const errorText = useErrorText();
   const navigate = useNavigate();
+  const from = (useLocation().state as { from?: string } | null)?.from;
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -128,7 +129,7 @@ export function SignIn() {
     try {
       await signInWithPasskey();
       await qc.invalidateQueries();
-      navigate("/", { replace: true });
+      navigate(from && from.startsWith("/") && !from.startsWith("//") ? from : "/", { replace: true });
     } catch (err) {
       setError(errorText(err));
     } finally {

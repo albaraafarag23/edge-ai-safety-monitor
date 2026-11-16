@@ -8,6 +8,8 @@ from sqlalchemy.exc import IntegrityError
 
 import alert_settings
 import auth
+import confirm
+import box_events
 from models import SessionLocal, User
 
 Role = Literal["manager", "supervisor", "viewer"]
@@ -52,18 +54,20 @@ async def list_users():
 
 
 @router.post("", status_code=201)
-async def add_user(body: UserIn):
+async def add_user(body: UserIn, me: User = Depends(auth.current_user), _: None = Depends(confirm.required)):
     auth.check_password_rules(body.password)
     try:
         user = await auth.create_user(body.email, body.name, body.password, body.role)
     except IntegrityError:
         raise HTTPException(status_code=409, detail="A user with this email already exists")
     await alert_settings.sync_redis()   # a new manager or supervisor gets High and Critical by default
+    await box_events.note("person_added", f"{me.name} added a {user.role} account on the box ({user.email}).", me.name)
     return user.to_dict()
 
 
 @router.patch("/{user_id}")
-async def update_user(user_id: int, body: UserPatch, me: User = Depends(auth.current_user)):
+async def update_user(user_id: int, body: UserPatch, me: User = Depends(auth.current_user),
+                      _: None = Depends(confirm.required)):
     async with SessionLocal() as session:
         user = await session.get(User, user_id)
         if not user:
@@ -81,13 +85,18 @@ async def update_user(user_id: int, body: UserPatch, me: User = Depends(auth.cur
             if value is not None:
                 setattr(user, field, value)
         await session.commit()
+        changed = {f: getattr(body, f) for f in ("role", "active") if getattr(body, f) is not None}
+        if changed:
+            await box_events.note("person_changed", f"{me.name} changed {user.email}: "
+                                  + ", ".join(f"{k} = {v}" for k, v in changed.items()), me.name, change=changed)
         auth.forget_users()   # role, password or switch-off applies to the next request
         await alert_settings.sync_redis()   # and who gets email
         return user.to_dict()
 
 
 @router.post("/{user_id}/password", status_code=204)
-async def reset_password(user_id: int, body: PasswordReset):
+async def reset_password(user_id: int, body: PasswordReset, me: User = Depends(auth.current_user),
+                         _: None = Depends(confirm.required)):
     """Admin sets a new password (e.g. a temporary one). The user's sessions end."""
     auth.check_password_rules(body.password)
     async with SessionLocal() as session:
@@ -98,6 +107,7 @@ async def reset_password(user_id: int, body: PasswordReset):
         await session.commit()
         auth.forget_users()   # role, password or switch-off applies to the next request
         await alert_settings.sync_redis()   # and who gets email
+    await box_events.note("person_changed", f"{me.name} reset the password of {user.email}.", me.name)
 
 
 @account.post("/password")

@@ -18,12 +18,27 @@ export function setUnauthorizedHandler(handler: () => void) {
   onUnauthorized = handler;
 }
 
+/** A risky change on a box linked to the portal asks "confirm it's you" first (backend/confirm.py). */
+export type ConfirmKind = "password" | "portal";
+let confirmHandler: ((kind: ConfirmKind) => Promise<boolean>) | null = null;
+export function setConfirmHandler(handler: typeof confirmHandler) {
+  confirmHandler = handler;
+}
+
 // The session is an HttpOnly cookie (same origin), so fetch sends it without any extra code.
-async function request<T>(path: string, init?: RequestInit): Promise<{ data: T; headers: Headers }> {
+async function request<T>(path: string, init?: RequestInit, retried = false): Promise<{ data: T; headers: Headers }> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
+  if (res.status === 428 && !retried && confirmHandler) {
+    const detail = await res.clone().json().then((b) => String(b.detail ?? ""), () => "");
+    if (detail.startsWith("confirm:")) {
+      const ok = await confirmHandler(detail.slice(8) as ConfirmKind);
+      if (ok) return request<T>(path, init, true);   // confirmed: the change goes through now
+      throw new ApiError(428, "Not changed: it wasn't confirmed.");
+    }
+  }
   if (res.status === 401 && !path.startsWith("/auth/")) onUnauthorized();
   if (!res.ok) {
     let detail = res.statusText;

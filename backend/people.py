@@ -23,6 +23,8 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 import auth
+import confirm
+import box_events
 from models import User
 
 FACES_DIR = Path(os.getenv("FACES_DIR", "/faces")).resolve()
@@ -149,7 +151,7 @@ async def list_people():
 
 
 @router.post("", status_code=201)
-async def add_person(body: PersonIn, me: User = Depends(auth.current_user)):
+async def add_person(body: PersonIn, me: User = Depends(auth.current_user), _: None = Depends(confirm.required)):
     def create():
         FACES_DIR.mkdir(parents=True, exist_ok=True)
         if sum(1 for p in FACES_DIR.iterdir() if p.is_dir()) >= MAX_PEOPLE:
@@ -163,11 +165,12 @@ async def add_person(body: PersonIn, me: User = Depends(auth.current_user)):
     except OSError as e:
         raise HTTPException(status_code=500, detail=f"Couldn't write to the faces folder: {e.strerror}")
     print(f"[Backend] {me.name} added person {folder.name}", flush=True)
+    await box_events.note("face_photos", f"{me.name} added someone to face recognition.", me.name)
     return _person(folder, _names(folder), [], {})
 
 
 @router.patch("/{person_id}")
-async def rename_person(person_id: str, body: PersonPatch):
+async def rename_person(person_id: str, body: PersonPatch, _: None = Depends(confirm.required)):
     folder = _person_dir(person_id)
     names = _names(folder)
     sent = body.model_fields_set
@@ -178,14 +181,16 @@ async def rename_person(person_id: str, body: PersonPatch):
 
 
 @router.delete("/{person_id}", status_code=204)
-async def remove_person(person_id: str, me: User = Depends(auth.current_user)):
+async def remove_person(person_id: str, me: User = Depends(auth.current_user), _: None = Depends(confirm.required)):
     """Deletes the person and their photos. The cameras stop recognising them within seconds."""
     await asyncio.to_thread(shutil.rmtree, _person_dir(person_id))
     print(f"[Backend] {me.name} removed person {person_id} and their photos", flush=True)
+    await box_events.note("face_photos", f"{me.name} removed someone from face recognition, with their photos.",
+                          me.name)
 
 
 @router.post("/{person_id}/photos", status_code=201)
-async def add_photo(person_id: str, request: Request):
+async def add_photo(person_id: str, request: Request, _: None = Depends(confirm.required)):
     """The request body is the image itself (JPEG, PNG or WebP), not a form."""
     folder = _person_dir(person_id)
     declared = request.headers.get("content-length", "")
@@ -223,7 +228,7 @@ async def get_photo(person_id: str, file: str):
 
 
 @router.delete("/{person_id}/photos/{file}", status_code=204)
-async def remove_photo(person_id: str, file: str):
+async def remove_photo(person_id: str, file: str, _: None = Depends(confirm.required)):
     path = _inside(person_id, file)
     if path.suffix.lower() not in IMAGE_TYPES or not path.is_file():
         raise HTTPException(status_code=404, detail="Not found")

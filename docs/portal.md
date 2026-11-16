@@ -95,8 +95,21 @@ name). Code: `backend/portal_link.py` (box) and `portal/boxes.py` (portal).
   button and the portal refuses them: footage stays with the client. The console's own sign-in page offers
   "Sign in through the SiteSentry portal" when the box is linked.
 
+## What a box reports, and "confirm it's you"
+
+- **Events** (`backend/box_events.py`): rules switched or changed, zones redrawn, accounts added or changed,
+  someone added to / removed from face recognition (never who), failed console sign-ins, rule drives accepted or
+  refused. Queued in Redis, sent with the next check-in, and written into the portal's chained security log as
+  "<company>, <site>: <sentence>". Failed sign-ins and refused drives are also emailed to the overseer. A malformed
+  event is skipped, never the whole check-in.
+- **Confirm it's you** (`backend/confirm.py`, on when the box is linked; `CONFIRM_CHANGES=auto|on|off`): switching
+  rules, timings, zones, accounts, face photos and the summary time answer 428 until the person has confirmed in
+  the last 5 minutes. Portal accounts confirm on the portal with their passkey (`/confirm?box=...&back=...`, which
+  sends them back with a one-use token); accounts made on the box re-type their password. The console asks in a
+  window and repeats the change by itself after a password.
+  On the Jetson the box reaches the portal by an internal name, so `PORTAL_PUBLIC_URL` is what browsers open.
+
 ## Not yet
 
-Closing the public console door (only once every client signs in through the portal), the passkey again on the
-box console before risky changes, Arabic security-log sentences (the log is written in English), portal email
-(needs its Gmail app password).
+Closing the public console door (only once every client signs in through the portal), Arabic security-log
+sentences (the log is written in English), portal email (needs its Gmail app password).

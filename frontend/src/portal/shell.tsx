@@ -62,7 +62,7 @@ export function Shell() {
   });
 
   if (me.isPending) return <div className="min-h-screen bg-ink" aria-busy="true" />;
-  if (me.isError) return <Navigate to="/signin" replace state={{ from: location.pathname }} />;
+  if (me.isError) return <Navigate to="/signin" replace state={{ from: location.pathname + location.search }} />;
   const user = me.data;
   const approver = user.role === "overseer" || user.role === "manager";
   const links: { to: string; label: string; icon: typeof Home; badge?: number }[] = user.role === "overseer"

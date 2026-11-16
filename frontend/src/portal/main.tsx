@@ -9,6 +9,7 @@ import { Shell } from "./shell";
 import { Companies, Company } from "./pages/Companies";
 import { Approvals, MyDevices } from "./pages/Devices";
 import { Boxes } from "./pages/Boxes";
+import { Confirm } from "./pages/Confirm";
 import { Home, SecurityLog } from "./pages/Home";
 import { AcceptInvite, NewDevice, SignIn } from "./pages/SignIn";
 
@@ -31,6 +32,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="approvals" element={<Approvals />} />
               <Route path="log" element={<SecurityLog />} />
               <Route path="devices" element={<MyDevices />} />
+              <Route path="confirm" element={<Confirm />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

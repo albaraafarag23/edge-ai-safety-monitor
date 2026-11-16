@@ -145,10 +145,22 @@ async def register(request: Request):
     return {"status": box.status, "portal_key": await portal_public()}
 
 
+class BoxEvent(BaseModel):
+    at: str | None = Field(None, max_length=40)
+    kind: str = Field(max_length=40, pattern=r"^[a-z_]+$")
+    actor: str | None = Field(None, max_length=120)
+    summary: str = Field(max_length=300)
+    details: dict = {}
+
+
 class Checkin(BaseModel):
     console_url: str | None = Field(None, max_length=300)
     version: str | None = Field(None, max_length=60)
     health: dict = {}
+    events: list[dict] = Field(default_factory=list, max_length=100)   # BoxEvent each; a bad one is skipped
+
+
+ALERT_KINDS = {"signin_failed", "drive_refused"}   # emailed to the overseer (the rest only go in the log)
 
 
 async def site_people(site: Site) -> list[dict]:
@@ -198,6 +210,21 @@ async def checkin(request: Request):
     if back:
         await audit.record("system", "box_back", f"Box {box.serial} is checking in again.",
                            company.id if company else None, serial=box.serial)
+    where = f"{company.name}, {site.name}" if site and company else f"box {box.serial}"
+    alerts = []
+    for raw in report.events:   # what happened on the box since the last check-in, into the chained log
+        try:
+            e = BoxEvent.model_validate(raw)
+        except ValueError:   # never let one odd event block the check-ins (the box would retry it forever)
+            continue
+        await audit.record(f"{e.actor or 'box'} (on {box.serial})", f"box_{e.kind}", f"{where}: {e.summary}",
+                           company.id if company else None, serial=box.serial, at=e.at, **{"details": e.details})
+        if e.kind in ALERT_KINDS:
+            alerts.append(f"- {e.at or ''} {e.summary}")
+    if alerts:
+        await mail_overseers(f"SiteSentry: {len(alerts)} warning(s) from {where}",
+                             f"The box at {where} ({box.serial}) reported:\n\n" + "\n".join(alerts)
+                             + f"\n\nThe full record is in the portal's security log: {sec.PORTAL_URL}/log")
     answer = {"status": box.status, "portal_key": await portal_public(), "site": None, "company": None,
               "people": [], "licence": None}
     if box.status == "approved" and site and company and company.active:
@@ -319,6 +346,29 @@ async def open_console(site_id: int, me: Signed = Depends(signed_in)):
                         "exp": int(time.time()) + TOKEN_S, "jti": secrets.token_urlsafe(12)})
     await audit.record(me.user, "console_opened", f"{me.user.name} opened the console of {site.name}.",
                        site.company_id, serial=box.serial)
+    return {"url": f"{box.console_url.rstrip('/')}/api/auth/portal?token={token}"}
+
+
+class ConfirmIn(BaseModel):
+    back: str = Field("/app", max_length=300)
+
+
+@router.post("/boxes/by-serial/{serial}/confirm")
+async def confirm_on_box(serial: str, body: ConfirmIn, me: Signed = Depends(fresh)):
+    """A risky change on a site's console, confirmed here with the passkey (the `fresh` check asks for it): a
+    one-use token that tells that box this person has just confirmed (backend/confirm.py)."""
+    async with SessionLocal() as session:
+        box = await session.scalar(select(Box).where(Box.serial == serial, Box.status == "approved"))
+        site = await session.get(Site, box.site_id) if box and box.site_id else None
+    if not box or not site or not box.console_url or site.company_id != me.user.company_id:
+        raise HTTPException(status_code=404, detail="No such box")
+    if me.user.email not in {p["email"] for p in await site_people(site)}:
+        raise HTTPException(status_code=403, detail="You don't work on this site")
+    back = body.back if body.back.startswith("/app") and not body.back.startswith("//") else "/app"
+    token = await sign({"aud": box.serial, "sub": me.user.email, "purpose": "confirm", "back": back,
+                        "exp": int(time.time()) + TOKEN_S, "jti": secrets.token_urlsafe(12)})
+    await audit.record(me.user, "change_confirmed", f"{me.user.name} confirmed a change on the console of "
+                       f"{site.name} with their passkey.", site.company_id, serial=box.serial)
     return {"url": f"{box.console_url.rstrip('/')}/api/auth/portal?token={token}"}
 
 

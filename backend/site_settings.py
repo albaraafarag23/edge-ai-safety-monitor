@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 import auth
+import confirm
 from models import SessionLocal, SiteSetting, User, iso
 
 SITE_TIMEZONE = os.getenv("SITE_TIMEZONE", "Africa/Cairo")
@@ -91,7 +92,8 @@ async def get_daily_summary():
 
 
 @router.put("/daily-summary")
-async def set_daily_summary(body: DailySummaryIn, me: User = Depends(auth.require_manager)):
+async def set_daily_summary(body: DailySummaryIn, me: User = Depends(auth.require_manager),
+                            _: None = Depends(confirm.required)):
     async with SessionLocal() as session:
         row = await _row(session)
         if row is None:

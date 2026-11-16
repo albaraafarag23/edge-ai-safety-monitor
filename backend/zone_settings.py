@@ -21,6 +21,8 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func, select, text
 
 import auth
+import confirm
+import box_events
 from models import SessionLocal, User, ZoneDrawing, iso
 from rule_settings import load_plugin, plugin_id
 
@@ -147,7 +149,7 @@ async def list_zones(camera_id: str = CAMERA_ID):
 
 @router.put("/{zone_id}")
 async def draw_zone(zone_id: str, body: ZoneShape, camera_id: str = CAMERA_ID,
-                    me: User = Depends(auth.require_manager)):
+                    me: User = Depends(auth.require_manager), _: None = Depends(confirm.required)):
     plugin, zone = _plugin_zone(zone_id)
     async with SessionLocal() as session:
         row = await session.get(ZoneDrawing, (plugin_id(), camera_id, zone_id))
@@ -163,11 +165,14 @@ async def draw_zone(zone_id: str, body: ZoneShape, camera_id: str = CAMERA_ID,
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Saved, but the detector couldn't be updated yet: {e}")
     print(f"[Backend] {me.name} drew zone {zone_id} on {camera_id} ({len(row.polygon)} points)", flush=True)
+    await box_events.note("zone_changed", f"{me.name} redrew the zone \"{zone.get('name', zone_id)}\" on {camera_id}.",
+                          me.name, zone_id=zone_id, camera_id=camera_id)
     return _zone_dict(zone_id, zone, plugin, camera_id, row)
 
 
 @router.delete("/{zone_id}")
-async def reset_zone(zone_id: str, camera_id: str = CAMERA_ID, me: User = Depends(auth.require_manager)):
+async def reset_zone(zone_id: str, camera_id: str = CAMERA_ID, me: User = Depends(auth.require_manager),
+                     _: None = Depends(confirm.required)):
     """Back to the plugin's own polygon (on a camera the plugin doesn't put the zone on: the zone goes away)."""
     plugin, zone = _plugin_zone(zone_id)
     async with SessionLocal() as session:
@@ -180,4 +185,6 @@ async def reset_zone(zone_id: str, camera_id: str = CAMERA_ID, me: User = Depend
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Saved, but the detector couldn't be updated yet: {e}")
     print(f"[Backend] {me.name} removed the drawing of zone {zone_id} on {camera_id}", flush=True)
+    await box_events.note("zone_changed", f"{me.name} put the zone \"{zone.get('name', zone_id)}\" on {camera_id} "
+                          "back to the rule set's own shape.", me.name, zone_id=zone_id, camera_id=camera_id)
     return _zone_dict(zone_id, zone, plugin, camera_id, None)

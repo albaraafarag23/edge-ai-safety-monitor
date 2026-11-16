@@ -9,6 +9,7 @@ import { LiveProvider, useLive } from "../lib/live";
 import { isUnread, useNotificationPrefs } from "../lib/notifications";
 import { incidentTitle, roleLabel, severityLabel, usePluginText } from "../lib/terms";
 import { Logo } from "./Brand";
+import { ConfirmChange } from "./ConfirmChange";
 import { RuleDriveNotice } from "./RuleDriveNotice";
 import { SeverityBadge } from "./ui";
 
@@ -375,6 +376,7 @@ export function AppShell() {
           <TopBar />
           <main className="px-4 py-8 sm:px-6 lg:px-10">
             <RuleDriveNotice />
+            <ConfirmChange />
             {/* a page's code loading on first visit: keep the shell, show a quiet placeholder */}
             <Suspense fallback={<div className="min-h-[50vh]" aria-busy="true" />}>
               <Outlet />

@@ -16,6 +16,8 @@ from sqlalchemy import func, select, text
 import alert_settings
 import analytics
 import auth
+import box_events
+import confirm
 import portal_link
 import readcache
 import cameras
@@ -140,6 +142,12 @@ async def follow_plugin(r):
                     await zone_settings.sync_redis()
                 readcache.changed()
                 broadcaster.publish("plugin", {"plugin_id": rule_settings.plugin_id(), **state})
+                if state.get("state") in ("active", "refused"):
+                    await box_events.note("drive_" + ("accepted" if state["state"] == "active" else "refused"),
+                                          f"Rule drive {'accepted' if state['state'] == 'active' else 'refused'}: "
+                                          f"{state.get('plugin_id') or state.get('detail') or ''} "
+                                          f"{('(' + state['reason'] + ')') if state.get('reason') else ''}".strip(),
+                                          None, reason=state.get("reason"), plugin_id=state.get("plugin_id"))
         except asyncio.CancelledError:
             raise
         except Exception as e:   # Redis away for a moment: the next round catches up
@@ -178,6 +186,8 @@ async def lifespan(app: FastAPI):
     site_task = asyncio.create_task(site_settings.keep_synced(REDIS_URL))
     plugin_task = asyncio.create_task(follow_plugin(r))
     alerts_task = asyncio.create_task(alert_settings.keep_synced(REDIS_URL))
+    box_events.init(REDIS_URL)
+    confirm.init(REDIS_URL)
     portal_task = asyncio.create_task(portal_link.keep_linked(REDIS_URL))
 
     yield
@@ -185,6 +195,8 @@ async def lifespan(app: FastAPI):
     plugin_task.cancel()
     alerts_task.cancel()
     portal_task.cancel()
+    await box_events.close()
+    await confirm.close()
     await alert_settings.close()
 
     task.cancel()
@@ -245,6 +257,8 @@ async def login(body: LoginIn, request: Request, response: Response):
     user = await auth.authenticate(body.email, body.password)
     if not user:
         auth.login_limiter.failed(keys)
+        await box_events.note("signin_failed", f"Failed console sign-in for {body.email.strip().lower()[:80]} from "
+                              f"{auth.client_address(request)}.", None, address=auth.client_address(request))
         raise HTTPException(status_code=401, detail="Incorrect email or password")
     auth.login_limiter.succeeded(keys)
     auth.set_session_cookie(response, user)
@@ -456,4 +470,5 @@ protected.include_router(people.router)
 app.include_router(users.account)
 app.include_router(alert_settings.router)
 app.include_router(portal_link.router)
+app.include_router(confirm.router)
 app.include_router(protected)

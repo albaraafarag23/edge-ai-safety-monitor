@@ -20,21 +20,26 @@ import shutil
 import socket
 import time
 from datetime import datetime
+from urllib.parse import urlencode
 
 import httpx
 import redis.asyncio as aioredis
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey, Ed25519PublicKey
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 
 import alert_settings
 import auth
+import box_events
+import confirm
 from models import BoxLink, SessionLocal, User
 
 PORTAL_URL = os.getenv("PORTAL_URL", "").rstrip("/")
+# the address people's browsers use, when the box reaches the portal another way (on the Jetson: an internal name)
+PORTAL_PUBLIC_URL = (os.getenv("PORTAL_PUBLIC_URL") or PORTAL_URL).rstrip("/")
 BOX_SERIAL = os.getenv("BOX_SERIAL") or socket.gethostname()
 CONSOLE_URL = os.getenv("CONSOLE_URL", "").rstrip("/")
 MEDIA_DIR = os.getenv("MEDIA_DIR", "/media")
@@ -164,8 +169,11 @@ async def once(client: httpx.AsyncClient):
             r.status = answer.get("status")
             await session.commit()
         row = await link()
+    events = await box_events.take()
     answer = await call(client, row, "/api/box/checkin", {"console_url": CONSOLE_URL or None,
-                                                          "version": VERSION or None, "health": await health()})
+                                                          "version": VERSION or None, "health": await health(),
+                                                          "events": events})
+    await box_events.taken(len(events))   # the portal has them (an error above keeps them for the next try)
     if answer.get("portal_key") != row.portal_key:
         raise RuntimeError("the portal answered with a different key than the one this box trusts: ignored")
     licence = read_signed(answer.get("licence") or "", row.portal_key)
@@ -222,11 +230,24 @@ async def keep_linked(redis_url: str):
 @router.get("/auth/options")
 async def sign_in_options():
     """What the sign-in page can offer besides a password."""
-    return {"portal_url": PORTAL_URL or None}
+    return {"portal_url": PORTAL_PUBLIC_URL or None}
+
+
+@router.get("/auth/confirm-url")
+async def confirm_url(back: str = "/app", me: User = Depends(auth.current_user)):
+    """Where a portal account confirms a risky change: the portal asks for the passkey, then sends them back."""
+    if not PORTAL_URL or me.source != "portal":
+        raise HTTPException(status_code=409, detail="Confirm with your password")
+    return {"url": f"{PORTAL_PUBLIC_URL}/confirm?{urlencode({'box': BOX_SERIAL, 'back': _safe_back(back)})}"}
+
+
+def _safe_back(path: str) -> str:
+    """Only a page of this console (no other site, no tricks like //evil.example)."""
+    return path if path.startswith("/app") and not path.startswith("//") and "\\" not in path else "/app"
 
 
 @router.get("/auth/portal")
-async def portal_sign_in(token: str = ""):
+async def portal_sign_in(request: Request, token: str = ""):
     row = await link() if PORTAL_URL else None
     payload = read_signed(token, row.portal_key if row else None)
     failed = RedirectResponse("/login?portal=failed", status_code=303)
@@ -234,6 +255,14 @@ async def portal_sign_in(token: str = ""):
         return failed
     if _redis is None or not await _redis.set(f"portal:jti:{payload.get('jti')}", "1", nx=True, ex=300):
         return failed   # each token works once
+    if payload.get("purpose") == "confirm":
+        # back from confirming a change with the passkey: same person, same browser, already signed in here
+        me = await auth.user_from_token(request.cookies.get(auth.COOKIE_NAME))
+        if not me or me.email != str(payload.get("sub", "")).lower():
+            return failed
+        await confirm.mark(request)
+        back = _safe_back(str(payload.get("back") or "/app"))
+        return RedirectResponse(back + ("&" if "?" in back else "?") + "confirmed=1", status_code=303)
     async with SessionLocal() as session:
         user = await session.scalar(select(User).where(User.email == str(payload.get("sub", "")).lower()))
         if not user or not user.active or user.source != "portal":
