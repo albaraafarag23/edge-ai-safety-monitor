@@ -6,10 +6,11 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
+import alert_settings
 import auth
 from models import SessionLocal, User
 
-Role = Literal["admin", "supervisor", "viewer"]
+Role = Literal["manager", "supervisor", "viewer"]
 
 
 class UserIn(BaseModel):
@@ -34,13 +35,13 @@ class PasswordChange(BaseModel):
     new_password: str
 
 
-router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(auth.require_admin)])
+router = APIRouter(prefix="/users", tags=["users"], dependencies=[Depends(auth.require_manager)])
 account = APIRouter(prefix="/auth", tags=["auth"])
 
 
-async def _active_admins(session) -> int:
+async def _active_managers(session) -> int:
     return await session.scalar(
-        select(func.count()).select_from(User).where(User.role == "admin", User.active.is_(True)))
+        select(func.count()).select_from(User).where(User.role == "manager", User.active.is_(True)))
 
 
 @router.get("")
@@ -57,6 +58,7 @@ async def add_user(body: UserIn):
         user = await auth.create_user(body.email, body.name, body.password, body.role)
     except IntegrityError:
         raise HTTPException(status_code=409, detail="A user with this email already exists")
+    await alert_settings.sync_redis()   # a new manager or supervisor gets High and Critical by default
     return user.to_dict()
 
 
@@ -68,18 +70,19 @@ async def update_user(user_id: int, body: UserPatch, me: User = Depends(auth.cur
             raise HTTPException(status_code=404, detail="User not found")
         if user.to_dict()["demo"] and body.role not in (None, "viewer"):
             raise HTTPException(status_code=409, detail="The demo account stays read-only")
-        removes_admin = user.role == "admin" and user.active and (
-            (body.role is not None and body.role != "admin") or body.active is False)
-        if removes_admin and user.id == me.id:
-            raise HTTPException(status_code=409, detail="You can't remove your own admin access")
-        if removes_admin and await _active_admins(session) <= 1:
-            raise HTTPException(status_code=409, detail="There must be at least one active admin")
+        removes_manager = user.role == "manager" and user.active and (
+            (body.role is not None and body.role != "manager") or body.active is False)
+        if removes_manager and user.id == me.id:
+            raise HTTPException(status_code=409, detail="You can't remove your own manager access")
+        if removes_manager and await _active_managers(session) <= 1:
+            raise HTTPException(status_code=409, detail="There must be at least one active manager")
         for field in ("name", "role", "active"):
             value = getattr(body, field)
             if value is not None:
                 setattr(user, field, value)
         await session.commit()
         auth.forget_users()   # role, password or switch-off applies to the next request
+        await alert_settings.sync_redis()   # and who gets email
         return user.to_dict()
 
 
@@ -94,6 +97,7 @@ async def reset_password(user_id: int, body: PasswordReset):
         user.password_hash = auth.hash_password(body.password)
         await session.commit()
         auth.forget_users()   # role, password or switch-off applies to the next request
+        await alert_settings.sync_redis()   # and who gets email
 
 
 @account.post("/password")
@@ -109,5 +113,6 @@ async def change_own_password(body: PasswordChange, response: Response, me: User
         user.password_hash = auth.hash_password(body.new_password)
         await session.commit()
         auth.forget_users()   # role, password or switch-off applies to the next request
+        await alert_settings.sync_redis()   # and who gets email
     auth.set_session_cookie(response, user)
     return user.to_dict()

@@ -147,7 +147,7 @@ async def list_zones(camera_id: str = CAMERA_ID):
 
 @router.put("/{zone_id}")
 async def draw_zone(zone_id: str, body: ZoneShape, camera_id: str = CAMERA_ID,
-                    me: User = Depends(auth.can_handle_incidents)):
+                    me: User = Depends(auth.require_manager)):
     plugin, zone = _plugin_zone(zone_id)
     async with SessionLocal() as session:
         row = await session.get(ZoneDrawing, (plugin_id(), camera_id, zone_id))
@@ -167,7 +167,7 @@ async def draw_zone(zone_id: str, body: ZoneShape, camera_id: str = CAMERA_ID,
 
 
 @router.delete("/{zone_id}")
-async def reset_zone(zone_id: str, camera_id: str = CAMERA_ID, me: User = Depends(auth.can_handle_incidents)):
+async def reset_zone(zone_id: str, camera_id: str = CAMERA_ID, me: User = Depends(auth.require_manager)):
     """Back to the plugin's own polygon (on a camera the plugin doesn't put the zone on: the zone goes away)."""
     plugin, zone = _plugin_zone(zone_id)
     async with SessionLocal() as session:

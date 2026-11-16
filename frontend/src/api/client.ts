@@ -1,4 +1,4 @@
-import type { Analytics, Camera, DailySummary, FilterOptions, Incident, IncidentQuery, IncidentStatus, People, Person, PersonPhoto, Report, Role, RuleChange, SafetyRule, SafetyRules, Stats, User, Zone } from "./types";
+import type { AlertLevel, AlertSettings, Analytics, Camera, DailySummary, FilterOptions, Incident, IncidentQuery, IncidentStatus, People, Person, PersonPhoto, Report, Role, RuleChange, SafetyRule, SafetyRules, Stats, User, Zone } from "./types";
 
 // All backend calls go through /api (proxied by Vite in dev and nginx in Docker).
 export const API_BASE = "/api";
@@ -67,6 +67,9 @@ export const api = {
   cameras: async () => (await request<Camera[]>("/cameras")).data,
   changePassword: async (current_password: string, new_password: string) =>
     (await request<User>("/auth/password", { method: "POST", body: JSON.stringify({ current_password, new_password }) })).data,
+  myAlerts: async () => (await request<AlertSettings>("/auth/alerts")).data,
+  setMyAlerts: async (alerts: { email: string | null; level: AlertLevel; summary: boolean }) =>
+    (await request<AlertSettings>("/auth/alerts", { method: "PUT", body: JSON.stringify(alerts) })).data,
   users: async () => (await request<User[]>("/users")).data,
   addUser: async (user: { email: string; name: string; role: Role; password: string }) =>
     (await request<User>("/users", { method: "POST", body: JSON.stringify(user) })).data,
@@ -98,7 +101,7 @@ export const api = {
     ).data,
   resetZone: async (cameraId: string, zoneId: string) =>
     (await request<Zone>(`/zones/${encodeURIComponent(zoneId)}${toQuery({ camera_id: cameraId })}`, { method: "DELETE" })).data,
-  // people the cameras should recognise (admins only)
+  // people the cameras should recognise (managers only)
   people: async () => (await request<People>("/people")).data,
   addPerson: async (person: { name: string; name_ar?: string | null }) =>
     (await request<Person>("/people", { method: "POST", body: JSON.stringify(person) })).data,

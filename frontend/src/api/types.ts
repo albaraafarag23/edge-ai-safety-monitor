@@ -100,7 +100,18 @@ export interface IncidentQuery {
   hours?: number;
 }
 
-export type Role = "admin" | "supervisor" | "viewer";
+export type Role = "manager" | "supervisor" | "viewer";
+
+/** Which alert emails this person gets (GET/PUT /auth/alerts). */
+export type AlertLevel = "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "OFF";
+export interface AlertSettings {
+  email: string; // where they go: the sign-in email unless own_email
+  own_email: boolean;
+  level: AlertLevel; // incidents from this severity up; OFF = none
+  summary: boolean; // the end-of-day summary
+  chosen: boolean; // false: still the role's default
+  locked: boolean; // the demo account never gets email
+}
 
 export interface User {
   id: number;
@@ -258,7 +269,7 @@ export interface PersonPhoto {
   face_px: number | null;
 }
 
-/** Someone the cameras should recognise (GET /people, admins only). */
+/** Someone the cameras should recognise (GET /people, managers only). */
 export interface Person {
   person_id: string;
   name: string;

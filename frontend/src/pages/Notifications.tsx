@@ -27,7 +27,7 @@ const TEXT = bilingual(
   {
     views: { all: "All", unread: "Unread", urgent: "High & critical" } as Record<View, string>,
     email: {
-      sent: "Emailed to supervisors",
+      sent: "Emailed",
       retrying: "Email not sent yet, retrying",
       failed: "Email failed",
       not_configured: "Email is switched off",
@@ -42,7 +42,7 @@ const TEXT = bilingual(
     soundHint: "A short chime for high and critical incidents.",
     emailTitle: "Email",
     emailHint:
-      "Every incident is emailed with its AI report, snapshot and clip to the supervisor list set on the server. " +
+      "Every incident is emailed with its AI report, snapshot and clip to everyone who asked for that level of alert on their Account page. " +
       "Repeats of the same rule on the same camera are held back for a few minutes.",
     thisBrowser: "Desktop and sound settings apply to this browser only.",
     unread: "Unread",
@@ -61,7 +61,7 @@ const TEXT = bilingual(
   {
     views: { all: "الكل", unread: "غير المقروءة", urgent: "المرتفعة والحرجة" },
     email: {
-      sent: "أُرسل إلى المشرفين بالبريد",
+      sent: "أُرسل بالبريد",
       retrying: "لم يُرسل البريد بعد، جارٍ إعادة المحاولة",
       failed: "فشل إرسال البريد",
       not_configured: "البريد متوقف",
@@ -76,7 +76,7 @@ const TEXT = bilingual(
     soundHint: "نغمة قصيرة للحوادث المرتفعة والحرجة.",
     emailTitle: "البريد الإلكتروني",
     emailHint:
-      "تُرسل كل حادثة بالبريد مع تقرير الذكاء الاصطناعي واللقطة والمقطع إلى قائمة المشرفين المحددة على الخادم. " +
+      "تُرسل كل حادثة بالبريد مع تقرير الذكاء الاصطناعي واللقطة والمقطع إلى كل من اختار هذا المستوى من التنبيهات في صفحة الحساب. " +
       "وتُؤجَّل تكرارات القاعدة نفسها على الكاميرا نفسها بضع دقائق.",
     thisBrowser: "تنطبق إعدادات سطح المكتب والصوت على هذا المتصفح فقط.",
     unread: "غير مقروءة",
@@ -133,12 +133,12 @@ const SUMMARY_TEXT = bilingual(
     saving: "Saving…",
     saved: "Saved.",
     failed: "Couldn't save. Try again.",
-    adminOnly: "An admin can change this.",
+    managerOnly: "The site manager can change the time. Whether you get it is up to you, under Account.",
     fromServer: "This time comes from the server's settings; choosing one here replaces it.",
     changedBy: (name: string) => `Last changed by ${name}.`,
     noEmail: "Email isn't set up on the server yet, so nothing will be sent until it is.",
     unknown: "The reporting service isn't answering, so it isn't known whether email is set up.",
-    recipients: (n: number): string => `Goes to ${n} ${n === 1 ? "address" : "addresses"}, the same as incident alerts.`,
+    recipients: (n: number): string => `Goes to ${n} ${n === 1 ? "person who has" : "people who have"} it switched on.`,
   },
   {
     title: "بريد الملخص اليومي",
@@ -151,16 +151,16 @@ const SUMMARY_TEXT = bilingual(
     saving: "جارٍ الحفظ…",
     saved: "تم الحفظ.",
     failed: "تعذّر الحفظ. حاول مرة أخرى.",
-    adminOnly: "يستطيع المسؤول تغيير هذا.",
+    managerOnly: "يغيّر مدير الموقع الوقت. أما تلقّيك له فتختاره أنت من صفحة الحساب.",
     fromServer: "هذا الوقت من إعدادات الخادم؛ اختيار وقت هنا يحلّ محله.",
     changedBy: (name: string) => `آخر تغيير بواسطة ${name}.`,
     noEmail: "البريد الإلكتروني غير مُعدّ على الخادم بعد، فلن يُرسل شيء حتى يُعدّ.",
     unknown: "خدمة التقارير لا تستجيب، فلا يُعرف هل البريد مُعدّ.",
-    recipients: (n: number) => `يُرسل إلى ${n} ${plural("ar", n, { one: "عنوان", two: "عنوانين", few: "عناوين", other: "عنوانًا" })}، مثل تنبيهات الحوادث.`,
+    recipients: (n: number) => `يُرسل إلى ${n} ${plural("ar", n, { one: "شخص فعّله", two: "شخصين فعّلاه", few: "أشخاص فعّلوه", other: "شخصًا فعّلوه" })}.`,
   },
 );
 
-/** When the end-of-day summary email goes out. Everyone sees it; an admin chooses the time or switches it off. */
+/** When the end-of-day summary email goes out. Everyone sees it; the manager chooses the time or switches it off. */
 function DailySummaryCard() {
   const t = useText(SUMMARY_TEXT);
   const { user } = useAuth();
@@ -178,7 +178,7 @@ function DailySummaryCard() {
   if (query.isError || !data) {
     return <Card title={t.title}><ErrorState error={query.error} onRetry={() => query.refetch()} /></Card>;
   }
-  const admin = user?.role === "admin";
+  const manager = user?.role === "manager";
   const changed = on !== Boolean(data.time) || (on && time !== data.time);
   return (
     <Card title={t.title}>
@@ -186,7 +186,7 @@ function DailySummaryCard() {
       <p className="mt-2 text-sm font-medium text-slate-900">
         {data.time ? t.sentAt(data.time, data.timezone) : t.off}
       </p>
-      {admin ? (
+      {manager ? (
         <form
           className="mt-4 space-y-3"
           onSubmit={(e) => {
@@ -224,7 +224,7 @@ function DailySummaryCard() {
           </div>
         </form>
       ) : (
-        <p className="mt-2 text-xs text-slate-500">{t.adminOnly}</p>
+        <p className="mt-2 text-xs text-slate-500">{t.managerOnly}</p>
       )}
       <div className="mt-4 space-y-1 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
         {data.email_ready === false && <p className="font-medium text-amber-800">{t.noEmail}</p>}

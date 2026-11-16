@@ -34,7 +34,7 @@ IMAGE_STARTS = {b"\xff\xd8\xff": ".jpg", b"\x89PNG\r\n\x1a\n": ".png", b"RIFF": 
 IMAGE_TYPES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 SAFE_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _.-]{0,79}$")
 
-router = APIRouter(prefix="/people", tags=["people"], dependencies=[Depends(auth.require_admin)])
+router = APIRouter(prefix="/people", tags=["people"], dependencies=[Depends(auth.require_manager)])
 _redis: aioredis.Redis | None = None
 
 

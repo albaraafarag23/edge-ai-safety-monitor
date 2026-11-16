@@ -229,11 +229,12 @@ def html_body(summary: dict, lang: str, plugin: dict) -> str:
 </body></html>"""
 
 
-def build(summary: dict, lang: str, plugin: dict) -> EmailMessage:
+def build(summary: dict, lang: str, plugin: dict, to: list[str] | None = None) -> EmailMessage:
     msg = EmailMessage()
     msg["Subject"] = subject(summary, lang)
     msg["From"] = notify.SMTP_FROM
-    msg["To"] = ", ".join(notify.RECIPIENTS)
+    msg["To"] = notify.SMTP_FROM
+    msg["Bcc"] = ", ".join(to if to is not None else notify.RECIPIENTS)
     if lang != "en":
         msg["Content-Language"] = lang
     msg.set_content(plain_text(summary, lang, plugin))
@@ -255,10 +256,11 @@ def chosen_time(chosen: str | None, default: str = DIGEST_TIME) -> str:
 
 def maybe_send(r, backend_url: str, token: str, lang: str, plugin: dict):
     """Called from the main loop: sends today's summary once its time has passed."""
-    r.set(STATE_KEY, json.dumps({"configured": notify.configured(), "recipients": len(notify.RECIPIENTS),
+    to = notify.recipients(r, summary=True)
+    r.set(STATE_KEY, json.dumps({"configured": notify.configured(), "recipients": len(to),
                                  "default_time": DIGEST_TIME or None, "timezone": et.SITE_TIMEZONE}), ex=STATE_TTL_S)
     at = chosen_time(r.get(CHOSEN_TIME_KEY))
-    if not at or not notify.configured():
+    if not at or not notify.configured() or not to:   # nobody asked for the summary
         return
     now = datetime.now(ZoneInfo(et.SITE_TIMEZONE))
     if not due(now, r.get(LAST_SENT_KEY), at):
@@ -274,9 +276,9 @@ def maybe_send(r, backend_url: str, token: str, lang: str, plugin: dict):
     except httpx.HTTPError as e:
         print(f"[AI] Daily summary: couldn't get the figures ({e}), will try again", flush=True)
         return
-    error = notify.deliver(build(summary, lang, plugin))
+    error = notify.deliver(build(summary, lang, plugin, to))
     if error:
         print(f"[AI] Daily summary not sent ({error}), will try again in {RETRY_S // 60} min", flush=True)
         return
     r.set(LAST_SENT_KEY, now.date().isoformat())
-    print(f"[AI] Daily summary sent to {', '.join(notify.RECIPIENTS)}: {subject(summary, lang)}", flush=True)
+    print(f"[AI] Daily summary sent to {len(to)} people: {subject(summary, lang)}", flush=True)

@@ -157,7 +157,7 @@ const TEXT = bilingual(
       kicker: "Every site is different. The rules should be too.",
       leadTitle: "Switch it off, or tune it",
       lead:
-        "Admins and supervisors decide which rules apply. Switch off what doesn't matter on your site, change how serious a " +
+        "The site manager decides which rules apply. Switch off what doesn't matter on your site, change how serious a " +
         "violation is and how long it must last, and limit a rule to your working hours. Changes apply within seconds, with no restart.",
       videoLabel: "Switching the smoking rule off and on, then setting its working hours",
       cardTitle: "Safety rules page",
@@ -179,8 +179,8 @@ const TEXT = bilingual(
       kicker: "One place to see, act on and learn from every incident.",
       leadTitle: "Open it from any browser",
       lead:
-        "Supervisors sign in from the site office or their phone. Roles keep it simple: admins manage users, supervisors handle " +
-        "incidents, and viewers can look but not change anything.",
+        "Supervisors sign in from the site office or their phone. Roles keep it simple: managers run the site's rules and users, supervisors handle " +
+        "incidents, and viewers can look but not change anything. Everyone picks which alerts reach their own inbox.",
       tabsLabel: "Console screens",
       tour: {
         signin: ["Sign in", "Each person signs in with their own account; roles decide what they can change."],
@@ -280,16 +280,16 @@ const TEXT = bilingual(
         ["Do I need special cameras?", "No. Any standard USB camera works, and the detector can also read a video file. The reference setup uses a 12 MP Arducam with a 6 mm lens, which reliably sees hard hats up to about 12 m away."],
         ["Does video leave the site?", "Video is analysed on the edge device on site. For each incident, a snapshot and a short clip are stored on site and attached to the supervisor's email. The AI that writes the report only receives the text facts of the incident, never images."],
         ["How do you avoid false alarms?", "Rules have minimum durations and grace periods: a hard hat has to be missing for several seconds, not one frame, before an alert fires. Repeats of the same rule on the same camera are held back for a few minutes."],
-        ["Can we turn off rules we don't need?", "Yes. Admins and supervisors can switch any rule off or back on from the console, with no restart, for example if smoking is allowed on your site. Each rule can also be limited to working hours, given a different severity, or set to wait longer before alerting. The console shows who changed what and when."],
+        ["Can we turn off rules we don't need?", "Yes. The site manager can switch any rule off or back on from the console, with no restart, for example if smoking is allowed on your site. Each rule can also be limited to working hours, given a different severity, or set to wait longer before alerting. The console shows who changed what and when."],
         ["How far away can it spot smoking?", "It looks at each person rather than at the cigarette, so what matters is how large the person appears: the closer and clearer, the better. It's best on a camera covering a no-smoking area, such as a fuel store or a site entrance. We are measuring the exact range on site."],
         ["Can the AI report make things up?", "It's instructed to use only the fields recorded for the incident, never to invent causes or names, and to write NOT SPECIFIED when something is missing. Recommended actions come from the site's own approved list. If the AI is unavailable, a fixed template is used instead."],
         ["Which regulations does it cite?", "The Sharjah Prevention and Safety Authority's codes of practice for construction management (OSHJ-CoP-02) and working at height (OSHJ-CoP-04). Each rule's clause was found with our companion assistant, SiteSentry Regs, and checked by hand. A site that follows other regulations changes the clauses in its plugin."],
-        ["Does it recognise who it is?", "Only if the site wants it to. An admin adds a few photos of each person on the console's People page; the cameras then name those people, and everyone else stays “unknown”. The photos are kept on the device on site, and a name is shown as an automatic identification to confirm, not as a fact."],
+        ["Does it recognise who it is?", "Only if the site wants it to. A manager adds a few photos of each person on the console's People page; the cameras then name those people, and everyone else stays “unknown”. The photos are kept on the device on site, and a name is shown as an automatic identification to confirm, not as a fact."],
         ["Can it watch several cameras?", "Yes. One edge device watches several cameras with the same models, and each camera has its own zones. The console shows them side by side, and each incident says which camera saw it."],
         ["What happens if the internet goes down?", "Detection, the rules and the local console keep working, because they all run on site. Alert emails wait and are sent automatically once the connection is back (retried for up to a day), so none are lost. Without the AI, reports fall back to the template."],
         ["How does a supervisor deal with an incident?", "The console's front page lists what to handle first, each with the next step from the site's approved list. One tap on “I'm on it” tells everyone who is dealing with it, and “Done” closes it. Repeats of the same thing are grouped, so they can be closed together."],
         ["Is it only for construction?", "No. Each type of site is a plugin with its own model, zones, rules and report style. Construction is the first plugin; healthcare is in development."],
-        ["Who can see the console?", "Only people with an account. Admins add users and choose their role: admin, supervisor (handles incidents) or viewer (read-only)."],
+        ["Who can see the console?", "Only people with an account. Managers add users and choose their role: manager (rules and users), supervisor (handles incidents) or viewer (read-only)."],
       ] as Pair[],
     },
     team: {
@@ -442,7 +442,7 @@ const TEXT = bilingual(
       kicker: "كل موقع مختلف، وكذلك ينبغي أن تكون قواعده.",
       leadTitle: "أوقفها أو اضبطها",
       lead:
-        "يقرر المسؤولون والمشرفون القواعد المطبَّقة. أوقف ما لا يهم موقعك، وغيّر درجة خطورة المخالفة والمدة التي يجب أن " +
+        "يقرر مدير الموقع القواعد المطبَّقة. أوقف ما لا يهم موقعك، وغيّر درجة خطورة المخالفة والمدة التي يجب أن " +
         "تستمرها، وقصّر القاعدة على ساعات العمل. تُطبَّق التغييرات خلال ثوانٍ، دون إعادة تشغيل.",
       videoLabel: "إيقاف قاعدة التدخين وتشغيلها، ثم ضبط ساعات عملها",
       cardTitle: "صفحة قواعد السلامة",
@@ -464,8 +464,8 @@ const TEXT = bilingual(
       kicker: "مكان واحد لرؤية كل حادثة والتصرف حيالها والتعلم منها.",
       leadTitle: "افتحها من أي متصفح",
       lead:
-        "يدخل المشرفون من مكتب الموقع أو من هواتفهم. والأدوار بسيطة: المسؤولون يديرون المستخدمين، والمشرفون يتعاملون " +
-        "مع الحوادث، والمشاهدون يطّلعون دون تغيير أي شيء.",
+        "يدخل المشرفون من مكتب الموقع أو من هواتفهم. والأدوار بسيطة: المديرون يديرون قواعد الموقع ومستخدميه، والمشرفون يتعاملون " +
+        "مع الحوادث، والمشاهدون يطّلعون دون تغيير أي شيء. ويختار كلٌّ منهم التنبيهات التي تصل إلى بريده.",
       tabsLabel: "شاشات لوحة التحكم",
       tour: {
         signin: ["تسجيل الدخول", "يدخل كل شخص بحسابه الخاص، وتحدد الأدوار ما يمكنه تغييره."],
@@ -564,16 +564,16 @@ const TEXT = bilingual(
         ["هل أحتاج إلى كاميرات خاصة؟", "لا. تعمل أي كاميرا USB عادية، ويمكن للنظام أيضًا قراءة ملف فيديو. يستخدم الإعداد المرجعي كاميرا Arducam بدقة 12 ميجابكسل وعدسة 6 مم، ترصد الخوذات بثقة حتى نحو 12 مترًا."],
         ["هل يغادر الفيديو الموقع؟", "يُحلَّل الفيديو على الجهاز الطرفي في الموقع. ولكل حادثة تُحفظ لقطة ومقطع قصير في الموقع ويُرفقان ببريد المشرف. أما الذكاء الاصطناعي الذي يكتب التقرير فلا يتلقى إلا الوقائع النصية للحادثة، ولا صور أبدًا."],
         ["كيف تتجنبون الإنذارات الكاذبة؟", "للقواعد مدد دنيا وفترات سماح: يجب أن تغيب الخوذة عدة ثوانٍ، لا إطارًا واحدًا، قبل إطلاق التنبيه. وتُؤجَّل تكرارات القاعدة نفسها على الكاميرا نفسها بضع دقائق."],
-        ["هل يمكننا إيقاف القواعد التي لا نحتاج إليها؟", "نعم. يمكن للمسؤولين والمشرفين إيقاف أي قاعدة أو إعادة تشغيلها من لوحة التحكم دون إعادة تشغيل النظام، مثلًا إذا كان التدخين مسموحًا في موقعكم. ويمكن أيضًا قصر كل قاعدة على ساعات العمل، أو تغيير درجة خطورتها، أو جعلها تنتظر مدة أطول قبل التنبيه. وتعرض لوحة التحكم من غيّر ماذا ومتى."],
+        ["هل يمكننا إيقاف القواعد التي لا نحتاج إليها؟", "نعم. يستطيع مدير الموقع إيقاف أي قاعدة أو إعادة تشغيلها من لوحة التحكم دون إعادة تشغيل النظام، مثلًا إذا كان التدخين مسموحًا في موقعكم. ويمكن أيضًا قصر كل قاعدة على ساعات العمل، أو تغيير درجة خطورتها، أو جعلها تنتظر مدة أطول قبل التنبيه. وتعرض لوحة التحكم من غيّر ماذا ومتى."],
         ["من أي مسافة يمكنه رصد التدخين؟", "ينظر إلى كل شخص لا إلى السيجارة، لذلك المهم هو حجم الشخص في الصورة: كلما كان أقرب وأوضح كان أفضل. ويكون أفضل على كاميرا تغطي منطقة يُمنع فيها التدخين، مثل مخزن وقود أو مدخل الموقع. ونقيس المدى الدقيق حاليًا في الموقع."],
         ["هل يمكن أن يختلق تقرير الذكاء الاصطناعي معلومات؟", "يُطلب منه استخدام الحقول المسجلة للحادثة فقط، وعدم اختلاق أسباب أو أسماء أبدًا، وكتابة «غير محدد» عند غياب معلومة. وتأتي الإجراءات الموصى بها من القائمة المعتمدة للموقع. وإذا تعذّر الوصول إلى الذكاء الاصطناعي يُستخدم نموذج ثابت بدلًا منه."],
         ["ما اللوائح التي يقتبسها؟", "أدلة الممارسة الصادرة عن هيئة الوقاية والسلامة بالشارقة لإدارة السلامة في البناء (OSHJ-CoP-02) والعمل في الأماكن المرتفعة (OSHJ-CoP-04). وُجد بند كل قاعدة باستخدام مساعدنا المرافق SiteSentry Regs ثم رُوجع يدويًا. والموقع الذي يتبع لوائح أخرى يغيّر البنود في ملف الإضافة الخاص به."],
-        ["هل يتعرّف على الأشخاص؟", "فقط إذا أراد الموقع ذلك. يضيف المسؤول بضع صور لكل شخص من صفحة الأشخاص في لوحة التحكم، فتسمّي الكاميرات هؤلاء الأشخاص ويبقى غيرهم «غير معروف». وتُحفظ الصور على الجهاز في الموقع، ويُعرض الاسم تعرّفًا تلقائيًا يحتاج إلى تأكيد لا حقيقة مؤكدة."],
+        ["هل يتعرّف على الأشخاص؟", "فقط إذا أراد الموقع ذلك. يضيف المدير بضع صور لكل شخص من صفحة الأشخاص في لوحة التحكم، فتسمّي الكاميرات هؤلاء الأشخاص ويبقى غيرهم «غير معروف». وتُحفظ الصور على الجهاز في الموقع، ويُعرض الاسم تعرّفًا تلقائيًا يحتاج إلى تأكيد لا حقيقة مؤكدة."],
         ["هل يراقب عدة كاميرات؟", "نعم. يراقب جهاز واحد في الموقع عدة كاميرات بالنماذج نفسها، ولكل كاميرا مناطقها. وتعرضها لوحة التحكم جنبًا إلى جنب، وتذكر كل حادثة الكاميرا التي رصدتها."],
         ["ماذا يحدث إذا انقطع الإنترنت؟", "يستمر الرصد والقواعد ولوحة التحكم المحلية في العمل، لأنها كلها تعمل في الموقع. وتنتظر رسائل التنبيه ثم تُرسل تلقائيًا فور عودة الاتصال (مع إعادة المحاولة لمدة تصل إلى يوم)، فلا يضيع منها شيء. ودون الذكاء الاصطناعي تُكتب التقارير بالنموذج الثابت."],
         ["كيف يتعامل المشرف مع الحادثة؟", "تعرض الصفحة الأولى في لوحة التحكم ما يجب البدء به، ومع كل حادثة الخطوة التالية من قائمة الموقع المعتمدة. ضغطة واحدة على «أتولّى الأمر» تُعلم الجميع بمن يتعامل معها، و«تم» تغلقها. وتُجمع الحوادث المتكررة معًا ليمكن إغلاقها دفعة واحدة."],
         ["هل هو لمواقع البناء فقط؟", "لا. كل نوع من المواقع إضافة لها نموذجها ومناطقها وقواعدها وأسلوب تقاريرها. مواقع البناء هي الإضافة الأولى، والرعاية الصحية قيد التطوير."],
-        ["من يمكنه رؤية لوحة التحكم؟", "أصحاب الحسابات فقط. يضيف المسؤولون المستخدمين ويختارون أدوارهم: مسؤول، أو مشرف (يتعامل مع الحوادث)، أو مشاهد (للقراءة فقط)."],
+        ["من يمكنه رؤية لوحة التحكم؟", "أصحاب الحسابات فقط. يضيف المديرون المستخدمين ويختارون أدوارهم: مدير (القواعد والمستخدمون)، أو مشرف (يتعامل مع الحوادث)، أو مشاهد (للقراءة فقط)."],
       ],
     },
     team: {

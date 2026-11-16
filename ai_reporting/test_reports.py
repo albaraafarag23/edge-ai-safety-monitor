@@ -185,5 +185,32 @@ writer = service.Writer("stub-model", None, lambda *a: good.replace("Abdelnabi",
 md, by = service._write_report(writer, NAMED, PLUGIN, en_actions, EVIDENCE, "en")
 check("Names: still respelt after two tries, the template is used", by == "template" and "Omar Ahmed Abdelnabi" in md)
 
+
+# ---------- who gets an alert: each person's chosen level, the .env list from High up ----------
+import json as _json
+import notify
+class _R:
+    def __init__(self, value): self.value = value
+    def get(self, key): return self.value
+people = _R(_json.dumps([{"email": "manager@site.com", "level": "HIGH", "summary": True},
+                         {"email": "boss@site.com", "level": "CRITICAL", "summary": False},
+                         {"email": "all@site.com", "level": "LOW", "summary": False}]))
+_saved = notify.RECIPIENTS, notify.EMAIL_MIN_SEVERITY
+notify.RECIPIENTS, notify.EMAIL_MIN_SEVERITY = ["office@site.com"], "HIGH"
+check("Alerts: a Critical incident goes to everyone who asked for Critical or more",
+      sorted(notify.recipients(people, "CRITICAL")) == ["all@site.com", "boss@site.com", "manager@site.com", "office@site.com"])
+check("Alerts: a High incident skips the person who wants Critical only",
+      sorted(notify.recipients(people, "HIGH")) == ["all@site.com", "manager@site.com", "office@site.com"])
+check("Alerts: a Medium incident only reaches the person who wants everything",
+      notify.recipients(people, "MEDIUM") == ["all@site.com"])
+check("Alerts: the summary goes to those who asked for it and the .env list",
+      sorted(notify.recipients(people, summary=True)) == ["manager@site.com", "office@site.com"])
+check("Alerts: no console choices yet: the .env list gets High and up only",
+      notify.recipients(_R(None), "HIGH") == ["office@site.com"] and notify.recipients(_R(None), "MEDIUM") == [])
+msg, _ = notify.build_email(INCIDENT, "# Report", None, None, [], "en", None, ["a@x.com", "b@x.com"])
+check("Alerts: recipients are blind-copied, so nobody sees the others' addresses",
+      msg["Bcc"] == "a@x.com, b@x.com" and "a@x.com" not in (msg["To"] or ""))
+notify.RECIPIENTS, notify.EMAIL_MIN_SEVERITY = _saved
+
 print(f"\n{sum(results)}/{len(results)} passed")
 raise SystemExit(0 if all(results) else 1)

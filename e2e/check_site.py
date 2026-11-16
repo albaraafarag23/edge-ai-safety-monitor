@@ -121,7 +121,7 @@ async def console(page: Page):
 
     await page.goto(URL + "/app/people")
     await page.wait_for_timeout(2000)
-    check("people: page opens with the photo guide (admins)", await page.get_by_text("Photos that work").is_visible())
+    check("people: page opens with the photo guide (managers)", await page.get_by_text("Photos that work").is_visible())
 
     for path in ("/app/cameras", "/app/analytics", "/app/notifications", "/app/rules"):
         await page.goto(URL + path)

@@ -44,7 +44,7 @@ const TEXT = bilingual(
     notAvailable: (name: string) => `${name}: not available`,
     title: "Safety rules",
     subtitleEdit: "Choose which rules raise incidents and alerts, and when. A rule that's off is ignored until you switch it back on.",
-    subtitleView: "Which rules raise incidents and alerts. Only admins and supervisors can change them.",
+    subtitleView: "Which rules raise incidents and alerts. Only the site manager can change them.",
     off: (n: number): string => `${n === 1 ? "1 rule is" : `${n} rules are`} switched off. These violations are not detected or reported.`,
   },
   {
@@ -79,7 +79,7 @@ const TEXT = bilingual(
     notAvailable: (name: string) => `${name}: غير متاحة`,
     title: "قواعد السلامة",
     subtitleEdit: "اختر القواعد التي تُنشئ حوادث وتنبيهات، ومتى. القاعدة المتوقفة تُتجاهل حتى تعيد تشغيلها.",
-    subtitleView: "القواعد التي تُنشئ حوادث وتنبيهات. يمكن للمسؤولين والمشرفين فقط تغييرها.",
+    subtitleView: "القواعد التي تُنشئ حوادث وتنبيهات. لا يغيّرها إلا مدير الموقع.",
     off: (n: number) =>
       `${plural("ar", n, { one: "قاعدة واحدة متوقفة", two: "قاعدتان متوقفتان", few: `${n} قواعد متوقفة`, other: `${n} قاعدة متوقفة` })}. ` +
       "لا تُرصد هذه المخالفات ولا يُبلَّغ عنها.",
@@ -372,7 +372,7 @@ export function Rules() {
   const { user } = useAuth();
   const rules = useRules();
   const [editing, setEditing] = useState<SafetyRule | null>(null);
-  const canEdit = user?.role === "admin" || user?.role === "supervisor";
+  const canEdit = user?.role === "manager";
   const available = rules.data?.rules.filter((r) => r.available) ?? [];
   const unavailable = rules.data?.rules.filter((r) => !r.available) ?? [];
   const off = available.filter((r) => !r.enabled).length;

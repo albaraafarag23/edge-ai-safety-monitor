@@ -73,7 +73,7 @@ between services: `docs/contracts.md`.
 On a laptop (simulated detections, no camera needed):
 
 ```bash
-cp .env.example .env            # then set AUTH_SECRET, INTERNAL_API_TOKEN and an admin password
+cp .env.example .env            # then set AUTH_SECRET, INTERNAL_API_TOKEN and a manager password
 docker compose up -d --build    # console at http://localhost:3000
 ```
 

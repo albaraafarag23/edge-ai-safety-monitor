@@ -63,7 +63,7 @@ const TEXT = bilingual(
     cantRead: (file: string) => `${file} can't be opened here. Save it as a JPEG and try again.`,
     failed: (msg: string) => `Couldn't add a photo: ${msg}`,
     tooMany: (max: number) => `A person can have up to ${max} photos.`,
-    privacy: "Face photos stay on this system and only admins can see them. Enrol people only with their agreement.",
+    privacy: "Face photos stay on this system and only managers can see them. Enrol people only with their agreement.",
   },
   {
     title: "الأشخاص",
@@ -112,7 +112,7 @@ const TEXT = bilingual(
     cantRead: (file: string) => `تعذّر فتح ${file} هنا. احفظه بصيغة JPEG وحاول مجددًا.`,
     failed: (msg: string) => `تعذّرت إضافة صورة: ${msg}`,
     tooMany: (max: number) => `يمكن أن يكون للشخص حتى ${max} صورة.`,
-    privacy: "تبقى صور الوجوه على هذا النظام ولا يراها إلا المسؤولون. لا تسجّل أحدًا إلا بموافقته.",
+    privacy: "تبقى صور الوجوه على هذا النظام ولا يراها إلا المديرون. لا تسجّل أحدًا إلا بموافقته.",
   },
 );
 
@@ -290,7 +290,7 @@ export function People() {
   const people = usePeople();
   const [dialog, setDialog] = useState<{ person?: Person } | null>(null);
 
-  if (user?.role !== "admin") return <Navigate to="/app" replace />;
+  if (user?.role !== "manager") return <Navigate to="/app" replace />;
   if (people.isPending) return <Spinner />;
   if (people.isError) return <ErrorState error={people.error} onRetry={() => people.refetch()} />;
   const { recognition, people: list, limits } = people.data;

@@ -17,7 +17,7 @@ In `.env` (see `.env.example`):
 - `AUTH_SECRET`: a long random value, otherwise everyone is signed out when the backend restarts
 - `COOKIE_SECURE=true` (the tunnel is HTTPS; browsers also accept it on http://localhost)
 - `INTERNAL_API_TOKEN`: a random value (shared by backend and ai_reporting)
-- A strong admin password. Change it in the console under **Account**.
+- A strong manager password. Change it in the console under **Account**.
 
 Then `docker compose up -d --build`. Containers restart on their own after a reboot
 (`restart: unless-stopped`) as long as Docker starts at boot (`sudo systemctl enable docker`).

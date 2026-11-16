@@ -55,7 +55,9 @@ if __name__ == "__main__":
     create = sub.add_parser("create-user")
     create.add_argument("email")
     create.add_argument("name")
-    create.add_argument("--role", choices=auth.ROLES, default="supervisor")
+    # "admin" is the manager's old name, kept so older notes and recovery commands still work
+    create.add_argument("--role", choices=(*auth.ROLES, "admin"), default="supervisor",
+                        type=lambda r: "manager" if r == "admin" else r)
     sub.add_parser("set-password").add_argument("email")
     sub.add_parser("list-users")
     asyncio.run(main(parser.parse_args()))

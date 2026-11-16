@@ -254,7 +254,7 @@ export function Cameras() {
   const [params, setParams] = useSearchParams();
   const t = useText(TEXT);
   const plugin = usePluginText();
-  const canEdit = useAuth().user?.role !== "viewer";
+  const canEdit = useAuth().user?.role === "manager";
   const [editing, setEditing] = useState(false);
 
   if (cameras.isPending) return <Spinner />;

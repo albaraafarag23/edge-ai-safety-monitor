@@ -138,7 +138,7 @@ def send_or_queue(r, incident: dict, markdown: str, generated_by: str, email: di
     "retrying" delivery record."""
     snapshot, clip = media_paths(incident)  # handle() has already waited for them
     delivery = notify.send(incident, email["markdown"], snapshot, clip, email["actions"], email["lang"],
-                           email.get("names"))
+                           email.get("names"), r)
     if job is not None:
         delivery["attempts"] = job["attempts"] + 1
     if delivery["status"] == "failed":
@@ -162,7 +162,7 @@ def retry_job(r, job: dict):
         return
 
     if outbox.expired(job):
-        delivery = {"status": "failed", "recipients": notify.RECIPIENTS, "attachments": [],
+        delivery = {"status": "failed", "recipients": notify.recipients(r, job["incident"].get("severity")), "attachments": [],
                     "attempts": job["attempts"],
                     "error": f"Gave up after {job['attempts']} tries over {outbox.RETRY_GIVE_UP_S / 3600:g} h"}
         print(f"[AI] {event_id}: gave up emailing after {job['attempts']} tries", flush=True)
@@ -281,7 +281,8 @@ def main():
     client = report_writer()
     print(f"[AI] Ready. Plugins: {list(plugins)}. Reports by: {client.model if client else 'template (no API key)'}, "
           f"in {', '.join(REPORT_LANGUAGES)}; email in {EMAIL_LANGUAGE}. "
-          f"Email: {'to ' + ', '.join(notify.RECIPIENTS) if notify.configured() else 'not configured'}. "
+          f"Email: {'on, to the people who chose alerts in the console' if notify.configured() else 'not configured'}"
+          f" (High and up for the .env list: {len(notify.RECIPIENTS)}). "
           f"Daily summary: {'at ' + digest.DIGEST_TIME + ' site time' if digest.DIGEST_TIME else 'off'}.", flush=True)
 
     # A Redis restart must not restart this service: that would forget which alerts were just sent

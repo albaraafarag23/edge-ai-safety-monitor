@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, text
 
+import alert_settings
 import analytics
 import auth
 import readcache
@@ -159,6 +160,10 @@ async def lifespan(app: FastAPI):
         # later are added here. IF NOT EXISTS makes it safe on every start.
         await conn.execute(text("ALTER TABLE reports ADD COLUMN IF NOT EXISTS markdown_ar TEXT"))
         await conn.execute(text("ALTER TABLE incidents ADD COLUMN IF NOT EXISTS status_updated_by VARCHAR"))
+        for column in ("alert_email VARCHAR", "alert_level VARCHAR", "daily_summary BOOLEAN"):
+            await conn.execute(text(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {column}"))
+        # the top role on a site was called "admin" until 2026-11-16
+        await conn.execute(text("UPDATE users SET role = 'manager' WHERE role = 'admin'"))
     await auth.ensure_admin()
     await auth.ensure_demo()
     await zone_settings.import_old_drawings()
@@ -171,10 +176,13 @@ async def lifespan(app: FastAPI):
     zones_task = asyncio.create_task(zone_settings.keep_synced(REDIS_URL))
     site_task = asyncio.create_task(site_settings.keep_synced(REDIS_URL))
     plugin_task = asyncio.create_task(follow_plugin(r))
+    alerts_task = asyncio.create_task(alert_settings.keep_synced(REDIS_URL))
 
     yield
 
     plugin_task.cancel()
+    alerts_task.cancel()
+    await alert_settings.close()
 
     task.cancel()
     switches_task.cancel()
@@ -443,4 +451,5 @@ protected.include_router(site_settings.router)
 protected.include_router(users.router)
 protected.include_router(people.router)
 app.include_router(users.account)
+app.include_router(alert_settings.router)
 app.include_router(protected)

@@ -16,8 +16,8 @@ const STATUS: Record<Lang, Record<IncidentStatus, string>> = {
   ar: { open: "مفتوحة", acknowledged: "قيد المتابعة", resolved: "تمت" },
 };
 const ROLE: Record<Lang, Record<Role, string>> = {
-  en: { admin: "Admin", supervisor: "Supervisor", viewer: "Viewer" },
-  ar: { admin: "مسؤول", supervisor: "مشرف", viewer: "مشاهد" },
+  en: { manager: "Manager", supervisor: "Supervisor", viewer: "Viewer" },
+  ar: { manager: "مدير", supervisor: "مشرف", viewer: "مشاهد" },
 };
 const EVENT_TYPE_AR: Record<string, string> = {
   PPE_MISSING: "معدات وقاية ناقصة",

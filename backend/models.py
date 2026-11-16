@@ -109,7 +109,12 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)  # stored lower-case
     name: Mapped[str] = mapped_column(String)
-    role: Mapped[str] = mapped_column(String, default="supervisor")    # "admin", "supervisor" or "viewer"
+    role: Mapped[str] = mapped_column(String, default="supervisor")    # "manager", "supervisor" or "viewer"
+    # alerts by email (backend/alert_settings.py): where to (None = the sign-in email), from which severity up
+    # ("CRITICAL", "HIGH", "MEDIUM", "LOW" or "OFF"; None = the role's default), and the end-of-day summary
+    alert_email: Mapped[str | None] = mapped_column(String)
+    alert_level: Mapped[str | None] = mapped_column(String)
+    daily_summary: Mapped[bool | None] = mapped_column(Boolean)
     password_hash: Mapped[str] = mapped_column(String)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

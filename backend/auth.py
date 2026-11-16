@@ -42,7 +42,10 @@ if not AUTH_SECRET:
     print("[Auth] AUTH_SECRET is not set: using a random one, so everyone is signed out when the backend restarts",
           flush=True)
 
-ROLES = ("admin", "supervisor", "viewer")
+# manager: everything on this site (rules, timings, zones, people, the summary email); supervisor: acts on
+# incidents but can't change how the rules work; viewer: reads. ("admin" was the manager's old name: renamed at
+# startup, main.py.)
+ROLES = ("manager", "supervisor", "viewer")
 
 
 # ---------- passwords ----------
@@ -228,7 +231,7 @@ async def ensure_demo():
 
 
 async def ensure_admin():
-    """First start: create the admin account from ADMIN_EMAIL / ADMIN_PASSWORD so someone can sign in."""
+    """First start: create the manager account from ADMIN_EMAIL / ADMIN_PASSWORD so someone can sign in."""
     async with SessionLocal() as session:
         if await session.scalar(select(func.count()).select_from(User)):
             return
@@ -237,8 +240,8 @@ async def ensure_admin():
     generated = not password
     if generated:
         password = secrets.token_urlsafe(12)
-    await create_user(email, os.getenv("ADMIN_NAME") or "Site Admin", password, "admin")
-    print(f"[Auth] Created the first admin account: {email}", flush=True)
+    await create_user(email, os.getenv("ADMIN_NAME") or "Site Manager", password, "manager")
+    print(f"[Auth] Created the first manager account: {email}", flush=True)
     if generated:
         print(f"[Auth] ADMIN_PASSWORD is not set; generated password: {password}  (shown once)", flush=True)
 
@@ -310,8 +313,8 @@ def require_role(*roles: str):
     return check
 
 
-require_admin = require_role("admin")
-can_handle_incidents = require_role("admin", "supervisor")
+require_manager = require_role("manager")
+can_handle_incidents = require_role("manager", "supervisor")
 
 
 async def internal_service(request: Request):

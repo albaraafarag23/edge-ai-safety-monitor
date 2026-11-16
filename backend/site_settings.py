@@ -91,7 +91,7 @@ async def get_daily_summary():
 
 
 @router.put("/daily-summary")
-async def set_daily_summary(body: DailySummaryIn, me: User = Depends(auth.require_admin)):
+async def set_daily_summary(body: DailySummaryIn, me: User = Depends(auth.require_manager)):
     async with SessionLocal() as session:
         row = await _row(session)
         if row is None:

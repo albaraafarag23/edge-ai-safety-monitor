@@ -75,7 +75,7 @@ const NAV = [
   { to: "/app/notifications", key: "notifications" as NavKey, icon: Bell, end: false, photo: "closing" },
   { to: "/app/rules", key: "rules" as NavKey, icon: ShieldCheck, end: false, photo: "zones" },
 ];
-const ADMIN_NAV = [
+const MANAGER_NAV = [
   { to: "/app/people", key: "people" as NavKey, icon: ScanFace, end: false, photo: "smoking" },
   { to: "/app/users", key: "users" as NavKey, icon: Users, end: false, photo: "how" },
 ];
@@ -84,7 +84,7 @@ const OTHER_PAGES: Record<string, string> = { "/app/account": "hero" };
 function useNav() {
   const { user } = useAuth();
   const t = useText(TEXT);
-  return (user?.role === "admin" ? [...NAV, ...ADMIN_NAV] : NAV).map((n) => ({ ...n, label: t.nav[n.key] }));
+  return (user?.role === "manager" ? [...NAV, ...MANAGER_NAV] : NAV).map((n) => ({ ...n, label: t.nav[n.key] }));
 }
 
 function LiveIndicator() {

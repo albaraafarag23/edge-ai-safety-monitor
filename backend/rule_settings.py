@@ -180,7 +180,7 @@ async def list_rules():
 
 
 @router.patch("/{rule_id}")
-async def change_rule(rule_id: str, body: RuleChange, me: User = Depends(auth.can_handle_incidents)):
+async def change_rule(rule_id: str, body: RuleChange, me: User = Depends(auth.require_manager)):
     plugin = load_plugin()
     rule = next((r for r in (plugin or {}).get("rules", []) if r["rule_id"] == rule_id), None)
     if not rule:

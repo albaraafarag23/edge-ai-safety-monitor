@@ -131,7 +131,7 @@ services:
       REDIS_URL: redis://redis:6379
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-monitor}:${POSTGRES_PASSWORD:-monitor123}@postgres:5432/${POSTGRES_DB:-safety_monitor}
       MEDIA_DIR: /media
-      # dashboard sign-in (see backend/auth.py). The first start creates ADMIN_EMAIL with ADMIN_PASSWORD.
+      # dashboard sign-in (see backend/auth.py). The first start creates ADMIN_EMAIL (a manager) with ADMIN_PASSWORD.
       AUTH_SECRET: ${AUTH_SECRET:-}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
@@ -205,6 +205,7 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-}
       SUPERVISOR_EMAILS: ${SUPERVISOR_EMAILS:-}
+      EMAIL_MIN_SEVERITY: ${EMAIL_MIN_SEVERITY:-HIGH}
       NOTIFY_COOLDOWN_S: ${NOTIFY_COOLDOWN_S:-300}
       RETRY_GIVE_UP_S: ${RETRY_GIVE_UP_S:-86400}
       # alert emails: times in site time, and an "Open this incident" button to the public console

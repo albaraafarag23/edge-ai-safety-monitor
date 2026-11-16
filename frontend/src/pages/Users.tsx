@@ -19,9 +19,9 @@ import { timeAgo } from "../lib/format";
 import { bilingual, useText } from "../lib/i18n";
 import { roleLabel } from "../lib/terms";
 
-const ROLES: Role[] = ["admin", "supervisor", "viewer"];
+const ROLES: Role[] = ["manager", "supervisor", "viewer"];
 const ROLE_STYLE: Record<Role, string> = {
-  admin: "bg-slate-900 text-white ring-slate-900",
+  manager: "bg-slate-900 text-white ring-slate-900",
   supervisor: "bg-sky-50 text-sky-800 ring-sky-600/20",
   viewer: "bg-slate-50 text-slate-600 ring-slate-500/20",
 };
@@ -29,8 +29,8 @@ const ROLE_STYLE: Record<Role, string> = {
 const TEXT = bilingual(
   {
     roleText: {
-      admin: "Everything, including managing users",
-      supervisor: "Watches cameras and handles incidents",
+      manager: "Everything on this site: rules, timings, zones, people and users",
+      supervisor: "Watches cameras and handles incidents, but can't change the rules",
       viewer: "Read-only: can look but not change anything",
     } as Record<Role, string>,
     generate: "Generate a new one",
@@ -65,8 +65,8 @@ const TEXT = bilingual(
   },
   {
     roleText: {
-      admin: "كل شيء، بما في ذلك إدارة المستخدمين",
-      supervisor: "يتابع الكاميرات ويتعامل مع الحوادث",
+      manager: "كل شيء في هذا الموقع: القواعد والمدد والمناطق والأشخاص والمستخدمون",
+      supervisor: "يتابع الكاميرات ويتعامل مع الحوادث، دون تغيير القواعد",
       viewer: "قراءة فقط: يطّلع دون تغيير أي شيء",
     },
     generate: "إنشاء كلمة مرور جديدة",
@@ -254,7 +254,7 @@ export function Users() {
   const t = useText(TEXT);
   const roleInfo = useRoleInfo();
 
-  if (me?.role !== "admin") return <Navigate to="/app" replace />;
+  if (me?.role !== "manager") return <Navigate to="/app" replace />;
 
   return (
     <>

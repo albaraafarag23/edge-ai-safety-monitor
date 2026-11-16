@@ -7,8 +7,11 @@ Configured through environment variables (see .env.example):
   CONSOLE_URL (for the "Open this incident" button), SITE_TIMEZONE. The language (EMAIL_LANGUAGE) is chosen
   in main.py, which passes the report and actions in that language.
 """
+import json
 import os
 import smtplib
+
+import redis
 import ssl
 from email.message import EmailMessage
 from email.utils import make_msgid
@@ -23,21 +26,54 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM = os.getenv("SMTP_FROM", "") or SMTP_USER
 # docker-compose passes SMTP_TLS as "" when it isn't set, so an empty value means the default too
 SMTP_TLS = (os.getenv("SMTP_TLS") or ("ssl" if SMTP_PORT == 465 else "starttls")).lower()
+# A fixed extra list from .env, besides the people who chose alerts in the console (notify:recipients, written
+# by backend/alert_settings.py). They get incidents from EMAIL_MIN_SEVERITY up (default High) and the summary.
 RECIPIENTS = [a.strip() for a in os.getenv("SUPERVISOR_EMAILS", "").split(",") if a.strip()]
+EMAIL_MIN_SEVERITY = (os.getenv("EMAIL_MIN_SEVERITY") or "HIGH").upper()
+RANK = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+RECIPIENTS_KEY = "notify:recipients"
 MAX_ATTACHMENT_BYTES = float(os.getenv("MAX_ATTACHMENT_MB", "15")) * 1024 * 1024
 
 def configured() -> bool:
-    return bool(SMTP_HOST and SMTP_FROM and RECIPIENTS)
+    """A mail server is set up. (Who gets what is decided per message: recipients().)"""
+    return bool(SMTP_HOST and SMTP_FROM)
+
+
+def people(r) -> list[dict]:
+    """[{"email", "level", "summary"}]: the console's choices plus the fixed .env list."""
+    chosen = []
+    try:
+        raw = r.get(RECIPIENTS_KEY) if r is not None else None
+        chosen = [p for p in json.loads(raw or "[]") if isinstance(p, dict) and p.get("email")]
+    except (ValueError, TypeError, redis.exceptions.RedisError):
+        pass
+    fixed = [{"email": a, "level": EMAIL_MIN_SEVERITY, "summary": True} for a in RECIPIENTS]
+    out, seen = [], set()
+    for p in chosen + fixed:
+        if p["email"].lower() not in seen:
+            seen.add(p["email"].lower())
+            out.append(p)
+    return out
+
+
+def recipients(r, severity: str | None = None, summary: bool = False) -> list[str]:
+    """Who should get this: an incident of `severity`, or (summary=True) the end-of-day summary."""
+    if summary:
+        return [p["email"] for p in people(r) if p.get("summary")]
+    rank = RANK.get((severity or "").upper(), 3)
+    return [p["email"] for p in people(r) if p.get("level") in RANK and rank <= RANK[p["level"]]]
 
 
 def build_email(incident: dict, report_md: str, snapshot: Path | None, clip: Path | None, actions: list[str] = (),
-                lang: str = "en", names: dict | None = None):
+                lang: str = "en", names: dict | None = None, to: list[str] | None = None):
     """Returns (message, list of attached file names). `names`: Arabic names for an Arabic email."""
     has_clip = bool(clip and clip.stat().st_size <= MAX_ATTACHMENT_BYTES)
     msg = EmailMessage()
     msg["Subject"] = email_template.subject(incident, lang, names)
     msg["From"] = SMTP_FROM
-    msg["To"] = ", ".join(RECIPIENTS)
+    # each person on Bcc: recipients don't see each other's addresses
+    msg["To"] = SMTP_FROM
+    msg["Bcc"] = ", ".join(to if to is not None else RECIPIENTS)
     # plain-text version for clients that don't show HTML
     msg.set_content(email_template.plain_text(incident, report_md, list(actions), has_clip, lang, names))
     if lang != "en":
@@ -61,14 +97,17 @@ def build_email(incident: dict, report_md: str, snapshot: Path | None, clip: Pat
 
 
 def send(incident: dict, report_md: str, snapshot: Path | None, clip: Path | None, actions: list[str] = (),
-         lang: str = "en", names: dict | None = None) -> dict:
-    """Sends the report. Returns a delivery record that is stored with the report."""
+         lang: str = "en", names: dict | None = None, r=None) -> dict:
+    """Sends the report to everyone who asked for this severity. Returns a delivery record stored with the report."""
     if not configured():
         return {"status": "not_configured", "recipients": [], "attachments": [],
-                "error": "Set SMTP_HOST, SMTP_FROM/SMTP_USER and SUPERVISOR_EMAILS to send email"}
-    msg, attached = build_email(incident, report_md, snapshot, clip, actions, lang, names)
+                "error": "Set SMTP_HOST and SMTP_FROM/SMTP_USER to send email"}
+    to = recipients(r, incident.get("severity"))
+    if not to:   # e.g. a Medium incident when everyone asked for High and Critical only
+        return {"status": "not_needed", "recipients": [], "attachments": [], "error": None}
+    msg, attached = build_email(incident, report_md, snapshot, clip, actions, lang, names, to)
     error = deliver(msg)
-    return {"status": "failed" if error else "sent", "recipients": RECIPIENTS, "attachments": attached, "error": error}
+    return {"status": "failed" if error else "sent", "recipients": to, "attachments": attached, "error": error}
 
 
 def deliver(msg: EmailMessage) -> str | None:

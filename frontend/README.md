@@ -13,7 +13,7 @@ Static product page for Cloudflare Pages: `scripts/deploy-site.sh <console URL>`
 (`src/lib/site.ts`). See `docs/deploy.md`.
 
 Accounts: the first backend start creates `ADMIN_EMAIL` / `ADMIN_PASSWORD` from `.env`. Add more with
-`docker compose exec backend python manage.py create-user <email> "<name>" [--role admin]`.
+`docker compose exec backend python manage.py create-user <email> "<name>" [--role manager]`.
 
 ## Run in development
 Start the backend (and the rest of the stack) with Docker, then run the dashboard with hot reload:
