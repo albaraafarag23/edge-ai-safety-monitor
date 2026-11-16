@@ -45,7 +45,7 @@
       {
         "model": "yolo11n.pt",
         "imgsz": 640,
-        "every_n_frames": 3,
+        "every_n_frames": 6,
         "default_confidence": 0.35,
         "classes": {
           "bottle": {},
@@ -56,7 +56,7 @@
         "model": "yolo11n-pose.pt",
         "pose": true,
         "imgsz": 640,
-        "every_n_frames": 2,
+        "every_n_frames": 4,
         "default_confidence": 0.5,
         "classes": {
           "lying": {}
