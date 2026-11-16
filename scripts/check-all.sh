@@ -26,6 +26,16 @@ echo "plugin_source.py: 4 copies identical"
 step "Person tracker tests"
 (cd cv_pipeline && python3 test_tracker.py | tail -1)
 
+step "Portal tests (passkeys, approvals, roles, security log)"
+# PORTAL_PYTHON: a Python with portal/requirements.txt + pytest + httpx (else a throwaway venv is made once)
+PORTAL_PY=${PORTAL_PYTHON:-}
+if [ -z "$PORTAL_PY" ]; then
+  VENV="${XDG_CACHE_HOME:-$HOME/.cache}/sitesentry/portal-venv"
+  [ -x "$VENV/bin/python" ] || { python3 -m venv "$VENV" && "$VENV/bin/pip" -q install -r portal/requirements.txt pytest httpx; }
+  PORTAL_PY="$VENV/bin/python"
+fi
+(cd portal && "$PORTAL_PY" -m pytest -q test_portal.py 2>&1 | tail -1)
+
 step "Report tests (ai_reporting image)"
 IMAGE=$(docker compose config --images ai_reporting 2>/dev/null | grep ai_reporting | head -1)
 docker run --rm -v "$PWD/ai_reporting:/app" -v "$PWD/plugins:/plugins" -e PLUGINS_DIR=/plugins -w /app "$IMAGE" \

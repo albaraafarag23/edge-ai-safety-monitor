@@ -48,3 +48,8 @@ config/cameras.json
 
 # a rule-drive signing key must never be committed (docs/plugin-drives.md)
 *.pem
+
+# portal: local database and the copied screens
+portal/*.db
+portal/ui/
+.env.bak*

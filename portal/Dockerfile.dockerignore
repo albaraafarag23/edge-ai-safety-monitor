@@ -1,0 +1,12 @@
+# Only what the portal image needs (the rest of the repository has datasets, models and media)
+*
+!frontend/
+!portal/
+frontend/node_modules
+frontend/dist
+frontend/dist-site
+frontend/dist-portal
+frontend/public
+portal/*.db
+portal/ui
+portal/__pycache__
