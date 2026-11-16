@@ -28,7 +28,7 @@
         "crop_from": "Person",
         "crop": 384,
         "imgsz": 320,
-        "every_n_frames": 3,
+        "every_n_frames": 4,
         "default_confidence": 0.5,
         "classes": {
           "smoking": {},

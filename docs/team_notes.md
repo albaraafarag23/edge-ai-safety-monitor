@@ -137,3 +137,20 @@ but we must cite it and must not republish its images.
 2. Look at ~50 photos from each: are they close-ups, or people at a distance like our camera?
 3. Build the smoking / not-smoking set from the person crops, balanced across cigarette, pipe, vape and shisha.
 4. Test against `smoking.pt` on the same photos, plus our own Arducam clips at 2, 5 and 8 m.
+
+## Person down: pose rule vs a trained detector (2026-11-16)
+
+Rule live: RULE_POSE_01/02 from yolo11n-pose ("lying" = torso flatter than 50 degrees, legs not standing under the
+hips; cv_pipeline/posture.py). Trained detectors are kept but NOT used. Measured with training/eval_person_down.py:
+
+| at confidence 0.5 | falls caught (422, fall_fyp test) | false boxes, 82 upright site photos | dark empty room (4) |
+|---|---|---|---|
+| pose rule (live) | 11% | 0 | 0 |
+| person_down.pt (fall_fyp only) | 81% | 40 | 4 |
+| person_down2.pt (+ 2,605 site photos as negatives) | 70% | 17 | 0 |
+| person_down2 + "is a person" + "not clearly standing" | 37% | 10 | 0 |
+
+The detectors' false alarms are objects (dump truck, railing, wall, dog), close-up faces and standing workers seen
+close up. A critical rule that fires on a parked truck would repeat all day, so the cautious pose rule stays.
+Next: another round with many more ordinary site pictures as negatives (SH17, MOCS, our own camera's footage),
+then measure again. Data: Roboflow fyp-x7bzp/fall-detection-c0hwj v1, CC BY 4.0.
