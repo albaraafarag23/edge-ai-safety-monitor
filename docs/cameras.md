@@ -24,6 +24,12 @@ and list the cameras, then restart the detector (`docker compose up -d cv_pipeli
 | `size`, `decode`, `controls` | USB cameras only; default to `CAMERA_SIZE`, `CAMERA_DECODE`, `CAMERA_CONTROLS` |
 | `enabled` | `false` leaves the camera out without deleting its entry |
 
+To try a second camera without buying one, lend a laptop's camera over Tailscale:
+`python scripts/webcam-stream.py` on the laptop prints an `http://<tailscale ip>:8090/<token>/stream.mjpg`
+address for `"source"`. It serves the camera's own JPEGs (no re-encoding), only on the Tailscale address, under a
+random token. Measured with the detector's camera code on the laptop: 30 pictures a second at 1920x1080.
+A stream is decoded at full size (the half-size decode is for USB cameras), so it costs a little more processor.
+
 Without `config/cameras.json` there is one camera, from `CV_SOURCE` / `CAMERA_LOCATION` in `.env`, as before.
 In test mode (`CV_TEST_MODE=true`) every listed camera sends synthetic frames, so the console can be tried
 with several cameras and no hardware.
