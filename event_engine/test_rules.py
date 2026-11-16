@@ -130,8 +130,8 @@ results.append(check("Proximity: far machinery doesn't fire",
 f = run([[WORKER, machine_near]] * 50, rules=["RULE_PROX_01"])  # 25 s continuous
 results.append(check("Cooldown: continuous violation re-fires every 10 s, not every frame",
                      [i for i, _ in f] == [2, 22, 42], f"{[i for i, _ in f]}"))
-bottle = {"class_name": "bottle", "confidence": 0.9, "bbox": [50, 380, 70, 420]}
-results.append(check("Disabled rule (food) never fires", not run([[bottle]] * 20, rules=["RULE_FOOD_01"])))
+vape = {"class_name": "vape", "confidence": 0.9, "bbox": [50, 380, 70, 420]}
+results.append(check("Disabled rule (vaping) never fires", not run([[vape]] * 20, rules=["RULE_SMOKE_02"])))
 
 # --- presence (smoking) ---
 SMOKER = {"class_name": "smoking", "confidence": 0.8, "bbox": [280, 100, 420, 240]}   # head and upper body
@@ -293,6 +293,39 @@ results.append(check("Tally: after five minutes of keeping the rule, a new viola
                      counted(f) == [True] and counted(f2) == [True], f"{counted(f)} {counted(f2)}"))
 results.append(check("Engine: a malformed detection raises, so main.py can skip it",
                      _raises(lambda: run([[{"class_name": "Person"}]], rules=["RULE_ZONE_01"]))))
+
+# --- person down, sleeping on site, food or drink (rules finished 2026-11-16) ---
+RULES = {r["rule_id"]: r for r in PLUGIN["rules"]}
+DOWN = RULES["RULE_POSE_01"]["subject_classes"][0]
+
+
+def down(still_s, x=500):
+    return {"class_name": DOWN, "confidence": 0.8, "bbox": [x, 380, x + 160, 440], "attributes": {"still_s": still_s}}
+
+
+f = run([[down(i / 2)] for i in range(14)], rules=["RULE_POSE_01"])   # 7 s on the ground
+results.append(check("Person down: fires after 5 s, critical", len(f) == 1 and f[0][0] == 10
+                     and f[0][1]["severity"] == "CRITICAL", f"{[(i, x['severity']) for i, x in f]}"))
+f = run([[down(i / 2)] for i in range(40)], rules=["RULE_POSE_02"])   # 20 s down: not asleep yet
+results.append(check("Sleeping: not after 20 s on the ground", f == [], f"{[i for i, _ in f]}"))
+f = run([[down(300 + i / 2)] for i in range(14)], rules=["RULE_POSE_02"])   # still for 5 min already
+results.append(check("Sleeping: fires once someone has been still for 5 minutes",
+                     len(f) == 1 and f[0][1]["event_type"] == "SLEEPING_ON_SITE", f"{[i for i, _ in f]}"))
+f = run([[down(0)] for _ in range(14)], rules=["RULE_POSE_02"])
+results.append(check("Sleeping: someone down but moving doesn't count", f == []))
+f = run([[down(1)] for _ in range(14)], rules=["RULE_POSE_01"])
+results.append(check("Person down: not counted against a named person (personal: false)",
+                     all(not x["metadata"].get("violators") for _, x in f)))
+
+edge = PLUGIN["zones"][RULES["RULE_FOOD_01"]["zone"]]
+xs, ys = [p[0] for p in edge["polygon"]], [p[1] for p in edge["polygon"]]
+cx, cy = sum(xs) / len(xs), sum(ys) / len(ys)
+bottle = {"class_name": "bottle", "confidence": 0.7, "bbox": [cx - 10, cy - 40, cx + 10, cy]}
+f = run([[bottle]] * 14, rules=["RULE_FOOD_01"])
+results.append(check("Food or drink: a bottle in the restricted zone for 5 s fires",
+                     len(f) == 1 and f[0][1]["event_type"] == "FOOD_IN_RESTRICTED_ZONE", f"{[i for i, _ in f]}"))
+outside = {**bottle, "bbox": [5, 5, 25, 45]}
+results.append(check("Food or drink: outside the zone it doesn't", run([[outside]] * 14, rules=["RULE_FOOD_01"]) == []))
 
 # --- plugin errors ---
 for name, broken in [("unknown rule type", {**PLUGIN, "rules": [{"rule_id": "X", "type": "magic"}]}),

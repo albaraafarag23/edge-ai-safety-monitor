@@ -126,7 +126,18 @@ def check_presence(rule, objects, zone):
     return found
 
 
-CHECKS = {"zone": check_zone, "proximity": check_proximity, "ppe": check_ppe, "presence": check_presence}
+def check_pose(rule, objects, zone):
+    """A posture from the pose model (e.g. "lying", cv_pipeline/posture.py), optionally only once the person has
+    been still for min_still_s (their "still_s" attribute): "Person down" vs "Sleeping on site"."""
+    found = check_presence(rule, objects, zone)
+    min_still = rule.get("min_still_s")
+    if min_still:
+        found = [o for o in found if ((o.get("attributes") or {}).get("still_s") or 0) >= min_still]
+    return found
+
+
+CHECKS = {"zone": check_zone, "proximity": check_proximity, "ppe": check_ppe, "presence": check_presence,
+          "pose": check_pose}
 
 
 def usable(rule) -> bool:

@@ -27,9 +27,7 @@
         "max_width": 0.6
       },
       "machinery": {},
-      "vehicle": {},
-      "bottle": {},
-      "cup": {}
+      "vehicle": {}
     },
     "extra_models": [
       {
@@ -41,6 +39,26 @@
         "default_confidence": 0.5,
         "classes": {
           "smoking": {}
+        }
+      },
+      {
+        "model": "yolo11n.pt",
+        "imgsz": 640,
+        "every_n_frames": 3,
+        "default_confidence": 0.35,
+        "classes": {
+          "bottle": {},
+          "cup": {}
+        }
+      },
+      {
+        "model": "yolo11n-pose.pt",
+        "pose": true,
+        "imgsz": 640,
+        "every_n_frames": 2,
+        "default_confidence": 0.5,
+        "classes": {
+          "lying": {}
         }
       }
     ]
@@ -309,8 +327,7 @@
         "Remove the food or drink from the restricted zone.",
         "Remind workers to eat and drink only in the designated welfare area."
       ],
-      "enabled": false,
-      "requires": "A detection model trained to recognise bottles and cups",
+      "enabled": true,
       "regulations": [
         {
           "document": "OSHJ-CoP-02",
@@ -328,11 +345,9 @@
       "personal": false,
       "name": "Person down",
       "type": "pose",
-      "planned": true,
-      "requires": "A pose model that tracks body position",
       "description": "A worker has fallen or is lying on the ground",
       "subject_classes": [
-        "Person"
+        "lying"
       ],
       "min_duration_s": 5,
       "event_type": "PERSON_DOWN",
@@ -352,26 +367,27 @@
           "text": "There shall be adequate and appropriate equipment, facilities and personnel to provide first aid to employees if they are injured or become ill at work. … An appointed person is someone who will take charge when someone is injured or falls ill and who will telephone for an ambulance if one is required.",
           "url": "https://mc.spsa.shj.ae/media/documents/8ZTXXGJk0O0HgcHO0bs6g_OSHJ-CoP-02%20OSH%20Management%20in%20Construction%20Version%201%20English.pdf"
         }
-      ]
+      ],
+      "cooldown_s": 120
     },
     {
       "rule_id": "RULE_POSE_02",
       "name": "Sleeping on site",
       "type": "pose",
-      "planned": true,
-      "requires": "A pose model that tracks body position",
-      "description": "A worker lying still on site for a long time",
+      "description": "A worker lying still on site for 5 minutes or more",
       "subject_classes": [
-        "Person"
+        "lying"
       ],
-      "min_duration_s": 300,
+      "min_duration_s": 5,
       "event_type": "SLEEPING_ON_SITE",
       "severity": "MEDIUM",
       "recommended_actions": [
         "Check on the worker first: lying still can also be a medical emergency.",
         "Remind the worker to rest only in the welfare area.",
         "Review shift lengths and break times for the crew."
-      ]
+      ],
+      "min_still_s": 300,
+      "cooldown_s": 900
     }
   ],
   "translations": {
@@ -465,6 +481,9 @@
             "راجع مدة الورديات وأوقات الاستراحة للفريق."
           ]
         }
+      },
+      "classes": {
+        "lying": "شخص مستلقٍ"
       }
     }
   }

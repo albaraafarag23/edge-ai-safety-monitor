@@ -250,7 +250,7 @@
       "name": "Patient fall",
       "type": "pose",
       "planned": true,
-      "requires": "A pose model that tracks body position",
+      "requires": "Patients lie in bed: the bed areas must be drawn first so only lying on the floor counts",
       "description": "A patient has fallen or is lying on the floor",
       "subject_classes": [
         "Person"

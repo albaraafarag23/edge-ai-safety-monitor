@@ -26,6 +26,10 @@ class ModelConfig:
     # class_name -> widest believable box, as a fraction of the frame width (e.g. Person 0.6: a dark, grainy
     # empty room once came back as one frame-wide "Person" at 0.8 confidence)
     max_width: dict[str, float] = field(default_factory=dict)
+    # pose model (e.g. yolo11n-pose.pt, "pose": true): its people become postures (posture.py), e.g. "lying"
+    pose: bool = False
+    # "still": true: each box also says how long it has stayed put (attributes.still_s), e.g. a person down
+    still: bool = False
 
     @property
     def min_confidence(self) -> float:
@@ -50,6 +54,9 @@ class DetectionConfig:
         return confidence >= self.thresholds.get(class_name, 1.1)
 
 
+POSTURES = {"lying"}   # what a pose model can report (posture.py)
+
+
 def rule_classes(rule: dict) -> set[str]:
     """Every class a rule depends on. Keep in sync with event_engine/rules.py:rule_classes."""
     classes = set(rule.get("subject_classes", [])) | set(rule.get("near_classes", []))
@@ -63,6 +70,12 @@ def model_specs(plugin: dict) -> list[dict]:
     default_confidence, classes, plus optional every_n_frames; a classifier also has crop_from and crop)."""
     det = plugin.get("detection") or {}
     return [det, *det.get("extra_models", [])]
+
+
+def test_mode_names(plugin: dict) -> list[dict[int, str]]:
+    """Test mode loads no models: each one "has" the classes the plugin asks of it (a pose model: person)."""
+    return [{0: "person"} if spec.get("pose") else dict(enumerate(spec.get("classes", {})))
+            for spec in model_specs(plugin)]
 
 
 def load_plugin(plugins_dir: str, plugin_id: str) -> dict:
@@ -94,7 +107,19 @@ def build_config(plugin: dict, model_names: list[dict[int, str]], models_dir: st
         default_conf = float(spec.get("default_confidence", 0.4))
         name_to_id = {name: i for i, name in names.items()}
         thresholds, max_width = {}, {}
+        pose = bool(spec.get("pose"))
+        if pose:
+            # the classes are postures worked out from the keypoints, not the model's own class ("person")
+            unknown = set(spec.get("classes", {})) - POSTURES
+            if unknown:
+                raise PluginError(f"[{pid}] pose model {Path(path).name}: unknown posture(s) {sorted(unknown)} "
+                                  f"(known: {sorted(POSTURES)})")
+            if "person" not in name_to_id:
+                raise PluginError(f"[{pid}] pose model {Path(path).name} has no 'person' class")
         for name, opts in spec.get("classes", {}).items():
+            if pose:
+                thresholds[name] = float((opts or {}).get("confidence", default_conf))
+                continue
             if name not in name_to_id:
                 warnings.append(f"[{pid}] class '{name}' is not in {Path(path).name}, it will never be detected")
                 continue
@@ -109,7 +134,8 @@ def build_config(plugin: dict, model_names: list[dict[int, str]], models_dir: st
                               f"(model classes: {sorted(name_to_id)})")
         models.append(ModelConfig(model_path=path,
                                   imgsz=engine_imgsz(path) or int(spec.get("imgsz", det.get("imgsz", 640))),
-                                  class_ids=sorted(name_to_id[n] for n in thresholds), thresholds=thresholds,
+                                  class_ids=[name_to_id["person"]] if pose else sorted(name_to_id[n] for n in thresholds),
+                                  thresholds=thresholds, pose=pose, still=bool(spec.get("still")),
                                   every_n_frames=max(1, int(spec.get("every_n_frames", 1))),
                                   crop_from=spec.get("crop_from"), crop=int(spec.get("crop", 384)),
                                   max_width=max_width))

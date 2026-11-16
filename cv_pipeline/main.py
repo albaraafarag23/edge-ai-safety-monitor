@@ -24,7 +24,8 @@ from faces import FaceIdentifier
 from live_view import LiveView
 from media import MediaListener, MediaRecorder
 from person_crops import cut, upper_body_box
-from plugin_config import (DetectionConfig, PluginError, build_config, check_main_model, load_plugin,
+from posture import Stillness, is_lying
+from plugin_config import (DetectionConfig, PluginError, build_config, check_main_model, load_plugin, test_mode_names,
                            model_paths, model_specs)
 from tracker import Tracker
 
@@ -178,6 +179,7 @@ class Unit:
     recorder: MediaRecorder
     camera: Camera | None = None        # None in test mode
     tracker: Tracker = field(default_factory=Tracker)
+    stillness: dict = field(default_factory=dict)   # model path -> Stillness: people down, how long without moving
     frame_id: int = 0
     seen: int = 0                       # the camera's frame counter at the last frame processed
     last: dict = field(default_factory=dict)   # model path -> its latest detections, reused on frames it skips
@@ -195,7 +197,7 @@ def log_detections(unit: Unit, detections: list[dict]):
 
 def run_test_mode(r: redis.Redis, plugin: dict, units: list[Unit]):
     # No model in test mode: treat the plugin's own classes as the models' classes
-    cfg = build_config(plugin, [dict(enumerate(spec.get("classes", {}))) for spec in model_specs(plugin)])
+    cfg = build_config(plugin, test_mode_names(plugin))
     log_config(cfg)
     for unit in units:
         unit.live.set_model("synthetic")
@@ -254,6 +256,26 @@ def classify_people(model, cfg_model, frame, detections: list[dict], scale: floa
     return found
 
 
+def postures(model_result, cfg_model, scale: float = 1.0) -> list[dict]:
+    """Pose model ("pose": true): one "lying" box per person lying down, with how long they've been still."""
+    if "lying" not in cfg_model.thresholds or model_result.keypoints is None:
+        return []
+    boxes = model_result.boxes.xyxy.tolist()
+    confs = model_result.boxes.conf.tolist()
+    kps = model_result.keypoints.data.tolist()   # people x 17 x [x, y, confidence]
+    return [{"class_name": "lying", "confidence": round(conf, 3), "bbox": [round(v * scale, 1) for v in box]}
+            for box, conf, kp in zip(boxes, confs, kps) if conf >= cfg_model.thresholds["lying"] and is_lying(box, kp)]
+
+
+def add_stillness(unit: Unit, model_path: str, detections: list[dict]) -> list[dict]:
+    """Models with "still": true (and pose models): how long each box has stayed put, as attributes.still_s
+    (the "Sleeping on site" rule waits for minutes of it)."""
+    stillness = unit.stillness.setdefault(model_path, Stillness())
+    for d, s in zip(detections, stillness.update([d["bbox"] for d in detections])):
+        d["attributes"] = {**(d.get("attributes") or {}), "still_s": round(s)}
+    return detections
+
+
 def identify_people(faces: FaceIdentifier, unit: Unit, frame, detections: list[dict], subject: str):
     """Follows each person across frames and adds who they are (attributes) once face recognition knows."""
     people = [d for d in detections if d["class_name"] == subject]
@@ -309,7 +331,7 @@ def run_live_mode(r: redis.Redis, plugin: dict, units: list[Unit], settings: lis
 
     check_main_model(plugin, MODELS_DIR, MODEL_OVERRIDE, USE_ENGINE)
     paths = model_paths(plugin, MODELS_DIR, MODEL_OVERRIDE, USE_ENGINE)
-    loaded = {p: YOLO(p, task="classify" if spec.get("crop_from") else "detect")   # extra models are optional
+    loaded = {p: YOLO(p, task="classify" if spec.get("crop_from") else "pose" if spec.get("pose") else "detect")   # extra models are optional
               for p, spec in zip(paths, model_specs(plugin)) if os.path.exists(p)}
     cfg = build_config(plugin, [loaded[p].names if p in loaded else None for p in paths], MODELS_DIR,
                        MODEL_OVERRIDE, USE_ENGINE)
@@ -355,7 +377,9 @@ def run_live_mode(r: redis.Redis, plugin: dict, units: list[Unit], settings: lis
                     else:
                         result = model.predict(frame.image, conf=m.min_confidence, classes=m.class_ids,
                                                imgsz=m.imgsz, verbose=False)[0]
-                        unit.last[m.model_path] = detect(model, m, result.boxes, frame.scale, frame.image.shape[1])
+                        found = (postures(result, m, frame.scale) if m.pose else
+                                 detect(model, m, result.boxes, frame.scale, frame.image.shape[1]))
+                        unit.last[m.model_path] = add_stillness(unit, m.model_path, found) if m.pose or m.still else found
                         t = prof.add(name, t)
                         prof.speed(name, result.speed)
                         if m is cfg.models[0] and subject:
