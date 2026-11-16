@@ -81,8 +81,11 @@ const CLASS_AR: Record<string, string> = {
   cigarette: "سيجارة",
   smoking: "تدخين",
   vape: "سيجارة إلكترونية",
+  vaping: "تدخين سيجارة إلكترونية",
   bottle: "زجاجة",
   cup: "كوب",
+  lying: "شخص مستلقٍ",
+  person_down: "شخص على الأرض",
 };
 /** The incident payload's placeholder for a missing field (docs/contracts.md). */
 export const NOT_SPECIFIED = "NOT SPECIFIED";

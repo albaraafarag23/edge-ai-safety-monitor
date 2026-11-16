@@ -24,14 +24,15 @@
     },
     "extra_models": [
       {
-        "model": "smoking_act.pt",
+        "model": "smoking_act3.pt",
         "crop_from": "Person",
         "crop": 384,
         "imgsz": 320,
         "every_n_frames": 3,
         "default_confidence": 0.5,
         "classes": {
-          "smoking": {}
+          "smoking": {},
+          "vaping": {}
         }
       }
     ]
@@ -233,7 +234,8 @@
       "type": "presence",
       "description": "Someone is smoking inside the hospital (cigarette, vape, pipe or shisha at the mouth)",
       "subject_classes": [
-        "smoking"
+        "smoking",
+        "vaping"
       ],
       "min_duration_s": 2,
       "event_type": "SMOKING",
@@ -282,7 +284,8 @@
         "Gloves": "قفازات",
         "Goggles": "نظارات واقية",
         "Face Shield": "واقي الوجه",
-        "smoking": "تدخين"
+        "smoking": "تدخين",
+        "vaping": "تدخين سيجارة إلكترونية"
       },
       "zones": {
         "isolation_room": "غرفة العزل",

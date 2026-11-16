@@ -130,8 +130,13 @@ results.append(check("Proximity: far machinery doesn't fire",
 f = run([[WORKER, machine_near]] * 50, rules=["RULE_PROX_01"])  # 25 s continuous
 results.append(check("Cooldown: continuous violation re-fires every 10 s, not every frame",
                      [i for i, _ in f] == [2, 22, 42], f"{[i for i, _ in f]}"))
-vape = {"class_name": "vape", "confidence": 0.9, "bbox": [50, 380, 70, 420]}
-results.append(check("Disabled rule (vaping) never fires", not run([[vape]] * 20, rules=["RULE_SMOKE_02"])))
+vape = {"class_name": "vaping", "confidence": 0.9, "bbox": [50, 380, 70, 420]}
+results.append(check("Vaping: a vaper for 2 s fires", len(run([[vape]] * 20, rules=["RULE_SMOKE_02"])) == 1))
+_off = {**PLUGIN, "rules": [{**r, "enabled": False} for r in PLUGIN["rules"] if r["rule_id"] == "RULE_SMOKE_02"]}
+_engine = RuleEngine({PLUGIN["plugin_id"]: _off})
+_fired = [i for i in range(20) for _ in _engine.process({"timestamp": (T0 + timedelta(seconds=i / 2)).isoformat(),
+          "camera_id": "cam_01", "frame_id": i, "plugin_id": PLUGIN["plugin_id"], "detections": [vape]})]
+results.append(check("Disabled rule never fires", _fired == []))
 
 # --- presence (smoking) ---
 SMOKER = {"class_name": "smoking", "confidence": 0.8, "bbox": [280, 100, 420, 240]}   # head and upper body

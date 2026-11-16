@@ -31,14 +31,15 @@
     },
     "extra_models": [
       {
-        "model": "smoking_act.pt",
+        "model": "smoking_act3.pt",
         "crop_from": "Person",
         "crop": 384,
         "imgsz": 320,
         "every_n_frames": 3,
         "default_confidence": 0.5,
         "classes": {
-          "smoking": {}
+          "smoking": {},
+          "vaping": {}
         }
       },
       {
@@ -285,11 +286,10 @@
       "rule_id": "RULE_SMOKE_02",
       "name": "Vaping",
       "type": "presence",
-      "enabled": false,
-      "requires": "A detection model trained to recognise vapes",
-      "description": "Vaping on site (vape visible)",
+      "enabled": true,
+      "description": "Vaping on site (the vape seen at the mouth)",
       "subject_classes": [
-        "vape"
+        "vaping"
       ],
       "min_duration_s": 2,
       "event_type": "VAPING",
@@ -483,7 +483,8 @@
         }
       },
       "classes": {
-        "lying": "شخص مستلقٍ"
+        "lying": "شخص مستلقٍ",
+        "vaping": "تدخين سيجارة إلكترونية"
       }
     }
   }
