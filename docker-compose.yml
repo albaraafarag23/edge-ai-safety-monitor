@@ -68,6 +68,11 @@ services:
       # live view: pictures a second, and their JPEG quality (lighter = smoother over a slow upload line)
       LIVE_FPS: ${LIVE_FPS:-}
       LIVE_QUALITY: ${LIVE_QUALITY:-}
+      # v4l2 controls set each time the camera opens. exposure_dynamic_framerate=0 stops the camera halving its
+      # frame rate in dim light (the picture gets darker instead); empty = the detector's default (50 Hz only)
+      CAMERA_CONTROLS: ${CAMERA_CONTROLS:-}
+      # frames a second asked of a USB camera (30; 60 when a sharp 1080p picture loses frames, jetson/README.md)
+      CAMERA_FPS: ${CAMERA_FPS:-}
       CAMERA_ID: cam_01
       CAMERA_LOCATION: ${CAMERA_LOCATION:-Main site}
       PLUGIN_ID: ${PLUGIN_ID:-construction_safety}

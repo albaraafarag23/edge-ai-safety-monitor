@@ -104,3 +104,20 @@ the over-current protection within minutes (31 events), and so did a GPU floor o
 A floor of **714 MHz** (`sudo bash jetson/gpu-clock.sh 714`, also at boot) gives 9.9 ms per frame, 28–32 fps
 (camera 33) and no over-current events. `CV_PROFILE=1` in `.env` prints fps and ms per stage every 10 s.
 `jetson/harden.sh`: SSH keys only, firewall (ufw), rpcbind off, and this GPU floor.
+
+## Camera frame rate drops when the picture is sharp (CAMERA_FPS=60)
+Found 2026-11-16, after the lens was focused. A sharp 1080p picture from the Arducam is a JPEG of about
+210 KB (it was 60-100 KB while the lens was out of focus). In the camera's 30 frames a second mode nearly half
+of such frames arrive cut off over USB; OpenCV drops them, so the detector got only 17-19 a second, whatever
+else was changed (live view rate, face recognition on the GPU, capture buffers, the camera's
+`exposure_dynamic_framerate`: none of them mattered). `v4l2-ctl --stream-mmap` still counts ~33 a second,
+because it doesn't check the frames, so it hides the problem.
+
+Fix: `CAMERA_FPS=60` in `.env`. The 60 mode sends the same picture with more USB bandwidth, and about 40 good
+frames a second get through: the detector is back at 25-28 handled with a person in view and clips being saved,
+31-34 otherwise. Price: exposure is at most 1/60 s, so the picture is a little darker in dim light.
+Measured alternatives: 1280x720 at 30 gives 32 good frames a second (108 KB each), but the plugin's zone
+polygons are in 1920x1080 pixels and faces get 1.5 times smaller.
+
+Check for it: `CV_PROFILE=1` prints "camera cam_01 N fps"; well under 30 with a healthy camera means frames are
+being lost before the detector sees them.

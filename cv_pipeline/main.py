@@ -39,7 +39,11 @@ CAMERAS_FILE = os.getenv("CAMERAS_FILE", "/config/cameras.json")
 SOURCE = os.getenv("SOURCE", "0")
 CAMERA_SIZE = os.getenv("CAMERA_SIZE", "1920x1080")
 CAMERA_DECODE = os.getenv("CAMERA_DECODE", "half")   # see camera.py
-CAMERA_CONTROLS = os.getenv("CAMERA_CONTROLS", "power_line_frequency=1")   # 50 Hz mains
+CAMERA_CONTROLS = os.getenv("CAMERA_CONTROLS") or "power_line_frequency=1"
+# Frames a second asked of a USB camera. A sharp 1080p picture is a large JPEG, and in the 30 mode this camera
+# sends nearly half of them cut off (17 good ones a second on the Jetson); its 60 mode gets ~40 through, at the
+# price of a darker picture in dim light (jetson/README.md).
+CAMERA_FPS = int(os.getenv("CAMERA_FPS") or 30)   # 50 Hz mains
 CAMERA_ID = os.getenv("CAMERA_ID", "cam_01")
 CAMERA_LOCATION = os.getenv("CAMERA_LOCATION") or None  # shown in the dashboard, e.g. "North gate"
 PLUGIN_ID = os.getenv("PLUGIN_ID", "construction_safety")
@@ -87,7 +91,7 @@ def utc_now() -> str:
 def camera_settings() -> list[dict]:
     """The cameras to run: [{"id", "source", "location", "size", "decode", "controls"}, ...]."""
     default = {"id": CAMERA_ID, "source": SOURCE, "location": CAMERA_LOCATION, "size": CAMERA_SIZE,
-               "decode": CAMERA_DECODE, "controls": CAMERA_CONTROLS}
+               "decode": CAMERA_DECODE, "controls": CAMERA_CONTROLS, "fps": CAMERA_FPS}
     if not os.path.isfile(CAMERAS_FILE):
         cameras = [default]
     else:
@@ -316,7 +320,8 @@ def run_live_mode(r: redis.Redis, plugin: dict, units: list[Unit], settings: lis
 
     new_frame = threading.Event()   # set by any camera: one loop waits on all of them
     for unit, c in zip(units, settings):
-        unit.camera = Camera(c["source"], c["size"], decode=c["decode"], controls=c["controls"] or "", wake=new_frame)
+        unit.camera = Camera(c["source"], c["size"], fps=int(c.get("fps") or CAMERA_FPS), decode=c["decode"],
+                             controls=c["controls"] or "", wake=new_frame)
         unit.live.set_model(model_name)
     print(f"[CV] LIVE MODE — cameras={[(u.camera_id, u.camera.name) for u in units]}  "
           f"models={[m.model_path for m in cfg.models]}", flush=True)
