@@ -119,6 +119,9 @@ class User(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime)
+    # "portal": the account comes from the SiteSentry portal (portal_link.py keeps it in step and switches it off
+    # when the portal drops it; it signs in from the portal, not with a password). None: made on this box.
+    source: Mapped[str | None] = mapped_column(String)
 
     def to_dict(self) -> dict:
         return {"id": self.id, "email": self.email, "name": self.name, "role": self.role, "active": self.active,
@@ -163,3 +166,18 @@ class SiteSetting(Base):
 
 def iso(dt: datetime | None) -> str | None:
     return dt.isoformat(timespec="seconds") + "Z" if dt else None
+
+
+class BoxLink(Base):
+    """This box's link to the SiteSentry portal (portal_link.py): its own signing key, the portal's key (pinned
+    the first time), and the latest licence. One row."""
+    __tablename__ = "box_link"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    private_pem: Mapped[str] = mapped_column(String)
+    portal_key: Mapped[str | None] = mapped_column(String)
+    licence: Mapped[str | None] = mapped_column(String)
+    status: Mapped[str | None] = mapped_column(String)
+    site: Mapped[str | None] = mapped_column(String)
+    company: Mapped[str | None] = mapped_column(String)
+    last_contact: Mapped[datetime | None] = mapped_column(DateTime)

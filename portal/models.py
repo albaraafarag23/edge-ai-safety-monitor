@@ -12,7 +12,7 @@ made the link is the approver.
 import os
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, Boolean, DateTime, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
+from sqlalchemy import JSON, BigInteger, Boolean, DateTime, ForeignKey, Integer, LargeBinary, String, Text, UniqueConstraint
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -142,6 +142,20 @@ class Box(Base):
     last_checkin: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     health: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    # added for step 3 (boxes connect): add_missing_columns() puts them on an existing table
+    plugins: Mapped[list | None] = mapped_column(JSON)           # rule sets its licence allows (None: none yet)
+    console_url: Mapped[str | None] = mapped_column(String(300))  # where its people sign in (it says so)
+    last_seq: Mapped[int | None] = mapped_column(BigInteger)       # newest signed check-in time (no replays)
+    silent_noted: Mapped[bool | None] = mapped_column(Boolean)     # "went silent" already logged
+
+
+class PortalKey(Base):
+    """The portal's own signing key (Ed25519): licences and one-click sign-in tokens for the boxes. Made on the
+    first start. Boxes pin its public half the first time they register."""
+    __tablename__ = "portal_keys"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    private_pem: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
 class AuditEntry(Base):
@@ -160,6 +174,21 @@ class AuditEntry(Base):
     hash: Mapped[str] = mapped_column(String(64), unique=True)
 
 
+def _add_missing_columns(conn):
+    """create_all makes missing tables but never changes existing ones: add any newer columns (all nullable)."""
+    from sqlalchemy import inspect, text
+    inspector = inspect(conn)
+    for table in Base.metadata.sorted_tables:
+        if not inspector.has_table(table.name):
+            continue
+        have = {c["name"] for c in inspector.get_columns(table.name)}
+        for column in table.columns:
+            if column.name not in have:
+                kind = column.type.compile(dialect=conn.dialect)
+                conn.execute(text(f'ALTER TABLE {table.name} ADD COLUMN "{column.name}" {kind}'))
+
+
 async def create_tables():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_add_missing_columns)

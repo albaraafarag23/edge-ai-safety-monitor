@@ -135,6 +135,10 @@ services:
       AUTH_SECRET: ${AUTH_SECRET:-}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # the SiteSentry portal (docs/portal.md): empty = this box works on its own. BOX_SERIAL: its name there.
+      PORTAL_URL: ${PORTAL_URL:-}
+      BOX_SERIAL: ${BOX_SERIAL:-}
+      PORTAL_CHECKIN_S: ${PORTAL_CHECKIN_S:-60}
       # the shared read-only account for visitors; both empty = there is none (backend/auth.py ensure_demo)
       DEMO_EMAIL: ${DEMO_EMAIL:-}
       DEMO_PASSWORD: ${DEMO_PASSWORD:-}
@@ -243,6 +247,8 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
       PLUGIN_KEYS_DIR: /keys
+      # true: a drive's rules run only if this box's portal licence names them (docs/portal.md)
+      LICENCE_REQUIRED: ${LICENCE_REQUIRED:-false}
     volumes:
       - plugin_slot:/plugin_slot
       - ./config/plugin_keys:/keys:ro

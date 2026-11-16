@@ -4,6 +4,7 @@ Run locally:  uvicorn main:app --port 8010   (SQLite in ./portal.db unless DATAB
 The screens are the frontend's portal build (frontend: npm run build:portal), served from PORTAL_UI_DIR.
 API under /api. Boxes connect in step 3 (docs/portal.md).
 """
+import asyncio
 import os
 import re
 import secrets
@@ -19,6 +20,7 @@ from sqlalchemy import func, select, update
 from webauthn.helpers import generate_user_handle
 
 import audit
+import boxes as box_link
 import mailer
 import security as sec
 from models import (AuditEntry, Box, Company, Device, Invite, Site, User, UserSite, SessionLocal, create_tables,
@@ -34,7 +36,10 @@ BOX_SILENT_MIN = 10
 async def lifespan(app: FastAPI):
     await create_tables()
     await bootstrap_overseer()
+    await box_link.portal_key()
+    watcher = asyncio.create_task(box_link.watch_boxes())
     yield
+    watcher.cancel()
 
 
 app = FastAPI(title="SiteSentry portal", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
@@ -76,7 +81,7 @@ def box_dict(b: Box) -> dict:
     last = aware(b.last_checkin)
     silent = b.status == "approved" and (not last or last < now() - timedelta(minutes=BOX_SILENT_MIN))
     return {"id": b.id, "serial": b.serial, "site_id": b.site_id, "status": b.status, "last_checkin": last,
-            "silent": silent, "health": b.health or {}}
+            "silent": silent, "health": b.health or {}, "plugins": b.plugins or [], "connected": bool(b.console_url)}
 
 
 def label_from(request: Request, given: str | None) -> str:
@@ -634,6 +639,8 @@ async def audit_log(limit: int = 100, me: Signed = Depends(roles("overseer", "ma
 
 
 app.include_router(api)
+app.include_router(box_link.router, dependencies=[Depends(sec.same_origin)])
+app.include_router(box_link.box_api)   # boxes sign each request with their own key instead
 
 
 # ---------- the screens (frontend portal build) ----------

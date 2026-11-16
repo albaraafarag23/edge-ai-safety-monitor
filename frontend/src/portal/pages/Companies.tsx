@@ -1,10 +1,11 @@
 /** Companies (overseer) and one company: its sites, its people and their devices, invite links. */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, Plus } from "lucide-react";
+import { Check, Copy, ExternalLink, Plus } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { bilingual, useText } from "../../lib/i18n";
-import { cancelledByBrowser, get, send, type CompanyDetail, type CompanyPerson, type CompanySummary, type Role } from "../api";
+import { cancelledByBrowser, get, send, type BoxHealth, type CompanyDetail, type CompanyPerson, type CompanySummary, type Role, type RuleSet } from "../api";
+import { BOX_TEXT, healthLine } from "./Boxes";
 import { BTN, BTN_LINE, Dot, FIELD, Header, Panel, problem, useLocale, useMe, when, WORDS } from "../shell";
 
 const TEXT = bilingual(
@@ -27,6 +28,8 @@ const TEXT = bilingual(
     noSites: "No sites yet.",
     box: (serial: string) => `Box ${serial}`,
     noBox: "No box connected yet",
+    silent: "silent",
+    openConsole: "Open console",
     peopleTitle: "People and their devices",
     peopleNote: "Managers' devices are approved by SiteSentry; managers approve their own staff.",
     addPerson: "Add a person",
@@ -76,6 +79,8 @@ const TEXT = bilingual(
     noSites: "لا توجد مواقع بعد.",
     box: (serial: string) => `الجهاز ${serial}`,
     noBox: "لم يتصل جهاز بعد",
+    silent: "صامت",
+    openConsole: "فتح لوحة التحكم",
     peopleTitle: "الأشخاص وأجهزتهم",
     peopleNote: "توافق SiteSentry على أجهزة المديرين، ويوافق المديرون على أجهزة موظفيهم.",
     addPerson: "إضافة شخص",
@@ -208,6 +213,9 @@ export function Company() {
   const [person, setPerson] = useState({ email: "", name: "", role: "supervisor" as Role, site_ids: [] as number[] });
   const [link, setLink] = useState<{ name: string; link: string; emailed: boolean } | null>(null);
 
+  const sets = useQuery({ queryKey: ["rule-sets"], queryFn: () => get<RuleSet[]>("/rule-sets"), staleTime: Infinity });
+  const boxWords = useText(BOX_TEXT);
+  const ruleNames = Object.fromEntries((sets.data ?? []).map((r) => [r.id, r.name]));
   const c = company.data;
   const role = me.data?.role;
   if (!c) return <div aria-busy="true" className="min-h-[40vh]" />;
@@ -223,6 +231,10 @@ export function Company() {
       setPerson({ email: "", name: "", role: "supervisor", site_ids: [] });
       close();
     }
+  };
+  const openConsole = async (siteId: number) => {
+    const made = await run(() => send<{ url: string }>(`/sites/${siteId}/console`));
+    if (made) window.location.assign(made.url);
   };
   const reinvite = async (p: CompanyPerson) => {
     const made = await run(() => send<{ invite_link: string; emailed: boolean }>(`/people/${p.id}/invite`));
@@ -263,8 +275,17 @@ export function Company() {
               <li key={s.id} className="flex flex-col gap-1 rounded-xl border border-[#e4ddd0] p-4">
                 <span className="font-semibold"><bdi>{s.name}</bdi>{s.city ? <span className="font-normal text-[#6b6355]"> · {s.city}</span> : null}</span>
                 <span className="flex items-center gap-2 text-[13px] text-[#4a4439]">
-                  <Dot tone={!box ? "off" : box.silent ? "bad" : "good"} />{box ? t.box(box.serial) : t.noBox}
+                  <Dot tone={!box ? "off" : box.silent ? "bad" : "good"} />
+                  {box ? <>{t.box(box.serial)}{box.silent ? ` · ${t.silent}` : ""}</> : t.noBox}
                 </span>
+                {box && box.last_checkin && (
+                  <span className="text-[13px] text-[#4a4439]">{healthLine(box.health as BoxHealth, boxWords, ruleNames)}</span>
+                )}
+                {role !== "overseer" && box?.connected && (
+                  <button type="button" className={`${BTN} mt-2 self-start`} onClick={() => openConsole(s.id)}>
+                    <ExternalLink className="h-4 w-4" aria-hidden="true" /> {t.openConsole}
+                  </button>
+                )}
               </li>
             );
           })}

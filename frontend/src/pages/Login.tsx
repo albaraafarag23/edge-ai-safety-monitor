@@ -1,5 +1,5 @@
 import { ArrowLeft, BellRing, Camera, Eye, EyeOff, FileText, Loader2 } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { LogoMark, PRODUCT_NAME } from "../components/Brand";
@@ -26,6 +26,8 @@ const TEXT = bilingual(
     hidePassword: "Hide password",
     submit: "Sign in",
     forgot: "Forgot your password? Ask your site manager to reset it.",
+    viaPortal: "Sign in through the SiteSentry portal",
+    portalFailed: "That sign-in link from the portal didn't work (it lasts one minute and works once). Open the console from the portal again.",
     wrong: "Incorrect email or password.",
     tooMany: null as string | null, // the server's own message
     unreachable: "Can't reach the server. Check that the backend is running.",
@@ -48,6 +50,8 @@ const TEXT = bilingual(
     hidePassword: "إخفاء كلمة المرور",
     submit: "دخول",
     forgot: "نسيت كلمة المرور؟ اطلب من مدير الموقع إعادة تعيينها.",
+    viaPortal: "الدخول عبر بوابة SiteSentry",
+    portalFailed: "لم ينجح رابط الدخول من البوابة (يعمل مرة واحدة خلال دقيقة). افتح لوحة التحكم من البوابة مرة أخرى.",
     wrong: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
     tooMany: "محاولات كثيرة لتسجيل الدخول. انتظر بضع دقائق ثم حاول مرة أخرى.",
     unreachable: "تعذّر الوصول إلى الخادم. تأكد من أن الخادم يعمل.",
@@ -82,7 +86,13 @@ export function Login() {
   const [show, setShow] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [portalUrl, setPortalUrl] = useState<string | null>(null);
   const t = useText(TEXT);
+  useEffect(() => {
+    // a box linked to the SiteSentry portal: its people sign in there (backend/portal_link.py)
+    fetch("/api/auth/options").then((r) => (r.ok ? r.json() : null)).then((o) => setPortalUrl(o?.portal_url ?? null))
+      .catch(() => setPortalUrl(null));
+  }, []);
 
   if (user) return <Navigate to={next} replace />;
 
@@ -207,6 +217,14 @@ export function Login() {
               {t.submit}
             </button>
           </form>
+          {portalUrl && (
+            <a href={portalUrl} className="mt-4 block rounded-lg border border-slate-300 px-4 py-2.5 text-center text-sm font-semibold text-slate-800 hover:bg-slate-50">
+              {t.viaPortal}
+            </a>
+          )}
+          {params.get("portal") === "failed" && (
+            <p role="alert" className="mt-4 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">{t.portalFailed}</p>
+          )}
           <p className="mt-6 text-center text-xs text-slate-400">
             {t.forgot}
           </p>

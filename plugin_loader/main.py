@@ -30,6 +30,13 @@ SYS_BLOCK = Path("/sys/block")
 # Tests only: a folder that stands in for a plugged-in drive (its serial is DRIVE_TEST_SERIAL). Never set on a box.
 TEST_DIR = os.getenv("DRIVE_TEST_DIR")
 TEST_SERIAL = os.getenv("DRIVE_TEST_SERIAL", "")
+# Lock 2 (docs/portal.md): with LICENCE_REQUIRED=true a drive's rule set runs only if the portal's licence for this
+# box names it and hasn't run out (7 days after the box last reached the portal). The backend checks the portal's
+# signature and keeps the licence in Redis (LICENCE_KEY).
+LICENCE_REQUIRED = os.getenv("LICENCE_REQUIRED", "").lower() == "true"
+LICENCE_KEY = "site:licence"
+LICENCE_RETRY_S = 30
+LICENCE_REASONS = {"no_licence", "licence_expired", "not_licensed"}
 
 
 def now() -> str:
@@ -140,12 +147,32 @@ class Announcer:
             print(f"[Loader] Redis not reachable ({e}), will say it again", flush=True)
 
 
+def licence_problem(r, plugin_id: str) -> str | None:
+    """Why the licence doesn't allow this rule set right now (None: it does, or no licence is needed)."""
+    if not LICENCE_REQUIRED:
+        return None
+    try:
+        licence = json.loads(r.get(LICENCE_KEY) or "null")
+    except (redis.exceptions.RedisError, ValueError):
+        licence = None
+    if not isinstance(licence, dict):
+        return "no_licence"
+    if float(licence.get("valid_until") or 0) < time.time():
+        return "licence_expired"
+    if plugin_id not in (licence.get("plugins") or []):
+        return "not_licensed"
+    return None
+
+
 def take(drive: dict, source: Path, keys, announce: Announcer) -> bool:
     """Checks and installs the rule set at `source`. True when it is now live."""
     about = {"drive": {"label": drive.get("label", ""), "serial_end": drive["serial"][-4:]}}
     announce.say("loading", **about)
     try:
         manifest, plugin = pack.verify(source, drive["serial"], keys)
+        problem = licence_problem(announce.r, manifest["plugin_id"])
+        if problem:
+            raise pack.Refused(problem, manifest["plugin_id"])
         fill_slot(source, manifest)
     except pack.Refused as e:
         clear_slot()
@@ -174,6 +201,8 @@ def main():
     clear_slot()       # whatever was live before a restart is checked again from the drive
     announce.say("none")
     current = None     # the partition whose rule set is live, or was refused: don't look at it again until it goes
+    live = None        # plugin_id running from it, if any
+    retry_at = 0.0     # refused for the licence only: try the drive again from this time (licences can arrive)
     ignored = set()    # drives with no rule set on them (someone's own stick): not mounted again while they stay in
     while True:
         drives = present()
@@ -182,7 +211,15 @@ def main():
         if current and current not in devices:
             clear_slot()
             announce.say("none")
-            current = None
+            current, live = None, None
+        elif current and live and licence_problem(announce.r, live):   # the licence ran out while it was in
+            clear_slot()
+            announce.say("refused", reason=licence_problem(announce.r, live), detail=live)
+            current, live, retry_at = None, None, time.time() + LICENCE_RETRY_S
+        if current is None and time.time() < retry_at:
+            announce.repeat()
+            time.sleep(POLL_S)
+            continue
         if current is None:
             for drive in drives:
                 if drive["device"] in ignored:
@@ -196,8 +233,12 @@ def main():
                     continue
                 try:
                     if source.is_dir():   # a drive without a rule set on it is none of our business
-                        take(drive, source, pack.load_public_keys(KEYS_DIR), announce)
-                        current = drive["device"]
+                        if take(drive, source, pack.load_public_keys(KEYS_DIR), announce):
+                            current, live = drive["device"], json.loads(announce.value).get("plugin_id")
+                        elif json.loads(announce.value).get("reason") in LICENCE_REASONS:
+                            retry_at = time.time() + LICENCE_RETRY_S   # not "current": try again later
+                        else:
+                            current = drive["device"]
                     else:
                         ignored.add(drive["device"])
                 finally:

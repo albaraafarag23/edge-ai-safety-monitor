@@ -8,7 +8,8 @@ import "../index.css";
 import { Shell } from "./shell";
 import { Companies, Company } from "./pages/Companies";
 import { Approvals, MyDevices } from "./pages/Devices";
-import { Boxes, Home, SecurityLog } from "./pages/Home";
+import { Boxes } from "./pages/Boxes";
+import { Home, SecurityLog } from "./pages/Home";
 import { AcceptInvite, NewDevice, SignIn } from "./pages/SignIn";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 15_000, refetchOnWindowFocus: true } } });

@@ -65,7 +65,38 @@ Recovery (every overseer device lost): Render > the service > Shell, `python man
 (Shell needs a paid plan; on the free plan, remove every overseer device in the database's Neon console or set
 `OVERSEER_EMAIL` to a new address and redeploy: a setup link is printed whenever the overseer has no approved device).
 
-## Not yet (step 3 and later)
+## Boxes (Lock 2) and one-click sign-in
 
-Boxes registering and checking in (health every minute, approval, licence for rule drives), one-click sign-in from
-the portal to a site's box, alerts for silent boxes, Arabic security-log sentences (the log is written in English).
+A box links itself once `PORTAL_URL` is set in its `.env` (its name there: `BOX_SERIAL`, default the computer's
+name). Code: `backend/portal_link.py` (box) and `portal/boxes.py` (portal).
+
+- **Keys.** The box makes its own Ed25519 key on first start (database table `box_link`) and signs every request
+  (`X-Box-Serial`, `X-Box-Time`, `X-Box-Signature` over method, path, time and body hash). The portal has its own
+  key (table `portal_keys`); the box pins it the first time it registers and ignores any answer signed by another.
+  A second box claiming a known serial with another key is refused and the overseer is emailed.
+  (Reinstalling the portal with a new database = a new key: clear `box_link` on each box so it registers again.)
+- **Joining.** A new box appears on the overseer's home as "New box asking to join". The overseer assigns it to a
+  site and ticks the rule sets its licence allows (passkey again). Until then it gets no people and no licence.
+- **Every minute** (`PORTAL_CHECKIN_S`) the box checks in with health only: each camera's frames per second, the
+  rule set running, disk use, version. Never pictures, incidents or names. The answer brings:
+  - the site's people (the company's managers, plus supervisors and viewers linked to this site). They become
+    accounts on the box (`users.source = 'portal'`) without a usable password; people the portal drops are
+    switched off. Accounts made on the box itself are never touched.
+  - a licence signed by the portal: `{serial, plugins, issued, valid_until = +7 days}`, kept in Redis
+    (`site:licence`) for the drive loader.
+- **Licence.** With `LICENCE_REQUIRED=true` (plugin_loader), a rule drive only runs if the licence names its rule
+  set and hasn't run out; otherwise the console says why (no licence / not licensed / ran out). A box that can't
+  reach the portal keeps its rules for 7 days from its last good check-in. Fixed mode (`PLUGIN_SOURCE=fixed`, the
+  graduation Jetson) doesn't check licences.
+- **Silent boxes.** 10 minutes without a check-in: logged, and the overseer and that company's managers are
+  emailed (once, until it's back).
+- **Open console.** Managers, supervisors and viewers see "Open console" next to their site. The portal signs a
+  token for that box only (60 s, one use) and the box's `/auth/portal` signs them in. The overseer has no such
+  button and the portal refuses them: footage stays with the client. The console's own sign-in page offers
+  "Sign in through the SiteSentry portal" when the box is linked.
+
+## Not yet
+
+Closing the public console door (only once every client signs in through the portal), the passkey again on the
+box console before risky changes, Arabic security-log sentences (the log is written in English), portal email
+(needs its Gmail app password).

@@ -26,6 +26,9 @@ echo "plugin_source.py: 4 copies identical"
 step "Person tracker tests"
 (cd cv_pipeline && python3 test_tracker.py | tail -1)
 
+step "Posture tests (person down, sleeping) + every plugin loads in test mode"
+(cd cv_pipeline && python3 test_posture.py | tail -1)
+
 step "Portal tests (passkeys, approvals, roles, security log)"
 # PORTAL_PYTHON: a Python with portal/requirements.txt + pytest + httpx (else a throwaway venv is made once)
 PORTAL_PY=${PORTAL_PYTHON:-}

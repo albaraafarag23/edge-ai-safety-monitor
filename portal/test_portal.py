@@ -26,7 +26,8 @@ from webauthn.helpers import encode_cbor  # noqa: E402
 import audit  # noqa: E402
 import mailer  # noqa: E402
 import main  # noqa: E402
-from models import AuditEntry, SessionLocal, User, create_tables  # noqa: E402
+from datetime import timedelta  # noqa: E402
+from models import AuditEntry, SessionLocal, User, create_tables, now  # noqa: E402
 
 ORIGIN = "http://localhost:8010"
 RP_HASH = hashlib.sha256(b"localhost").digest()
@@ -259,5 +260,129 @@ def test_whole_flow(loop):
             entry.summary = "nothing happened"
             await s.commit()
         assert (await audit.verify()) == {"ok": False, "entries": log["chain"]["entries"], "broken_at": 2}
+
+    run(loop, flow())
+
+
+class SoftBox:
+    """A box: its own Ed25519 key, signing requests like backend/portal_link.py."""
+    def __init__(self, serial):
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        from cryptography.hazmat.primitives import serialization
+        self.serial, self.key = serial, Ed25519PrivateKey.generate()
+        self.public = b64(self.key.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw))
+        self.client = httpx.AsyncClient(transport=httpx.ASGITransport(app=main.app), base_url=ORIGIN)
+
+    async def post(self, path, payload, ts=None, key=None):
+        import time as _t
+        body = json.dumps(payload).encode()
+        ts = str(ts or int(_t.time() * 1000))
+        msg = f"POST {path}\n{ts}\n{hashlib.sha256(body).hexdigest()}".encode()
+        return await self.client.post(path, content=body, headers={
+            "Content-Type": "application/json", "X-Box-Serial": self.serial, "X-Box-Time": ts,
+            "X-Box-Signature": b64((key or self.key).sign(msg))})
+
+
+def read_signed(token, portal_key):
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    body, sig = token.split(".")
+    Ed25519PublicKey.from_public_bytes(unb64(portal_key)).verify(unb64(sig), body.encode())
+    return json.loads(unb64(body))
+
+
+def test_boxes(loop):
+    async def flow():
+        import boxes as box_link
+        from sqlalchemy import update
+        from models import Box, Session as S
+        # an overseer and a company with a site, a manager and a supervisor elsewhere
+        async with SessionLocal() as s:
+            from sqlalchemy import select
+            from webauthn.helpers import generate_user_handle
+            boss = User(email="boss2@example.com", name="Boss", role="overseer", handle=generate_user_handle())
+            s.add(boss)
+            await s.commit()
+        o, okey = browser(), SoftKey()
+        assert (await accept(o, await main.new_invite(boss, None), okey)).status_code == 200
+        company = (await o.post("/api/companies", json={"name": "Delta Build"})).json()["id"]
+        site = (await o.post(f"/api/companies/{company}/sites", json={"name": "Main site"})).json()
+        other_site = (await o.post(f"/api/companies/{company}/sites", json={"name": "Other site"})).json()
+        mgr = (await o.post(f"/api/companies/{company}/people", json={"email": "mona@delta.example", "name": "Mona",
+                                                                       "role": "manager"})).json()
+        sup = (await o.post(f"/api/companies/{company}/people", json={"email": "sami@delta.example", "name": "Sami",
+                                                                       "role": "supervisor", "site_ids": [other_site["id"]]})).json()
+
+        # a box introduces itself: waits for the overseer, and gets the portal's key to pin
+        box = SoftBox("JETSON-0042")
+        hello = {"serial": box.serial, "public_key": box.public, "console_url": "https://box42.example", "version": "1.4"}
+        r = await box.post("/api/box/register", hello)
+        assert r.status_code == 200 and r.json()["status"] == "waiting", r.text
+        portal_key = r.json()["portal_key"]
+        overview = (await o.get("/api/overview")).json()
+        assert [b["serial"] for b in overview["boxes_waiting"]] == ["JETSON-0042"]
+        # someone else claiming the same serial with another key is refused and logged
+        impostor = SoftBox("JETSON-0042")
+        r = await impostor.post("/api/box/register", {**hello, "public_key": impostor.public})
+        assert r.status_code == 409
+        # a check-in signed with the wrong key, or replayed, or with a bad clock, is refused
+        assert (await box.post("/api/box/checkin", {"health": {}}, key=impostor.key)).status_code == 401
+        assert (await box.post("/api/box/checkin", {"health": {}}, ts=1000)).status_code == 401
+        r = await box.post("/api/box/checkin", {"health": {"cameras": [{"id": "cam_01", "fps": 30}]}})
+        assert r.status_code == 200 and r.json()["people"] == [] and r.json()["licence"] is None, r.text
+
+        # the overseer assigns it, with a licence for one rule set (the passkey again, after 5 minutes)
+        async with SessionLocal() as s:
+            await s.execute(update(S).values(verified_at=now() - timedelta(minutes=10)))
+            await s.commit()
+        boxes_list = (await o.get("/api/boxes")).json()
+        bid = [b for b in boxes_list if b["serial"] == "JETSON-0042"][0]["id"]
+        r = await o.post(f"/api/boxes/{bid}/assign", json={"site_id": site["id"], "plugins": ["construction_safety"]})
+        assert r.status_code == 428
+        await step_up(o, okey)
+        assert (await o.post(f"/api/boxes/{bid}/assign", json={"site_id": site["id"], "plugins": ["nonsense"]})).status_code == 422
+        r = await o.post(f"/api/boxes/{bid}/assign", json={"site_id": site["id"], "plugins": ["construction_safety"]})
+        assert r.status_code == 200, r.text
+
+        # now the check-in brings the site's people and a signed licence for this box
+        r = (await box.post("/api/box/checkin", {"console_url": "https://box42.example", "health": {}})).json()
+        assert r["site"] == "Main site" and r["company"] == "Delta Build"
+        assert [p["email"] for p in r["people"]] == ["mona@delta.example"]   # Sami works on the other site
+        licence = read_signed(r["licence"], portal_key)
+        assert licence["serial"] == "JETSON-0042" and licence["plugins"] == ["construction_safety"]
+        assert licence["valid_until"] - licence["issued"] == 7 * 86400
+
+        # one-click sign-in: the manager gets a token for this box; the overseer and an outsider don't
+        m = browser()
+        assert (await accept(m, mgr["invite_link"], SoftKey())).status_code == 200
+        r = await m.post(f"/api/sites/{site['id']}/console")
+        assert r.status_code == 200, r.text
+        url = r.json()["url"]
+        assert url.startswith("https://box42.example/api/auth/portal?token=")
+        token = read_signed(url.split("token=")[1], portal_key)
+        assert token["aud"] == "JETSON-0042" and token["sub"] == "mona@delta.example" and token["role"] == "manager"
+        assert (await o.post(f"/api/sites/{site['id']}/console")).status_code == 403
+        s2 = browser()
+        assert (await accept(s2, sup["invite_link"], SoftKey())).status_code == 200
+        assert (await s2.post(f"/api/sites/{site['id']}/console")).status_code == 403
+
+        # silence: 10 minutes without a check-in -> noted once, logged, emailed; back again -> logged
+        async with SessionLocal() as s:
+            await s.execute(update(Box).where(Box.id == bid).values(last_checkin=now() - timedelta(minutes=11)))
+            await s.commit()
+        SENT.clear()
+        await box_link.note_silent_boxes()
+        await box_link.note_silent_boxes()
+        assert sum("silent" in x[1] for x in SENT) == 2   # the overseer and the manager, once
+        assert [b["serial"] for b in (await o.get("/api/overview")).json()["silent"]] == ["JETSON-0042"]
+        assert (await box.post("/api/box/checkin", {"health": {}})).status_code == 200
+        log = (await o.get("/api/audit")).json()
+        actions = [e["action"] for e in log["entries"]]
+        for a in ("box_waiting", "box_key_mismatch", "box_assigned", "console_opened", "box_silent", "box_back"):
+            assert a in actions, a
+
+        # blocking: the box keeps checking in but gets nothing
+        await o.patch(f"/api/boxes/{bid}", json={"status": "blocked"})
+        r = (await box.post("/api/box/checkin", {"health": {}})).json()
+        assert r["status"] == "blocked" and r["people"] == [] and r["licence"] is None
 
     run(loop, flow())

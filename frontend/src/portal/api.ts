@@ -45,6 +45,25 @@ export interface Box {
   site?: string | null;
   company?: string | null;
   company_id?: number | null;
+  plugins: string[];
+  connected: boolean;
+}
+export interface BoxHealth {
+  cameras?: { id: string; fps: number; updated_at?: string }[];
+  rules?: string | null;
+  rules_state?: string | null;
+  disk_used_pct?: number | null;
+  version?: string | null;
+}
+export interface SiteRef {
+  id: number;
+  name: string;
+  company_id: number;
+  company: string;
+}
+export interface RuleSet {
+  id: string;
+  name: string;
 }
 export interface CompanySummary {
   id: number;
