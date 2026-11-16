@@ -291,7 +291,12 @@ async def list_incidents(
     if person_id:
         filters.append(Incident.meta["people"].contains([{"person_id": person_id}]))
     if violator_id:
-        filters.append(Incident.meta["violators"].contains([{"person_id": violator_id}]))
+        # the incidents the tally counted for this person (each long violation once, contracts v2.10)
+        filters.append(text("""EXISTS (SELECT 1 FROM jsonb_array_elements(
+            CASE WHEN jsonb_typeof(incidents.metadata->'violators') = 'array' THEN incidents.metadata->'violators'
+                 ELSE '[]'::jsonb END) v
+            WHERE v->>'person_id' = :violator_id AND coalesce(v->>'counted', 'true') = 'true')""")
+                       .bindparams(violator_id=violator_id))
 
     async def compute():
         async with SessionLocal() as session:

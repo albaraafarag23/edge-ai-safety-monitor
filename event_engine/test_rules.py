@@ -267,6 +267,30 @@ eng.settings[PLUGIN["plugin_id"]] = {"RULE_PPE_02": {"enabled": False}}
 eng.process({**frame, "detections": [named, NO_HARDHAT]})
 results.append(check("Live label: a rule switched off in the console isn't shown",
                      eng.missing_now["cam_01"] == {"4": ["hard_hat"]}, f"{eng.missing_now}"))
+# --- a long violation counts once in the tally ---
+def tally_run(frames, start=0.0):
+    e = RuleEngine({PLUGIN["plugin_id"]: dict(PLUGIN, rules=[r for r in PLUGIN["rules"] if r["rule_id"] == "RULE_PPE_01"])})
+    out = []
+    for i, objs in enumerate(frames):
+        out += e.process({"timestamp": (T0 + timedelta(seconds=start + i / 2)).isoformat(), "camera_id": "cam_01",
+                          "frame_id": i, "plugin_id": PLUGIN["plugin_id"], "detections": objs})
+    return e, out
+def counted(incs):
+    return [v["counted"] for i in incs for v in i["metadata"]["violators"]]
+e, f = tally_run([[named, NO_HARDHAT, VEST]] * 120)   # one minute without a hard hat: the rule fires every 10 s
+results.append(check("Tally: a one-minute violation fires several incidents but is counted once",
+                     len(f) >= 5 and counted(f) == [True] + [False] * (len(f) - 1), f"{counted(f)}"))
+gap = [[named, HARDHAT, VEST]] * 20                     # ten seconds with the hat on, then off again
+e, f = tally_run([[named, NO_HARDHAT, VEST]] * 12 + gap + [[named, NO_HARDHAT, VEST]] * 30)
+results.append(check("Tally: putting the hat on for a moment doesn't make it a second violation",
+                     counted(f).count(True) == 1, f"{counted(f)}"))
+e, f = tally_run([[named, NO_HARDHAT, VEST]] * 12)
+f2 = []
+for i in range(12):                                     # the same person again, six minutes later
+    f2 += e.process({"timestamp": (T0 + timedelta(seconds=366 + i / 2)).isoformat(), "camera_id": "cam_01",
+                     "frame_id": 100 + i, "plugin_id": PLUGIN["plugin_id"], "detections": [named, NO_HARDHAT, VEST]})
+results.append(check("Tally: after five minutes of keeping the rule, a new violation counts again",
+                     counted(f) == [True] and counted(f2) == [True], f"{counted(f)} {counted(f2)}"))
 results.append(check("Engine: a malformed detection raises, so main.py can skip it",
                      _raises(lambda: run([[{"class_name": "Person"}]], rules=["RULE_ZONE_01"]))))
 

@@ -70,6 +70,7 @@ async def _analytics(days: int, tz: str):
                 jsonb_array_elements(CASE WHEN jsonb_typeof(metadata->'violators') = 'array'
                                           THEN metadata->'violators' ELSE '[]'::jsonb END) AS v
             WHERE created_at >= :since AND v->>'person_id' IS NOT NULL
+              AND coalesce(v->>'counted', 'true') = 'true'   -- a long violation is counted once (v2.10)
             GROUP BY v->>'person_id', event_type"""), {"since": since})).all()
 
         # time from detection to the latest status change, for handled incidents

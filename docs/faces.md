@@ -74,6 +74,9 @@ the incidents counted. It counts only when it is sure, so the numbers are minimu
 - the rule is one a single person breaks. Too many people on a scaffold counts nobody, and neither does a rule
   the plugin marks `"personal": false` (a person down).
 
+A violation that goes on is counted once: a rule fires again every 10 s while it lasts, but only the first of
+those incidents counts, until the person has kept the rule for 5 minutes (`TALLY_GAP_S`).
+
 The event engine decides this when the incident fires and stores it as `metadata.violators`
 (`event_engine/rules.py:_violators`, docs/contracts.md). Incidents from before this was added are not counted.
 

@@ -23,6 +23,9 @@ DEFAULT_GRACE_S = 1.0
 DEFAULT_COOLDOWN_S = 10.0
 # a face match at least this strong counts someone in the per-person tally (cv_pipeline/faces.py FACE_STRONG)
 SURE_FACE_SCORE = float(os.getenv("TALLY_MIN_FACE_SCORE", "0.50"))
+# One long violation counts once in the tally: the same person breaking the same rule on the same camera is the
+# same violation until they have kept the rule (or been out of sight) for this long. The incidents still repeat.
+TALLY_GAP_S = float(os.getenv("TALLY_GAP_S", "300"))
 # rule fields the console may change (backend/rule_settings.py validates the values)
 RULE_SETTINGS = {"min_duration_s", "severity", "cooldown_s", "max_count", "active_hours"}
 
@@ -208,6 +211,8 @@ class RuleEngine:
         # camera -> {track_id: that person's box}: the detector falls back on it when a person's track number has
         # just changed (it does when someone is very close to the camera), so the label doesn't flicker off
         self.missing_boxes = {}
+        # (camera, rule_id, person_id) -> {"last": when they were last seen breaking it, "counted": bool}
+        self._episodes = {}
         self.settings = {}      # plugin_id -> {rule_id: {"enabled": bool, <RULE_SETTINGS>...}} from the console
         # plugin_id -> {zone_id: {camera_id: [[x, y], ...]}}: zones drawn in the console for one camera, as
         # fractions of the picture (0-1), so they fit any camera resolution; turned into pixels with each
@@ -259,6 +264,7 @@ class RuleEngine:
                     items = missing_now.setdefault(str(track_id), [])
                     missing_boxes[str(track_id)] = o["bbox"]
                     items.extend(m for m in o["missing_equipment"] if m not in items)
+            self._note_episodes(camera, rule, involved, now)
             duration = self._track((camera, rule["rule_id"]), bool(involved), now,
                                    rule.get("grace_s", DEFAULT_GRACE_S))
             if duration is None or duration < rule.get("min_duration_s", 0):
@@ -268,8 +274,26 @@ class RuleEngine:
             if now - self._last_fired.get(key, float("-inf")) < rule.get("cooldown_s", self.cooldown_s):
                 continue
             self._last_fired[key] = now
-            incidents.append(self._incident(plugin, rule, zone, event, involved, duration))
+            incident = self._incident(plugin, rule, zone, event, involved, duration)
+            for v in incident["metadata"]["violators"]:
+                episode = self._episodes.get((camera, rule["rule_id"], v["person_id"]))
+                # the tally counts this violation only in the first incident of it (docs/contracts.md v2.10)
+                v["counted"] = bool(episode) and not episode["counted"]
+                if episode:
+                    episode["counted"] = True
+            incidents.append(incident)
         return incidents
+
+    def _note_episodes(self, camera: str, rule: dict, involved: list[dict], now: float):
+        """Follows each sure-of person's violation of this rule over time (see TALLY_GAP_S)."""
+        for v in _violators(rule, involved):
+            key = (camera, rule["rule_id"], v["person_id"])
+            episode = self._episodes.get(key)
+            if episode is None or now - episode["last"] > TALLY_GAP_S:
+                self._episodes[key] = episode = {"counted": False}
+            episode["last"] = now
+        if len(self._episodes) > 5000:   # a long-running engine: forget violations that ended long ago
+            self._episodes = {k: e for k, e in self._episodes.items() if now - e["last"] <= TALLY_GAP_S}
 
     def _zone(self, plugin: dict, zone_id: str, camera: str, frame_size) -> dict | None:
         """The zone as this camera sees it, or None if the zone isn't on this camera.
