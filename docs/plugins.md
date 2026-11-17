@@ -111,14 +111,18 @@ types, no code specific to hospitals.
 | `RULE_ZONE_01` | someone in the medication store (`zone`) | in use |
 | `RULE_ZONE_02` | more than 3 people in the isolation room (`zone` with `max_count`) | in use |
 | `RULE_SMOKE_01` | smoking anywhere (`presence`, the same smoking model as construction) | in use |
-| `RULE_GLOVES_01`, `RULE_EYES_01` | gloves, goggles or face shield | listed, switched off: the model misses too many |
+| `RULE_GLOVES_01`, `RULE_EYES_01` | gloves / goggles or face shield required in the isolation room (`ppe`) | in use since 2026-11-17 |
 | `RULE_POSE_01` | patient fall | planned (needs a pose model) |
 
-Model `models/medical_ppe.pt`: YOLO11s at 640 trained on CPPE-5 (`training/build_medical_ppe.py`,
-`training/README.md`). On 134 validation photos it found 96% of gowns, 83% of masks, 70% of face shields, 60% of
-goggles and 58% of gloves; a `ppe` rule fires when the item is *not* found on a person, so only the first two
-are reliable enough to raise alarms. No regulation clauses are attached: SiteSentry Regs holds construction
-codes only. Tests: `event_engine/test_hospital_plugin.py` (16).
+Model `models/medical_ppe.pt`: YOLO11s at 640 trained on CPPE-5 plus the Biosafety PPE set
+(`training/build_medical_ppe3.py`: missing gloves / goggles labels filled in, black-and-white copies of the colour
+photos because every Biosafety photo is black-and-white). A `ppe` rule fires when the item is *not* found on a
+person, so `training/eval_hospital_rules.py` measures it per person: of the people wearing the item, how many the
+model sees it on (163 colour photos / 217 lab photos): gloves 90% / 77%, goggles or face shield 85% / 76%, mask
+91% / 82%, gown 91%. Hence the low thresholds in the plugin (gloves, goggles, face shield 0.15; mask, gown 0.3):
+one sighting is enough. Not measured: people really without gloves or goggles (no photo set labels bare hands).
+The previous model is `models/medical_ppe_v1.pt`. No regulation clauses are attached: SiteSentry Regs holds
+construction codes only. Tests: `event_engine/test_hospital_plugin.py` (19).
 
 Demo on a laptop, as its own copy of the stack (console at http://localhost:3006):
 
