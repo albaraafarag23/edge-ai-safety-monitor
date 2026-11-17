@@ -24,6 +24,9 @@ ws_router = APIRouter(prefix="/cameras", tags=["cameras"])
 # LIVE_WINDOW / round trip: 4 lets all 20 a second through at a 0.2 s round trip (Tailscale Funnel ~0.1-0.2 s),
 # and as only the newest picture is ever sent, at most 4 can queue on a slow link
 LIVE_WINDOW = int(os.getenv("LIVE_WINDOW") or 4)
+# LIVE_STATS_S > 0: every that many seconds log, per viewer, pictures sent per second, the answer round trip and
+# how much of the time the window was full (the viewer's link was the limit). Off by default.
+LIVE_STATS_S = float(os.getenv("LIVE_STATS_S") or 0)
 LIVE_POLL_S = 0.02       # how often the newest picture's time is checked (the detector publishes up to 20 a second)
 LIVE_RECHECK_S = 30      # how often an open live view checks that its session is still valid
 # camera ids as the detector accepts them (cv_pipeline/main.py); anything else can't be a Redis key of ours
@@ -170,12 +173,29 @@ async def live(ws: WebSocket, camera_id: str = CameraId):
     unanswered = 0
     answered = asyncio.Event()
 
+    sent_at: list[float] = []                 # when each unanswered picture went out (for LIVE_STATS_S)
+    stats = {"sent": 0, "rtt": [], "full": 0.0, "since": time.monotonic()}
+    viewer = f"{ws.client.host}:{ws.client.port}" if ws.client else "?"
+
     async def answers():
         nonlocal unanswered
         while True:
             await ws.receive_text()
             unanswered = max(0, unanswered - 1)   # extra answers can't open the window wider
+            if sent_at:
+                stats["rtt"].append(time.monotonic() - sent_at.pop(0))
             answered.set()
+
+    def log_stats():
+        now = time.monotonic()
+        span = now - stats["since"]
+        if not LIVE_STATS_S or span < LIVE_STATS_S:
+            return
+        rtt = sorted(stats["rtt"]) or [0.0]
+        print(f"[Live] {viewer} {camera_id}: {stats['sent'] / span:.1f} pictures/s, answer round trip median "
+              f"{rtt[len(rtt) // 2] * 1000:.0f} ms worst {rtt[-1] * 1000:.0f} ms, window full "
+              f"{100 * stats['full'] / span:.0f}% of the time", flush=True)
+        stats.update(sent=0, rtt=[], full=0.0, since=now)
 
     feed = _feed(camera_id)
     feed.join()
@@ -189,10 +209,13 @@ async def live(ws: WebSocket, camera_id: str = CameraId):
                 if not await auth.user_from_token(token):
                     await ws.close(code=1008)
                     break
+            log_stats()
             if unanswered >= LIVE_WINDOW:
                 answered.clear()
                 waiter = asyncio.create_task(answered.wait())
+                full_from = time.monotonic()
                 await asyncio.wait({reader, waiter}, timeout=LIVE_RECHECK_S, return_when=asyncio.FIRST_COMPLETED)
+                stats["full"] += time.monotonic() - full_from
                 waiter.cancel()
                 continue
             if feed.marker is None or feed.marker == last:   # wait for the camera's next picture
@@ -204,6 +227,8 @@ async def live(ws: WebSocket, camera_id: str = CameraId):
                     continue
             frame, at, last = feed.frame, feed.at, feed.marker
             unanswered += 1
+            sent_at.append(time.monotonic())
+            stats["sent"] += 1
             await ws.send_bytes(struct.pack(">d", float(at or 0)) + frame)
     except (WebSocketDisconnect, RuntimeError):
         pass

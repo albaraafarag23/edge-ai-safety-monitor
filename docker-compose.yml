@@ -70,6 +70,7 @@ services:
       # live view: pictures a second, and their JPEG quality (lighter = smoother over a slow upload line)
       LIVE_FPS: ${LIVE_FPS:-}
       LIVE_QUALITY: ${LIVE_QUALITY:-}
+      LIVE_WIDTH: ${LIVE_WIDTH:-}
       # v4l2 controls set each time the camera opens. exposure_dynamic_framerate=0 stops the camera halving its
       # frame rate in dim light (the picture gets darker instead); empty = the detector's default (50 Hz only)
       CAMERA_CONTROLS: ${CAMERA_CONTROLS:-}
@@ -181,6 +182,7 @@ services:
       <<: *backend-env
       BACKEND_ROLE: live
       LIVE_WINDOW: ${LIVE_WINDOW:-}   # pictures in flight per viewer (backend/cameras.py, default 4)
+      LIVE_STATS_S: ${LIVE_STATS_S:-}   # >0: log per-viewer picture rate every that many seconds (off by default)
     volumes:
       - ./plugins:/app/plugins:ro
       - plugin_slot:/plugin_slot:ro

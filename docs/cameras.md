@@ -47,9 +47,9 @@ offline in the console and is retried until it is back.
 ## The live view
 
 The detector publishes an annotated picture of each camera up to `LIVE_FPS` (30) times a second, as a lighter JPEG
-(`LIVE_QUALITY` 70; snapshots and clips keep quality 85); incident clips keep 10 a second. The console's live view gets them over a WebSocket (`GET /api/cameras/<id>/live`, same sign-in
+(`LIVE_QUALITY` 70, `LIVE_WIDTH` up to 960 px; snapshots and clips keep 960 px at quality 85); incident clips keep 10 a second. The console's live view gets them over a WebSocket (`GET /api/cameras/<id>/live`, same sign-in
 and same-site check as the rest of the console): the server pushes each new picture and stops at `LIVE_WINDOW`
-(4) that the browser hasn't shown yet, so pictures can't pile up in network buffers and fall seconds behind; a
+(4; the Jetson uses 8) that the browser hasn't shown yet, so pictures can't pile up in network buffers and fall seconds behind; a
 slow link just gets fewer, always the newest. The browser decodes them in the background and paints them on a
 canvas at the screen's refresh. Where WebSockets don't get through, it fetches the newest picture one by one.
 
@@ -72,7 +72,22 @@ Measured on the Jetson with the real camera, 2026-11-15, one viewer for 30 s thr
 Straight to the Jetson (no internet) the heavier picture was already smooth, so the stalls came from the site's
 upload line, not the Jetson: at 60 KB a picture the stream needed about 6 Mbit/s up. The lighter picture needs
 about half. Publishing 30 a second costs the detector nothing (it still handled the camera's full 33 frames a
-second). On a slower line, lower `LIVE_QUALITY` (e.g. 55) before anything else.
+second).
+
+Update 2026-11-17 (user saw it start smooth, then stutter after ~10 s on a phone on the home Wi-Fi): the home
+line's upload measured 5.5-8.6 Mbit/s and swings; a 40 KB picture at 23 a second needs ~7.4 Mbit/s, so the stream
+collapsed to 3-4 a second (2 s round trips) whenever the line dipped. Width matters far more than quality:
+960 q70 ~39 KB, 768 q60 ~23 KB, 640 q60 ~18 KB, 640 q55 ~17 KB. A phone on the home Wi-Fi still goes out and back
+through the upload (Funnel relay). Through the public address, 30 s each:
+
+| Live picture | Size | Pictures a second | Worst gap | Behaviour |
+|---|---|---|---|---|
+| 960 px, quality 70 | 40 KB | 8.3-17.5 | up to 5.7 s | collapses after ~10 s |
+| 768 px, quality 60 | 23 KB | 19.9 | 0.5 s | one dip in 30 s |
+| 640 px, quality 55 (Jetson now) | 17 KB | 21.6 | 0.45 s | steady |
+
+On a slow line, lower `LIVE_WIDTH` first, then `LIVE_QUALITY`. `LIVE_STATS_S=5` makes the `live` service log
+each viewer's pictures a second, answer round trip and how often its window was full (= its link was the limit).
 
 ## On the Jetson
 - USB cameras: two 1080p MJPEG cameras fit on the Jetson's USB 3 ports; find each camera's stable name with

@@ -32,6 +32,9 @@ MAX_WIDTH = 960        # buffered frames are downscaled to this width
 # (measured on the Jetson over Tailscale Funnel, docs/cameras.md).
 KEEP_QUALITY = 85
 LIVE_QUALITY = min(95, max(30, int(os.getenv("LIVE_QUALITY") or 70)))
+# width of the live picture (evidence keeps MAX_WIDTH). Width matters far more than quality for its size:
+# 960 q70 ~39 KB, 768 q60 ~23 KB, 640 q60 ~18 KB (Jetson, 2026-11-17). Default = MAX_WIDTH, i.e. unchanged.
+LIVE_WIDTH = min(MAX_WIDTH, max(320, int(os.getenv("LIVE_WIDTH") or MAX_WIDTH)))
 PRE_SECONDS = 5
 POST_SECONDS = 3
 INCIDENT_STREAM = "incidents"
@@ -164,13 +167,18 @@ class MediaRecorder:
         annotated = annotate(small, detections, scale * box_scale, missing)
         data = None
         if self.live_view:
-            ok, jpg = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, LIVE_QUALITY])
+            live = annotated
+            if annotated.shape[1] > LIVE_WIDTH:
+                lh = round(annotated.shape[0] * LIVE_WIDTH / annotated.shape[1])
+                live = cv2.resize(annotated, (LIVE_WIDTH, lh), interpolation=cv2.INTER_AREA)
+            ok, jpg = cv2.imencode(".jpg", live, [cv2.IMWRITE_JPEG_QUALITY, LIVE_QUALITY])
             if ok:
-                data = jpg.tobytes()
-                self.live_view.publish(data, annotated.shape[1], annotated.shape[0], captured or now)
+                if live is annotated:
+                    data = jpg.tobytes()   # same picture as the evidence one: may be reused below
+                self.live_view.publish(jpg.tobytes(), live.shape[1], live.shape[0], captured or now)
         if now - self._last_kept < 0.9 / BUFFER_FPS:   # live view gets every frame, clips BUFFER_FPS of them
             return
-        if data is None or LIVE_QUALITY != KEEP_QUALITY:   # evidence (snapshots, clips) keeps the better picture
+        if data is None or LIVE_QUALITY != KEEP_QUALITY:   # evidence (snapshots, clips) keeps the better, full-width picture
             ok, jpg = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, KEEP_QUALITY])
             if not ok:
                 return
@@ -326,6 +334,6 @@ def remove_old_media(media_dir: Path, keep_days: float):
         print(f"[CV] Media: removed {removed} file(s) older than {keep_days:g} days", flush=True)
 
 
-MEDIA_SUMMARY = (f"live view {LIVE_FPS} fps at quality {LIVE_QUALITY}, buffer {BUFFER_SECONDS}s @ {BUFFER_FPS} fps, clips {PRE_SECONDS}s before + {POST_SECONDS}s after, "
+MEDIA_SUMMARY = (f"live view {LIVE_FPS} fps, {LIVE_WIDTH} px wide at quality {LIVE_QUALITY}, buffer {BUFFER_SECONDS}s @ {BUFFER_FPS} fps, clips {PRE_SECONDS}s before + {POST_SECONDS}s after, "
                  f"{f'kept {MEDIA_KEEP_DAYS:g} days, ' if MEDIA_KEEP_DAYS else ''}"
                  f"{'H.264 via ffmpeg' if FFMPEG else 'MPEG-4 (ffmpeg not found)'}")
