@@ -322,6 +322,32 @@ f = run([[down(1)] for _ in range(14)], rules=["RULE_POSE_01"])
 results.append(check("Person down: not counted against a named person (personal: false)",
                      all(not x["metadata"].get("violators") for _, x in f)))
 
+
+# the fall detector + lying check (cv_pipeline/falls.py) adds "fell" and "down_s"; unseen_fall_after_s
+def fallen(fell, down_s):
+    return {"class_name": DOWN, "confidence": 0.8, "bbox": [500, 380, 660, 440],
+            "attributes": {"still_s": 0, "fell": fell, "down_s": down_s}}
+
+
+_pose = RULES["RULE_POSE_01"]
+_had = "unseen_fall_after_s" in _pose
+_pose.setdefault("unseen_fall_after_s", 30)
+after = _pose["unseen_fall_after_s"]
+f = run([[fallen(True, i / 2)] for i in range(14)], rules=["RULE_POSE_01"])
+results.append(check("Person down: a fall that was seen fires after 5 s", len(f) == 1 and f[0][0] == 10,
+                     f"{[i for i, _ in f]}"))
+f = run([[fallen(False, i / 2)] for i in range(14)], rules=["RULE_POSE_01"])
+results.append(check(f"Person down: someone found already lying doesn't fire within 7 s (waits {after} s)", f == [],
+                     f"{[i for i, _ in f]}"))
+f = run([[fallen(False, after + i / 2)] for i in range(14)], rules=["RULE_POSE_01"])
+results.append(check(f"Person down: someone found lying fires once down {after} s (then the usual 5 s)",
+                     len(f) == 1 and f[0][0] == 10, f"{[i for i, _ in f]}"))
+f = run([[down(i / 2)] for i in range(14)], rules=["RULE_POSE_01"])
+results.append(check("Person down: pose-model boxes (no 'fell') still fire after 5 s", len(f) == 1,
+                     f"{[i for i, _ in f]}"))
+if not _had:
+    del _pose["unseen_fall_after_s"]
+
 edge = PLUGIN["zones"][RULES["RULE_FOOD_01"]["zone"]]
 xs, ys = [p[0] for p in edge["polygon"]], [p[1] for p in edge["polygon"]]
 cx, cy = sum(xs) / len(xs), sum(ys) / len(ys)

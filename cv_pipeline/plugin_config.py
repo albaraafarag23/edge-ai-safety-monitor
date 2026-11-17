@@ -30,6 +30,12 @@ class ModelConfig:
     pose: bool = False
     # "still": true: each box also says how long it has stayed put (attributes.still_s), e.g. a person down
     still: bool = False
+    # fall detector ("fall": {...}): its boxes are checked by a lying classifier and judged over time
+    # (falls.py); it reports one class (e.g. "lying") with attributes fell / down_s / still_s
+    fall: "FallSpec | None" = None
+    # classes used only inside the detector ("internal": true, e.g. yolo11n's "person" for falls.py): never
+    # published, so they are not drawn on the picture or seen by the rules
+    internal: set = field(default_factory=set)
 
     @property
     def min_confidence(self) -> float:
@@ -38,6 +44,20 @@ class ModelConfig:
     def keep(self, class_name: str, confidence: float, width_fraction: float = 0.0) -> bool:
         return (confidence >= self.thresholds.get(class_name, 1.1)
                 and width_fraction <= self.max_width.get(class_name, 1.0))
+
+
+@dataclass
+class FallSpec:
+    """The "fall" section of an extra model: {"detects": the detector's class (e.g. "person_down"),
+    "verifier": classifier file (e.g. lying_verify.pt), "verified_class": its "yes" class (default "lying"),
+    "verify_at": P(yes) a box needs (default 0.8), "verifier_imgsz" (default 224),
+    "upright_class": the main model's person class whose upright boxes show a fall happening (default "Person")}."""
+    detects: str
+    verifier_path: str
+    verified_class: str = "lying"
+    verify_at: float = 0.8
+    verifier_imgsz: int = 224
+    upright_class: str = "Person"
 
 
 @dataclass
@@ -74,8 +94,17 @@ def model_specs(plugin: dict) -> list[dict]:
 
 def test_mode_names(plugin: dict) -> list[dict[int, str]]:
     """Test mode loads no models: each one "has" the classes the plugin asks of it (a pose model: person)."""
-    return [{0: "person"} if spec.get("pose") else dict(enumerate(spec.get("classes", {})))
-            for spec in model_specs(plugin)]
+    return [{0: "person"} if spec.get("pose") else {0: spec["fall"]["detects"]} if spec.get("fall")
+            else dict(enumerate(spec.get("classes", {}))) for spec in model_specs(plugin)]
+
+
+def verifier_path(spec: dict, models_dir: str = ".", engine: bool = False) -> str | None:
+    """The lying check of a fall detector (its TensorRT build on the Jetson when there is one), or None."""
+    name = (spec.get("fall") or {}).get("verifier")
+    if not name:
+        return None
+    path = Path(models_dir) / name
+    return str(path.with_suffix(".engine")) if engine and path.with_suffix(".engine").exists() else str(path)
 
 
 def load_plugin(plugins_dir: str, plugin_id: str) -> dict:
@@ -107,7 +136,20 @@ def build_config(plugin: dict, model_names: list[dict[int, str]], models_dir: st
         default_conf = float(spec.get("default_confidence", 0.4))
         name_to_id = {name: i for i, name in names.items()}
         thresholds, max_width = {}, {}
+        internal = {n for n, o in spec.get("classes", {}).items() if (o or {}).get("internal")}
         pose = bool(spec.get("pose"))
+        fall = spec.get("fall")
+        if fall:
+            # like a pose model: the classes are what it reports (e.g. "lying"), not the detector's own class
+            if pose or spec.get("crop_from"):
+                raise PluginError(f"[{pid}] {Path(path).name}: a fall detector can't also be a pose model or crop classifier")
+            if len(spec.get("classes", {})) != 1:
+                raise PluginError(f"[{pid}] fall detector {Path(path).name}: list exactly one class, the one it reports")
+            if fall.get("detects") not in name_to_id:
+                raise PluginError(f"[{pid}] fall detector {Path(path).name} has no class '{fall.get('detects')}' "
+                                  f"(its classes: {sorted(name_to_id)})")
+            if not fall.get("verifier"):
+                raise PluginError(f"[{pid}] fall detector {Path(path).name}: \"fall\" needs a \"verifier\" model")
         if pose:
             # the classes are postures worked out from the keypoints, not the model's own class ("person")
             unknown = set(spec.get("classes", {})) - POSTURES
@@ -117,7 +159,7 @@ def build_config(plugin: dict, model_names: list[dict[int, str]], models_dir: st
             if "person" not in name_to_id:
                 raise PluginError(f"[{pid}] pose model {Path(path).name} has no 'person' class")
         for name, opts in spec.get("classes", {}).items():
-            if pose:
+            if pose or fall:
                 thresholds[name] = float((opts or {}).get("confidence", default_conf))
                 continue
             if name not in name_to_id:
@@ -134,15 +176,25 @@ def build_config(plugin: dict, model_names: list[dict[int, str]], models_dir: st
                               f"(model classes: {sorted(name_to_id)})")
         models.append(ModelConfig(model_path=path,
                                   imgsz=engine_imgsz(path) or int(spec.get("imgsz", det.get("imgsz", 640))),
-                                  class_ids=[name_to_id["person"]] if pose else sorted(name_to_id[n] for n in thresholds),
+                                  class_ids=[name_to_id["person"]] if pose else [name_to_id[fall["detects"]]] if fall
+                                  else sorted(name_to_id[n] for n in thresholds),
                                   thresholds=thresholds, pose=pose, still=bool(spec.get("still")),
                                   every_n_frames=max(1, int(spec.get("every_n_frames", 1))),
                                   crop_from=spec.get("crop_from"), crop=int(spec.get("crop", 384)),
-                                  max_width=max_width))
+                                  max_width=max_width, internal=internal,
+                                  fall=FallSpec(detects=fall["detects"],
+                                                verifier_path=verifier_path(spec, models_dir, engine),
+                                                verified_class=fall.get("verified_class", "lying"),
+                                                verify_at=float(fall.get("verify_at", 0.8)),
+                                                verifier_imgsz=int(fall.get("verifier_imgsz", 224)),
+                                                upright_class=fall.get("upright_class", "Person")) if fall else None))
 
     if not models or models[0].model_path != model_paths(plugin, models_dir, model_override, engine)[0]:
         raise PluginError(f"[{pid}] the main model is required")
     for m in models[1:]:
+        if m.fall and not any(m.fall.upright_class in o.thresholds for o in models if o is not m):
+            warnings.append(f"[{pid}] {Path(m.model_path).name}: no model detects '{m.fall.upright_class}', "
+                            f"so no fall is ever seen happening (only people found already lying)")
         if m.crop_from and m.crop_from not in models[0].thresholds:
             raise PluginError(f"[{pid}] {Path(m.model_path).name} crops '{m.crop_from}' boxes, "
                               f"but the main model doesn't detect '{m.crop_from}'")

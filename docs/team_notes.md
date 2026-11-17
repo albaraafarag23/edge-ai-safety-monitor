@@ -154,3 +154,40 @@ The detectors' false alarms are objects (dump truck, railing, wall, dog), close-
 close up. A critical rule that fires on a parked truck would repeat all day, so the cautious pose rule stays.
 Next: another round with many more ordinary site pictures as negatives (SH17, MOCS, our own camera's footage),
 then measure again. Data: Roboflow fyp-x7bzp/fall-detection-c0hwj v1, CC BY 4.0.
+
+### Person down v2 (2026-11-17): fall detector + "lying?" check + time logic — IN USE
+
+Sitting on the ground does NOT count (decision 2026-11-17); only lying. How it works (cv_pipeline/falls.py):
+1. `person_down2.pt` (fall detector, every 4th frame) proposes boxes; each is cut out with a 20% margin and shown
+   to `lying_verify.pt` (YOLO11s-cls, 224 px): lying or not, P >= 0.8.
+2. FallWatch follows each box over time: down only when most checks of the last 3 s agree (>= 3 checks, >= 60%).
+   `fell` = an upright person (yolo11n `person`, an internal class: never published or drawn) stood there in the
+   4 s before; `down_s` = how long down.
+3. Rule RULE_POSE_01: a seen fall fires after the usual 5 s; someone found already lying only once down 30 s
+   (`unseen_fall_after_s`), so a still object the check likes can't alarm within seconds.
+
+Data and training (scripts in training/, commands in training/README.md):
+- Test: all 422 fall_fyp test people reviewed by eye (`outputs/eval/fall_test_posture.json`: 293 lying,
+  85 sitting / kneeling, 44 unclear). Train: 960 crops reviewed in two rounds (`outputs/eval/train_sitting_review.json`,
+  ~450 sitting); pose-based automatic splitting was only 73-79% right.
+- Extra data: Roboflow fall-detection-dqhnv v4 (bend / lie / sit / stand, high indoor camera) and
+  fall-detection-lutcc, both CC BY 4.0 (`build_posture_crops.py`). Alone they teach "lying" only for their few rooms.
+- `build_down_crops.py` -> `build_lying_set.py` -> data/lying_verify3 (with the reviews) -> run lying_verify3_s.
+
+Results. Photos (fall_fyp test + 1,065 photos with nobody down; detector >= 0.25, check >= 0.8, `eval_down_confirm.py`):
+lying caught 73%, sitting alarmed 41%, photos with a false alarm 19 (1.8%). Old pose rule: 11% lying caught.
+Videos, end to end through the real rule engine (`eval_fall_videos.py`, UR Fall Detection, 30 falls + 40 everyday
+activities, last frame held 15 s; CC BY-NC-SA: TEST ONLY):
+
+| | falls caught | everyday videos with an alarm |
+|---|---|---|
+| old pose rule | 7 / 30 | 2 / 40 (lying down on a bed) |
+| new, check >= 0.8 (in use) | 18 / 30, median ~7 s after the fall began | 2 / 40 (bed; face-down on the floor) |
+| new, check >= 0.65 / 0.5 | 18 / 30, 19 / 30 | 6 / 40, 7 / 40 |
+
+Misses: 7 falls the check doubts (low camera, body seen end-on, legs toward the camera); 5 where the fall detector
+boxes a backpack instead of a person at the picture's bottom edge. Sitting on chairs, crouching, kneeling: no alarm in
+any of the 40 everyday videos. Single photos still let ~40% of people sitting on the ground through; in video the
+3 s vote and the seen-fall logic carry most of the weight. To do: the Arducam test with the team (staged falls,
+sitting, kneeling, lying down on purpose at 2/5/8 m); TensorRT builds of person_down2 + lying_verify on the Jetson;
+the construction rule drive remade with them.

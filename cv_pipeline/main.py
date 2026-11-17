@@ -24,6 +24,7 @@ from faces import FaceIdentifier
 from live_view import LiveView
 from media import MediaListener, MediaRecorder
 from person_crops import cut, upper_body_box
+from falls import MAX_CANDIDATES, FallWatch, pad_cut
 from posture import Stillness, is_lying
 from plugin_config import (DetectionConfig, PluginError, build_config, check_main_model, load_plugin, test_mode_names,
                            model_paths, model_specs)
@@ -180,6 +181,7 @@ class Unit:
     camera: Camera | None = None        # None in test mode
     tracker: Tracker = field(default_factory=Tracker)
     stillness: dict = field(default_factory=dict)   # model path -> Stillness: people down, how long without moving
+    falls: dict = field(default_factory=dict)       # fall detector model path -> FallWatch (falls.py)
     frame_id: int = 0
     seen: int = 0                       # the camera's frame counter at the last frame processed
     last: dict = field(default_factory=dict)   # model path -> its latest detections, reused on frames it skips
@@ -267,6 +269,28 @@ def postures(model_result, cfg_model, scale: float = 1.0) -> list[dict]:
             for box, conf, kp in zip(boxes, confs, kps) if conf >= cfg_model.thresholds["lying"] and is_lying(box, kp)]
 
 
+def fall_check(unit: Unit, cfg_model, verifier, image, result, scale: float, now: float) -> list[dict]:
+    """Fall detector ("fall" in the plugin): each box it finds is cut out and shown to the lying check; FallWatch
+    follows them over time and reports the people down (falls.py). Boxes are in camera pixels, like the rest."""
+    watch = unit.falls.setdefault(cfg_model.model_path, FallWatch())
+    spec = cfg_model.fall
+    boxes = sorted(zip(result.boxes.xyxy.tolist(), result.boxes.conf.tolist()), key=lambda b: -b[1])
+    candidates = []
+    for box, conf in boxes[:MAX_CANDIDATES]:
+        lying = False
+        patch = pad_cut(image, box) if verifier is not None else None
+        if patch is not None:
+            # one crop at a time: a TensorRT build takes a batch of 1
+            probs = verifier.predict(patch, imgsz=spec.verifier_imgsz, verbose=False)[0]
+            yes = next((i for i, n in probs.names.items() if n == spec.verified_class), None)
+            lying = yes is not None and float(probs.probs.data[yes]) >= spec.verify_at
+        candidates.append(([v * scale for v in box], lying))
+    report = next(iter(cfg_model.thresholds))
+    return [{"class_name": report, "confidence": d["share"], "bbox": [round(v, 1) for v in d["bbox"]],
+             "attributes": {"fell": d["fell"], "down_s": d["down_s"], "checks": d["checks"]}}
+            for d in watch.update(now, candidates)]
+
+
 def add_stillness(unit: Unit, model_path: str, detections: list[dict]) -> list[dict]:
     """Models with "still": true (and pose models): how long each box has stayed put, as attributes.still_s
     (the "Sleeping on site" rule waits for minutes of it)."""
@@ -336,6 +360,14 @@ def run_live_mode(r: redis.Redis, plugin: dict, units: list[Unit], settings: lis
     cfg = build_config(plugin, [loaded[p].names if p in loaded else None for p in paths], MODELS_DIR,
                        MODEL_OVERRIDE, USE_ENGINE)
     log_config(cfg)
+    verifiers = {}   # fall detector model path -> its lying check
+    for m in cfg.models:
+        if m.fall:
+            if os.path.exists(m.fall.verifier_path):
+                verifiers[m.model_path] = YOLO(m.fall.verifier_path, task="classify")
+            else:
+                print(f"[CV] Warning: {os.path.basename(m.model_path)}'s lying check {m.fall.verifier_path} is "
+                      f"missing: nobody will be reported down", flush=True)
     # e.g. "construction_ppe.engine+smoking.engine" when an extra model runs too
     model_name = "+".join(os.path.basename(m.model_path) for m in cfg.models)
     # the people face recognition names: the class person classifiers crop, else the plugin's person class
@@ -377,15 +409,28 @@ def run_live_mode(r: redis.Redis, plugin: dict, units: list[Unit], settings: lis
                     else:
                         result = model.predict(frame.image, conf=m.min_confidence, classes=m.class_ids,
                                                imgsz=m.imgsz, verbose=False)[0]
-                        found = (postures(result, m, frame.scale) if m.pose else
-                                 detect(model, m, result.boxes, frame.scale, frame.image.shape[1]))
-                        unit.last[m.model_path] = add_stillness(unit, m.model_path, found) if m.pose or m.still else found
+                        if m.fall:
+                            found = fall_check(unit, m, verifiers.get(m.model_path), frame.image, result,
+                                               frame.scale, frame.at or time.time())
+                        else:
+                            found = (postures(result, m, frame.scale) if m.pose else
+                                     detect(model, m, result.boxes, frame.scale, frame.image.shape[1]))
+                        unit.last[m.model_path] = (add_stillness(unit, m.model_path, found)
+                                                   if m.pose or m.still or m.fall else found)
                         t = prof.add(name, t)
                         prof.speed(name, result.speed)
                         if m is cfg.models[0] and subject:
                             identify_people(faces, unit, frame, unit.last[m.model_path], subject)
                             t = prof.add("faces", t)
                 detections += unit.last.get(m.model_path, [])
+            for m in cfg.models:   # where the upright people are, every frame: a fall seen happening (falls.py)
+                if m.fall:
+                    unit.falls.setdefault(m.model_path, FallWatch()).note_people(
+                        frame.at or time.time(),
+                        [d["bbox"] for d in detections if d["class_name"] == m.fall.upright_class])
+            internal = {c for m in cfg.models for c in m.internal}
+            if internal:
+                detections = [d for d in detections if d["class_name"] not in internal]
 
             message = detection_message(unit.camera_id, unit.frame_id, detections, model_name, unit.camera.frame_size)
             unit.recorder.add(unit.frame_id, frame.image, message["detections"], 1 / frame.scale, frame.at)

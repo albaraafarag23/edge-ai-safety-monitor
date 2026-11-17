@@ -133,6 +133,15 @@ def check_pose(rule, objects, zone):
     min_still = rule.get("min_still_s")
     if min_still:
         found = [o for o in found if ((o.get("attributes") or {}).get("still_s") or 0) >= min_still]
+    # The fall detector (cv_pipeline/falls.py) says whether the fall itself was seen ("fell": an upright person
+    # stood there just before) and how long the person has been down ("down_s"). A seen fall counts at once; a
+    # person found already lying only after unseen_fall_after_s, so a still object the check wrongly likes can't
+    # raise the alarm within seconds. Boxes without "fell" (the pose model) are taken as they are.
+    unseen_after = rule.get("unseen_fall_after_s")
+    if unseen_after:
+        found = [o for o in found
+                 if (o.get("attributes") or {}).get("fell", True)
+                 or ((o.get("attributes") or {}).get("down_s") or 0) >= unseen_after]
     return found
 
 

@@ -47,9 +47,11 @@ def sha256(path: Path) -> str:
 
 
 def model_files(plugin: dict) -> list[str]:
-    """The model file names a plugin runs (main model and extra models)."""
+    """The model file names a plugin runs (main model, extra models, and a fall detector's lying check)."""
     detection = plugin.get("detection") or {}
-    return [m["model"] for m in [detection, *(detection.get("extra_models") or [])] if m.get("model")]
+    specs = [detection, *(detection.get("extra_models") or [])]
+    return ([m["model"] for m in specs if m.get("model")]
+            + [m["fall"]["verifier"] for m in specs if (m.get("fall") or {}).get("verifier")])
 
 
 def load_public_keys(folder: Path) -> list[Ed25519PublicKey]:

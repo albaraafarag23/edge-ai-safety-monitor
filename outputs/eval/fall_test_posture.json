@@ -1,0 +1,5066 @@
+[
+ {
+  "image": "people-1021-_jpg.rf.77f848a02b6157beceb173df80d8419d.jpg",
+  "n": 0,
+  "box": [
+   238.7,
+   286.8,
+   452.2,
+   435.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1022-_jpg.rf.de2389c0d40d0de92a44f1570cee07a3.jpg",
+  "n": 0,
+  "box": [
+   5.5,
+   0.0,
+   553.5,
+   640.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1034-_jpg.rf.7fcf6a0fecf8de28c542a493378af927.jpg",
+  "n": 0,
+  "box": [
+   143.8,
+   286.5,
+   336.2,
+   387.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1035-_jpg.rf.0751c8d30c4da0e8c222425103acf925.jpg",
+  "n": 0,
+  "box": [
+   204.0,
+   330.8,
+   422.0,
+   563.2
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-1040-_jpg.rf.3ae53f6ef72382456eff453821ff02bd.jpg",
+  "n": 0,
+  "box": [
+   185.5,
+   291.8,
+   394.5,
+   481.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1061-_jpg.rf.b385bc935434ee76d34f5926f5ccae38.jpg",
+  "n": 0,
+  "box": [
+   110.0,
+   409.3,
+   449.0,
+   634.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1070-_jpg.rf.babc62261d6b60fe684a19fdb6bc838b.jpg",
+  "n": 0,
+  "box": [
+   193.8,
+   308.2,
+   442.2,
+   474.7
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1081-_jpg.rf.5a6ad5c95262cfdfffb20c2122e68a32.jpg",
+  "n": 0,
+  "box": [
+   267.5,
+   383.2,
+   638.5,
+   639.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-113-_jpg.rf.b590cb20988ef733dd5890a636b42492.jpg",
+  "n": 0,
+  "box": [
+   270.0,
+   383.5,
+   406.0,
+   531.5
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-1134-_jpg.rf.edb6d9af558958376073dd8b1d8607a8.jpg",
+  "n": 0,
+  "box": [
+   126.7,
+   260.5,
+   431.2,
+   456.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1176-_jpg.rf.36a540476216746e883d4d0a9f56585d.jpg",
+  "n": 0,
+  "box": [
+   4.0,
+   109.0,
+   159.0,
+   467.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-1189-_jpg.rf.150f77bfa266ad95f5360e422dfde5fa.jpg",
+  "n": 0,
+  "box": [
+   238.0,
+   240.0,
+   440.0,
+   536.0
+  ],
+  "auto": "sitting",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-1194-_jpg.rf.75683bddad056bdacd61c72469151ac9.jpg",
+  "n": 0,
+  "box": [
+   2.0,
+   361.5,
+   237.0,
+   606.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-120-_jpg.rf.0fdee094d148d942b37f36626720c0f5.jpg",
+  "n": 0,
+  "box": [
+   0.2,
+   164.3,
+   572.8,
+   599.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1212-_jpg.rf.ac8b51287d2e5aa5adb56c7c5bece358.jpg",
+  "n": 0,
+  "box": [
+   312.5,
+   337.0,
+   415.5,
+   446.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1292-_jpg.rf.bb0cfaa0318a79aa213fac6c5a175286.jpg",
+  "n": 0,
+  "box": [
+   106.7,
+   257.2,
+   599.2,
+   581.8
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1298-_jpg.rf.f32784ee511341f82787b91bc1c513a4.jpg",
+  "n": 0,
+  "box": [
+   256.8,
+   262.8,
+   450.3,
+   635.2
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-1346-_jpg.rf.4916f20076a75823108b4acc20f2f88c.jpg",
+  "n": 0,
+  "box": [
+   0.2,
+   462.2,
+   423.8,
+   634.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1369-_jpg.rf.ee865db5c69ee4a3906653a6488801b0.jpg",
+  "n": 0,
+  "box": [
+   279.0,
+   113.5,
+   471.0,
+   452.5
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-1405-_jpg.rf.e945b3d71e6684c28bbd18f603b03a08.jpg",
+  "n": 0,
+  "box": [
+   102.5,
+   349.0,
+   385.5,
+   639.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1410-_jpg.rf.4f9c2b0ade9018eb24a3b8a6ad06ad56.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   385.0,
+   441.0,
+   563.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1444-_jpg.rf.67451d3e4f892846051f2808910ca883.jpg",
+  "n": 0,
+  "box": [
+   158.8,
+   318.0,
+   298.2,
+   441.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1457-_jpg.rf.2cf30c1fd25985f3a736edbaf5a81793.jpg",
+  "n": 0,
+  "box": [
+   176.8,
+   400.5,
+   463.2,
+   551.5
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1485-_jpg.rf.c4037f0a4a556405b4326e60f8238ad2.jpg",
+  "n": 0,
+  "box": [
+   176.0,
+   330.0,
+   533.0,
+   517.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1498-_jpg.rf.02b7dbbb09bc44b5f61ec7fedc2b8eb7.jpg",
+  "n": 0,
+  "box": [
+   15.5,
+   318.5,
+   473.5,
+   533.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-154-_jpg.rf.e124587bc8e395a9abc7863a33346a6f.jpg",
+  "n": 0,
+  "box": [
+   315.0,
+   211.0,
+   433.0,
+   269.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1543-_jpg.rf.f36c15ecf7642937af65b2707d04e6a3.jpg",
+  "n": 0,
+  "box": [
+   52.3,
+   107.2,
+   313.8,
+   407.8
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-157-_jpg.rf.fd1a5b110d0406ceaf3ab8853738d07a.jpg",
+  "n": 0,
+  "box": [
+   269.5,
+   456.8,
+   576.5,
+   636.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1589-_jpg.rf.5bb4f51cfd814e92f1a929231ce5037d.jpg",
+  "n": 0,
+  "box": [
+   230.3,
+   146.2,
+   611.8,
+   619.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1608-_jpg.rf.9c36f4b81cbed3cddb63e9596ef8e001.jpg",
+  "n": 0,
+  "box": [
+   81.7,
+   445.0,
+   366.2,
+   581.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-172-_jpg.rf.abf2ab0a1548fd3787b44659e2e31d7b.jpg",
+  "n": 0,
+  "box": [
+   35.0,
+   12.7,
+   640.0,
+   546.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1720-_jpg.rf.49e008b310168f9515c0ca7fa8cee21f.jpg",
+  "n": 0,
+  "box": [
+   213.3,
+   438.2,
+   540.8,
+   593.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1739-_jpg.rf.e6eecdb92b6f3e1ecd57372c8edfdc88.jpg",
+  "n": 0,
+  "box": [
+   136.0,
+   342.2,
+   452.0,
+   608.8
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-1756-_jpg.rf.0fb1cb3402e18a8071c8296d745928cf.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   230.0,
+   327.0,
+   363.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1764-_jpg.rf.1b54fc919646a4c48d0cdab536fdd32f.jpg",
+  "n": 0,
+  "box": [
+   128.5,
+   123.2,
+   295.5,
+   510.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1766-_jpg.rf.fb6981f21076aa585babb7b9287e0d7c.jpg",
+  "n": 0,
+  "box": [
+   169.5,
+   186.5,
+   609.5,
+   524.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1780-_jpg.rf.8be81c5709450fb268966ec32263aa18.jpg",
+  "n": 0,
+  "box": [
+   326.8,
+   364.0,
+   428.2,
+   451.0
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-1791-_jpg.rf.122349b676849adf40c26404e00d6a98.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   43.8,
+   608.0,
+   581.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1800-_jpg.rf.3ec7dc9ea45b907ecd8f445200ec68f9.jpg",
+  "n": 0,
+  "box": [
+   294.0,
+   195.0,
+   493.0,
+   384.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1801-_jpg.rf.fbc038835a4d7901bc7d63cce4dc4afc.jpg",
+  "n": 0,
+  "box": [
+   25.7,
+   359.2,
+   347.2,
+   638.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1804-_jpg.rf.f32755d6692707a4da7e33a18678f9b5.jpg",
+  "n": 0,
+  "box": [
+   291.8,
+   216.8,
+   472.2,
+   543.2
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-1847-_jpg.rf.1fc5b27004c7d1a8cce5aa2053d9099e.jpg",
+  "n": 0,
+  "box": [
+   14.5,
+   196.7,
+   360.5,
+   554.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1853-_jpg.rf.aa36aa953f9a462d759832324913c44c.jpg",
+  "n": 0,
+  "box": [
+   0.2,
+   0.0,
+   488.8,
+   640.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1855-_jpg.rf.6adc90c58a7a829a3bded1ee7583674c.jpg",
+  "n": 0,
+  "box": [
+   326.8,
+   486.8,
+   495.3,
+   565.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1877-_jpg.rf.79c0947cfd361d3c54e0e6f4f23961c2.jpg",
+  "n": 0,
+  "box": [
+   11.5,
+   346.0,
+   478.5,
+   617.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1889-_jpg.rf.44940673399053b4b3b570e92773c823.jpg",
+  "n": 0,
+  "box": [
+   257.2,
+   165.5,
+   575.8,
+   615.5
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-1903-_jpg.rf.d6e51b553c2953f919c9e8f55c4d2189.jpg",
+  "n": 0,
+  "box": [
+   329.0,
+   91.5,
+   511.0,
+   255.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-193-_jpg.rf.d0b2cc6753f7be9d79e4e00f3a8208d6.jpg",
+  "n": 0,
+  "box": [
+   156.3,
+   284.0,
+   390.8,
+   426.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1930-_jpg.rf.55ab24523f175f3816b4b911194a6955.jpg",
+  "n": 0,
+  "box": [
+   296.0,
+   175.0,
+   404.0,
+   340.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-1931-_jpg.rf.df9fa2ab11a9e43d5b431e97bd66ca61.jpg",
+  "n": 0,
+  "box": [
+   17.0,
+   475.0,
+   355.0,
+   640.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1936-_jpg.rf.145796a2ac6b9be8c75fb0e2779ec371.jpg",
+  "n": 0,
+  "box": [
+   135.5,
+   460.2,
+   416.5,
+   639.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1943-_jpg.rf.e3179b9ae0f251668559efe46bc0a937.jpg",
+  "n": 0,
+  "box": [
+   315.0,
+   311.8,
+   516.0,
+   468.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1961-_jpg.rf.859a0df8edcd09ac1257ad30ec4ffb7b.jpg",
+  "n": 0,
+  "box": [
+   190.8,
+   349.0,
+   499.2,
+   630.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1993-_jpg.rf.a4768faaf1108851fb64a3f448cd290a.jpg",
+  "n": 0,
+  "box": [
+   448.2,
+   366.0,
+   639.8,
+   597.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-1995-_jpg.rf.1823301755c7d422287fc7b266391fba.jpg",
+  "n": 0,
+  "box": [
+   192.0,
+   298.5,
+   364.0,
+   547.5
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-1998-_jpg.rf.6f2822d64008aec0cc16a867e9b3c31b.jpg",
+  "n": 0,
+  "box": [
+   55.7,
+   18.2,
+   572.2,
+   549.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2001-_jpg.rf.2da77677274274115717775941dc5fda.jpg",
+  "n": 0,
+  "box": [
+   7.5,
+   215.8,
+   612.5,
+   632.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2004-_jpg.rf.92fcc776be0eef8d85560bd7a37f3392.jpg",
+  "n": 0,
+  "box": [
+   148.0,
+   239.7,
+   618.0,
+   596.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2035-_jpg.rf.988df90093a6b87b87a5f04fad9d56e0.jpg",
+  "n": 0,
+  "box": [
+   45.0,
+   202.0,
+   191.0,
+   500.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-2095-_jpg.rf.11f6ef805a1f6a8eecf88ba78cbf1503.jpg",
+  "n": 0,
+  "box": [
+   261.0,
+   115.8,
+   425.0,
+   264.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2096-_jpg.rf.b7f068aa645822a519bbd366a3407d88.jpg",
+  "n": 0,
+  "box": [
+   92.0,
+   30.7,
+   599.0,
+   539.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2112-_jpg.rf.0253bf076c68326482b5bd9fb4f5a2e2.jpg",
+  "n": 0,
+  "box": [
+   179.2,
+   228.8,
+   305.8,
+   413.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2116-_jpg.rf.cdd1372b7246e97e8662da1fcb052115.jpg",
+  "n": 0,
+  "box": [
+   147.8,
+   341.2,
+   401.2,
+   547.8
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-2171-_jpg.rf.3aa4cddf0eae0399ef2039f7c46f864f.jpg",
+  "n": 0,
+  "box": [
+   318.0,
+   341.8,
+   433.0,
+   442.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2172-_jpg.rf.daef0f0b16ca4f063f6124e80da5720a.jpg",
+  "n": 0,
+  "box": [
+   245.0,
+   339.0,
+   410.0,
+   640.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2179-_jpg.rf.475adc91fb2e8788ed028def942d94d5.jpg",
+  "n": 0,
+  "box": [
+   196.5,
+   367.0,
+   378.5,
+   458.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2232-_jpg.rf.244f8ab7cbe6aff39c9160b122a1b3dc.jpg",
+  "n": 0,
+  "box": [
+   285.5,
+   10.0,
+   632.5,
+   610.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-2242-_jpg.rf.c5867b435f38249253d99bf1e9923b2d.jpg",
+  "n": 0,
+  "box": [
+   171.5,
+   272.5,
+   451.5,
+   489.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-229-_jpg.rf.7e653158b894ab365882f0e6f8f11e59.jpg",
+  "n": 0,
+  "box": [
+   233.2,
+   341.2,
+   399.7,
+   580.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2290-_jpg.rf.ef8d84178b5fb080b2202a15922b5b08.jpg",
+  "n": 0,
+  "box": [
+   360.2,
+   365.8,
+   532.8,
+   542.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2296-_jpg.rf.d4c591a955328bec3cbf29e860a62a2b.jpg",
+  "n": 0,
+  "box": [
+   264.2,
+   14.5,
+   632.8,
+   618.5
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-230-_jpg.rf.b7801709029ceb723f38a9360c7ff90f.jpg",
+  "n": 0,
+  "box": [
+   412.0,
+   8.0,
+   636.0,
+   344.0
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-2342-_jpg.rf.bd4977a108814584f76751a8faca2865.jpg",
+  "n": 0,
+  "box": [
+   232.5,
+   120.0,
+   421.5,
+   640.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-2354-_jpg.rf.97e5a98658906ff2132bbef31615d86f.jpg",
+  "n": 0,
+  "box": [
+   421.5,
+   304.5,
+   566.5,
+   444.5
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-2357-_jpg.rf.e1282e89614b08233c7e98659c448a43.jpg",
+  "n": 0,
+  "box": [
+   166.5,
+   278.8,
+   595.5,
+   634.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2366-_jpg.rf.9fe83185a4ffbeb1c07de8e27f6c6767.jpg",
+  "n": 0,
+  "box": [
+   89.0,
+   255.2,
+   486.0,
+   639.8
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2375-_jpg.rf.4d1b2968edcae6a4601a5620c5b9c17d.jpg",
+  "n": 0,
+  "box": [
+   409.0,
+   0.3,
+   637.0,
+   570.8
+  ],
+  "auto": "sitting",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-239-_jpg.rf.0cc7ae1d8c6aae246a16463dbd4a7efc.jpg",
+  "n": 0,
+  "box": [
+   250.0,
+   286.3,
+   476.0,
+   557.8
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-2390-_jpg.rf.db80ff177151f6a510d72597e6b01109.jpg",
+  "n": 0,
+  "box": [
+   16.5,
+   184.0,
+   338.5,
+   528.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2411-_jpg.rf.dfd456d696c5260fc275a8999ca5c371.jpg",
+  "n": 0,
+  "box": [
+   277.8,
+   300.2,
+   602.2,
+   378.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2501-_jpg.rf.bb208ff0ca9a0d7ad9e89638df3e4cb6.jpg",
+  "n": 0,
+  "box": [
+   67.5,
+   149.2,
+   626.5,
+   540.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2512-_jpg.rf.2b258b35a6647980589477d19beb6944.jpg",
+  "n": 0,
+  "box": [
+   245.0,
+   264.5,
+   445.0,
+   635.5
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2514-_jpg.rf.0e22901cdd9c0b09f8106bb9f795017a.jpg",
+  "n": 0,
+  "box": [
+   273.2,
+   487.5,
+   483.8,
+   625.5
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-2520-_jpg.rf.6d8fc638c7b468d805696114f144131b.jpg",
+  "n": 0,
+  "box": [
+   72.0,
+   361.0,
+   427.0,
+   544.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2525-_jpg.rf.9b7874001b3d8504e1311607212c0faa.jpg",
+  "n": 0,
+  "box": [
+   164.0,
+   440.2,
+   359.0,
+   546.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2549-_jpg.rf.1d3a17c8e4255a5878b06331d2b983af.jpg",
+  "n": 0,
+  "box": [
+   213.0,
+   249.0,
+   504.0,
+   640.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2584-_jpg.rf.954763322cde60c2b90254ed3e3be483.jpg",
+  "n": 0,
+  "box": [
+   416.2,
+   365.8,
+   601.8,
+   531.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2592-_jpg.rf.112e1cbdce918bffdc7bc6013f9cd9e7.jpg",
+  "n": 0,
+  "box": [
+   212.5,
+   218.0,
+   473.5,
+   540.0
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-2608-_jpg.rf.ff75ae06917d34705409c811534b0dcf.jpg",
+  "n": 0,
+  "box": [
+   488.0,
+   4.0,
+   640.0,
+   220.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2610-_jpg.rf.fb07e29bd6e7f5510329ae5dcbc32f1d.jpg",
+  "n": 0,
+  "box": [
+   73.8,
+   339.7,
+   494.2,
+   621.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2622-_jpg.rf.2034f2f3d7a12d65c462d7c2be35f45c.jpg",
+  "n": 0,
+  "box": [
+   353.2,
+   189.5,
+   537.8,
+   568.5
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-2638-_jpg.rf.1e8ea9b641f83f6f1bd148a77197e7b1.jpg",
+  "n": 0,
+  "box": [
+   228.2,
+   300.2,
+   532.8,
+   584.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2658-_jpg.rf.573da7cded7d1b448a9f99c8687b123f.jpg",
+  "n": 0,
+  "box": [
+   203.0,
+   0.0,
+   426.0,
+   365.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2664-_jpg.rf.327fc614328c4756b7111f051ad52c1e.jpg",
+  "n": 0,
+  "box": [
+   253.8,
+   248.8,
+   450.3,
+   388.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2666-_jpg.rf.4de70e8f6725f6132ad4d21ea0f81b0b.jpg",
+  "n": 0,
+  "box": [
+   169.8,
+   311.0,
+   356.2,
+   453.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2672-_jpg.rf.8fca98ed4330a91547e38ce34e896429.jpg",
+  "n": 0,
+  "box": [
+   74.2,
+   226.0,
+   345.8,
+   598.0
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-2710-_jpg.rf.10aa0cab32ae48891fd104776e851154.jpg",
+  "n": 0,
+  "box": [
+   90.0,
+   335.3,
+   629.0,
+   453.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2724-_jpg.rf.3c16e7b86b1d4a1db4e92397907d043f.jpg",
+  "n": 0,
+  "box": [
+   142.8,
+   153.8,
+   403.2,
+   336.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2728-_jpg.rf.83c4e404e59f4cd07ffd1394bf837544.jpg",
+  "n": 0,
+  "box": [
+   239.2,
+   390.7,
+   401.8,
+   570.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2739-_jpg.rf.e57bd4fc4df0f286e5f83cab03257e96.jpg",
+  "n": 0,
+  "box": [
+   214.5,
+   347.2,
+   429.5,
+   554.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-274-_jpg.rf.40fc60913c410a68034750da272bae7f.jpg",
+  "n": 0,
+  "box": [
+   177.5,
+   148.5,
+   341.5,
+   565.5
+  ],
+  "auto": "sitting",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-2742-_jpg.rf.4fb532b405c1a26feb7e592134911e97.jpg",
+  "n": 0,
+  "box": [
+   154.8,
+   353.5,
+   630.2,
+   566.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2772-_jpg.rf.f5ea403a5f8dc5c62e65e811e4f1043d.jpg",
+  "n": 0,
+  "box": [
+   346.8,
+   108.8,
+   632.2,
+   366.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2789-_jpg.rf.b284a277d21254a5e17b721386251fbb.jpg",
+  "n": 0,
+  "box": [
+   207.8,
+   329.2,
+   334.3,
+   395.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2798-_jpg.rf.c51c3cdfbb868ccd060729dedb357ce0.jpg",
+  "n": 0,
+  "box": [
+   162.8,
+   455.5,
+   412.2,
+   600.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2800-_jpg.rf.bb7f2c84e560067a36f747d9329859dd.jpg",
+  "n": 0,
+  "box": [
+   4.0,
+   273.5,
+   445.0,
+   624.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2811-_jpg.rf.f3f7f07c1e86347b7a5acc193c1d8100.jpg",
+  "n": 0,
+  "box": [
+   34.0,
+   15.7,
+   596.0,
+   602.2
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-2833-_jpg.rf.1ff28e70f529fac6c87194eaa0a81a02.jpg",
+  "n": 0,
+  "box": [
+   296.2,
+   285.2,
+   606.8,
+   603.8
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-284-_jpg.rf.da6f63b4c9f5fc8171a1327f7952f264.jpg",
+  "n": 0,
+  "box": [
+   12.5,
+   384.8,
+   207.5,
+   514.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2862-_jpg.rf.5a7b05000ba390b698a8100a016e4233.jpg",
+  "n": 0,
+  "box": [
+   129.8,
+   466.2,
+   451.2,
+   624.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2879-_jpg.rf.3e28f1ddfc426efdcd61f32eca8921fe.jpg",
+  "n": 0,
+  "box": [
+   251.7,
+   387.0,
+   446.2,
+   635.0
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-2895-_jpg.rf.7e765510f64e0df8234491c379028a7e.jpg",
+  "n": 0,
+  "box": [
+   110.2,
+   258.0,
+   457.8,
+   592.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2903-_jpg.rf.6687ecaf408b6c5e4b8d645be23f77b9.jpg",
+  "n": 0,
+  "box": [
+   330.5,
+   248.0,
+   429.5,
+   424.0
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-2910-_jpg.rf.1c272c13db2ed9f168cb8cd7a74e0422.jpg",
+  "n": 0,
+  "box": [
+   224.0,
+   178.2,
+   419.0,
+   454.7
+  ],
+  "auto": "sitting",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-2925-_jpg.rf.3c8047c6df4b97fc212bcf2a2cfce0e1.jpg",
+  "n": 0,
+  "box": [
+   217.0,
+   232.8,
+   553.0,
+   461.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2950-_jpg.rf.3ee0855cb073d8446d8492143442a118.jpg",
+  "n": 0,
+  "box": [
+   257.5,
+   365.5,
+   496.5,
+   540.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2981-_jpg.rf.cda1126cb54154398a2ce65518281cca.jpg",
+  "n": 0,
+  "box": [
+   12.5,
+   0.0,
+   559.5,
+   631.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-2985-_jpg.rf.5a42a734ef3a68797c225b296d60014b.jpg",
+  "n": 0,
+  "box": [
+   361.2,
+   384.0,
+   447.8,
+   506.0
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-3002-_jpg.rf.0886217b7daa462520c7c189bf287bef.jpg",
+  "n": 0,
+  "box": [
+   398.8,
+   107.3,
+   622.2,
+   454.8
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-3040-_jpg.rf.f57eabf8e2a59bbac6f6e3ee42686182.jpg",
+  "n": 0,
+  "box": [
+   159.5,
+   131.2,
+   419.5,
+   462.8
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-306-_jpg.rf.39e071c84fe44643ccf10410a14c485c.jpg",
+  "n": 0,
+  "box": [
+   150.0,
+   125.7,
+   606.0,
+   580.2
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-3066-_jpg.rf.279955b86c41071cb14b9bc4963b5d0a.jpg",
+  "n": 0,
+  "box": [
+   177.0,
+   327.5,
+   594.0,
+   586.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3082-_jpg.rf.def012ec57bd5f7451309e381c7eba9f.jpg",
+  "n": 0,
+  "box": [
+   98.8,
+   199.0,
+   400.2,
+   640.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3088-_jpg.rf.fd2d67e2215ed31642291aba0352e0df.jpg",
+  "n": 0,
+  "box": [
+   345.5,
+   162.8,
+   441.5,
+   321.2
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-3096-_jpg.rf.778692beccb78b21a7bcb4e786d27835.jpg",
+  "n": 0,
+  "box": [
+   239.5,
+   297.8,
+   594.5,
+   593.2
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-3098-_jpg.rf.549f0c26e88a69dc968b101b0bcc837f.jpg",
+  "n": 0,
+  "box": [
+   86.5,
+   300.8,
+   328.5,
+   589.2
+  ],
+  "auto": "sitting",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-3119-_jpg.rf.5255a0466ff6b859a98d3fb75636917b.jpg",
+  "n": 0,
+  "box": [
+   251.8,
+   119.2,
+   460.3,
+   593.8
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-3139-_jpg.rf.1a3f6d320a0d152e6e7166c8549bf1fd.jpg",
+  "n": 0,
+  "box": [
+   67.8,
+   183.2,
+   498.2,
+   639.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3144-_jpg.rf.f0dd65304ead58b6e614e4c1884e5bea.jpg",
+  "n": 0,
+  "box": [
+   269.0,
+   250.5,
+   508.0,
+   602.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-317-_jpg.rf.a6bbb8afadc21963c74c1bbca3b691c6.jpg",
+  "n": 0,
+  "box": [
+   249.8,
+   186.5,
+   394.3,
+   596.5
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-3216-_jpg.rf.4c09c76a3a49e9f964e320db8c6deee0.jpg",
+  "n": 0,
+  "box": [
+   174.8,
+   364.2,
+   464.2,
+   540.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3217-_jpg.rf.75e5a1c642fbe9885888f25d597893cb.jpg",
+  "n": 0,
+  "box": [
+   235.5,
+   370.5,
+   385.5,
+   582.5
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-3218-_jpg.rf.4154a7e17044b4250d6fecd99fc8c719.jpg",
+  "n": 0,
+  "box": [
+   101.5,
+   462.2,
+   347.5,
+   592.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-324-_jpg.rf.6b7f31e26191831c2a1ab93c5b2e2b9d.jpg",
+  "n": 0,
+  "box": [
+   190.3,
+   371.0,
+   628.8,
+   554.0
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-3262-_jpg.rf.102998636a7221c3488426c5da64d67f.jpg",
+  "n": 0,
+  "box": [
+   208.3,
+   172.2,
+   440.8,
+   576.8
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-3315-_jpg.rf.66a9b2a704c92f920f13856cd01591b9.jpg",
+  "n": 0,
+  "box": [
+   241.0,
+   240.0,
+   307.0,
+   343.0
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-3317-_jpg.rf.5870dca7442da3e4812ccca3a2b4ebed.jpg",
+  "n": 0,
+  "box": [
+   170.2,
+   231.8,
+   405.8,
+   457.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3349-_jpg.rf.91ad6c0475d1b4e2de089b3bd5592443.jpg",
+  "n": 0,
+  "box": [
+   141.0,
+   345.5,
+   573.0,
+   633.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-336-_jpg.rf.fc12fe1af85dbf57f9730208a9011c87.jpg",
+  "n": 0,
+  "box": [
+   101.2,
+   149.7,
+   354.8,
+   548.2
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-3362-_jpg.rf.3e90ec2fdfe41603254d84c66b88ad68.jpg",
+  "n": 0,
+  "box": [
+   53.2,
+   271.0,
+   387.8,
+   514.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3379-_jpg.rf.81bc259915bf2034f642b7978ead0e55.jpg",
+  "n": 0,
+  "box": [
+   166.0,
+   238.5,
+   458.0,
+   530.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3395-_jpg.rf.fc9f8f9af13ba8ee2276adbbb116d338.jpg",
+  "n": 0,
+  "box": [
+   234.2,
+   469.0,
+   586.8,
+   640.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-34-_jpg.rf.a9cc13eb3006102030cd35eb2993b6ea.jpg",
+  "n": 0,
+  "box": [
+   189.2,
+   314.8,
+   508.8,
+   405.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3440-_jpg.rf.f002d373668172bdf4a2076cbae6518f.jpg",
+  "n": 0,
+  "box": [
+   11.0,
+   129.2,
+   397.0,
+   510.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3461-_jpg.rf.6cf8ac219d88949aaf11dfb1582d4944.jpg",
+  "n": 0,
+  "box": [
+   210.0,
+   370.8,
+   640.0,
+   594.2
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-347-_jpg.rf.f525f9b83520cd2be501c678bf61c8fa.jpg",
+  "n": 0,
+  "box": [
+   422.5,
+   228.0,
+   604.5,
+   620.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3477-_jpg.rf.48f931edba5415b0e9bcdaff87a63833.jpg",
+  "n": 0,
+  "box": [
+   52.0,
+   397.5,
+   241.0,
+   579.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3481-_jpg.rf.fe316c784bd52ed22f9aa742063b52a6.jpg",
+  "n": 0,
+  "box": [
+   162.0,
+   267.8,
+   406.0,
+   495.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3503-_jpg.rf.d888584897bf34c07833283902589d52.jpg",
+  "n": 0,
+  "box": [
+   163.5,
+   224.2,
+   380.5,
+   386.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3530-_jpg.rf.3988bc0b9adc287d8c400e70d2c3341a.jpg",
+  "n": 0,
+  "box": [
+   151.0,
+   311.0,
+   370.0,
+   598.0
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-3533-_jpg.rf.9f3faf3ecca7ae1a031e788538382ae5.jpg",
+  "n": 0,
+  "box": [
+   215.5,
+   279.2,
+   535.5,
+   632.8
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-354-_jpg.rf.2837e96a393acc33dec8fa2b1fdab054.jpg",
+  "n": 0,
+  "box": [
+   23.0,
+   369.5,
+   422.0,
+   622.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3544-_jpg.rf.4306a2d23432a96b086e7d67decf3400.jpg",
+  "n": 0,
+  "box": [
+   171.2,
+   179.5,
+   378.8,
+   371.5
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-3567-_jpg.rf.f6ab2b6821a401ce24fb9074a493ca4a.jpg",
+  "n": 0,
+  "box": [
+   178.8,
+   291.5,
+   385.2,
+   534.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3570-_jpg.rf.0f7aae952993b7b0a47ae8d27b4737fa.jpg",
+  "n": 0,
+  "box": [
+   32.3,
+   209.2,
+   539.8,
+   620.8
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3575-_jpg.rf.a98d698331dce7f21f334f2b9206990f.jpg",
+  "n": 0,
+  "box": [
+   53.0,
+   116.0,
+   640.0,
+   576.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3586-_jpg.rf.944f16e3388be813e1133fafc349aff0.jpg",
+  "n": 0,
+  "box": [
+   86.0,
+   388.2,
+   335.0,
+   517.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3590-_jpg.rf.54a12bd7f562f2de3f87c12f757b68c8.jpg",
+  "n": 0,
+  "box": [
+   121.0,
+   290.0,
+   441.0,
+   616.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3592-_jpg.rf.7d03db631f696fa970b5809334582078.jpg",
+  "n": 0,
+  "box": [
+   79.0,
+   127.2,
+   554.0,
+   625.8
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-3593-_jpg.rf.f42caf6ea379f9be526ee1c2bc8b5a48.jpg",
+  "n": 0,
+  "box": [
+   203.5,
+   380.0,
+   453.5,
+   588.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3609-_jpg.rf.37c410fd502550b4dafb32f5b037776a.jpg",
+  "n": 0,
+  "box": [
+   235.5,
+   145.0,
+   374.5,
+   503.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3611-_jpg.rf.5cafee5b5ab6a2debbafd0cc14e6d3c1.jpg",
+  "n": 0,
+  "box": [
+   133.2,
+   322.2,
+   492.8,
+   583.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3614-_jpg.rf.e0d93cb665882d5000906e6b23025fc5.jpg",
+  "n": 0,
+  "box": [
+   12.7,
+   350.8,
+   360.2,
+   632.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3624-_jpg.rf.af463dbfe5de7f2c6f570b37451f3fec.jpg",
+  "n": 0,
+  "box": [
+   30.0,
+   353.2,
+   421.0,
+   566.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3686-_jpg.rf.40bf3f3d2ce92e02328efefeaba491dc.jpg",
+  "n": 0,
+  "box": [
+   158.2,
+   291.3,
+   397.8,
+   492.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3688-_jpg.rf.d0321b7d8f4788cd3898ede0951ca2dd.jpg",
+  "n": 0,
+  "box": [
+   116.2,
+   250.2,
+   565.8,
+   505.7
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3689-_jpg.rf.57b3ef8f6e47ed044970a766d16bd23d.jpg",
+  "n": 0,
+  "box": [
+   269.2,
+   272.2,
+   340.8,
+   318.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3695-_jpg.rf.a0a2690c387a69065d51a0d6362617a6.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   246.5,
+   411.0,
+   587.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3697-_jpg.rf.138bb73ffe9b2c1e53995588e8b5964f.jpg",
+  "n": 0,
+  "box": [
+   86.0,
+   286.5,
+   412.0,
+   594.5
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-3706-_jpg.rf.e65e4e625ec12d0691a05cd8b5f667dd.jpg",
+  "n": 0,
+  "box": [
+   237.0,
+   329.8,
+   509.0,
+   620.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3714-_jpg.rf.a95bc8d6fa9c36bce4ab8b39c01a10ea.jpg",
+  "n": 0,
+  "box": [
+   198.8,
+   324.0,
+   418.2,
+   461.0
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-372-_jpg.rf.52a27f7dd55cb462839b4f24fdc3539c.jpg",
+  "n": 0,
+  "box": [
+   341.5,
+   168.7,
+   634.5,
+   522.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3743-_jpg.rf.18198e7d4a75a62b1e112e0baba25f35.jpg",
+  "n": 0,
+  "box": [
+   27.0,
+   366.2,
+   400.0,
+   613.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3752-_jpg.rf.11bc554167272623086013da2d5280a3.jpg",
+  "n": 0,
+  "box": [
+   111.8,
+   160.8,
+   330.3,
+   528.2
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-3759-_jpg.rf.a8fec7bebea53c776678ab668fe6bb12.jpg",
+  "n": 0,
+  "box": [
+   249.5,
+   315.0,
+   521.5,
+   627.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3796-_jpg.rf.421ec0c349ab3cc2c39df3f2cb21b62a.jpg",
+  "n": 0,
+  "box": [
+   244.0,
+   313.5,
+   531.0,
+   585.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3803-_jpg.rf.946ba119756b6d61604fb56492f155e7.jpg",
+  "n": 0,
+  "box": [
+   203.2,
+   263.5,
+   557.8,
+   628.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3810-_jpg.rf.909db7fb49dfae537372b23e39838612.jpg",
+  "n": 0,
+  "box": [
+   17.2,
+   340.0,
+   501.8,
+   640.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3848-_jpg.rf.e6bdd15960e45ebc070d1dd36acdc9e6.jpg",
+  "n": 0,
+  "box": [
+   124.5,
+   329.3,
+   394.5,
+   509.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3849-_jpg.rf.6c0a42eaf6dc6c8d5857270f31d46695.jpg",
+  "n": 0,
+  "box": [
+   28.8,
+   396.5,
+   295.2,
+   545.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-386-_jpg.rf.574b9436b5217135b2a38943dc961e92.jpg",
+  "n": 0,
+  "box": [
+   183.2,
+   166.5,
+   639.8,
+   531.5
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3927-_jpg.rf.6fa6f0b05789abfb7f7b2b6ae086a9c2.jpg",
+  "n": 0,
+  "box": [
+   189.7,
+   297.0,
+   313.2,
+   556.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-3955-_jpg.rf.9ddecaa41fa5f6ce6a640dac9b9fd4e5.jpg",
+  "n": 0,
+  "box": [
+   221.0,
+   305.5,
+   613.0,
+   613.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3961-_jpg.rf.1b403f0c34f396714200a053c7405307.jpg",
+  "n": 0,
+  "box": [
+   225.5,
+   376.5,
+   518.5,
+   602.5
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-3974-_jpg.rf.e6e962d1f64288a821fada2918d03f11.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   322.0,
+   277.0,
+   559.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-3998-_jpg.rf.c1ca9c6e43b054cd35a1a0feade775bc.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   204.0,
+   402.0,
+   640.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4033-_jpg.rf.86c6aa89e511406d68e5496af1ed0aea.jpg",
+  "n": 0,
+  "box": [
+   358.2,
+   448.5,
+   506.8,
+   534.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4090-_jpg.rf.fe7ae845975c1747658481439a54c5eb.jpg",
+  "n": 0,
+  "box": [
+   195.7,
+   217.5,
+   490.2,
+   539.5
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-4157-_jpg.rf.72fef31855167f6b5c95599d2cd5bf5c.jpg",
+  "n": 0,
+  "box": [
+   147.2,
+   260.8,
+   557.8,
+   627.2
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-4171-_jpg.rf.3d3f212fe0772e1e04d9bc1c7df6092e.jpg",
+  "n": 0,
+  "box": [
+   138.8,
+   461.2,
+   351.2,
+   625.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4180-_jpg.rf.075d500b2eecbba0f84f3f5d6d15ab6c.jpg",
+  "n": 0,
+  "box": [
+   130.8,
+   156.8,
+   505.3,
+   623.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-430-_jpg.rf.3a6451c6b96117634c2f5bb409a042c1.jpg",
+  "n": 0,
+  "box": [
+   109.8,
+   382.5,
+   532.2,
+   532.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4366-_jpg.rf.2a0efed1f8f8c69c75060d4de9fd5c1b.jpg",
+  "n": 0,
+  "box": [
+   39.5,
+   151.2,
+   404.5,
+   618.8
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-4371-_jpg.rf.08ad242519f47a8b791295fb2a7c3996.jpg",
+  "n": 0,
+  "box": [
+   306.2,
+   257.8,
+   436.8,
+   458.2
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-4376-_jpg.rf.c23e9acc30c5ad0672741853df6443fd.jpg",
+  "n": 0,
+  "box": [
+   225.5,
+   360.0,
+   488.5,
+   584.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4378-_jpg.rf.874992843c14d3e7c630682695921206.jpg",
+  "n": 0,
+  "box": [
+   189.0,
+   335.0,
+   640.0,
+   640.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4381-_jpg.rf.0301382dd50d534b28d4c174e4954d01.jpg",
+  "n": 0,
+  "box": [
+   255.5,
+   198.0,
+   574.5,
+   518.0
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-4405-_jpg.rf.6272eecdc02a3c48e8a79aa7a4329b8e.jpg",
+  "n": 0,
+  "box": [
+   160.5,
+   189.0,
+   479.5,
+   577.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4411-_jpg.rf.97c2d234b12b0248c5d364673d26eb82.jpg",
+  "n": 0,
+  "box": [
+   56.2,
+   282.0,
+   261.8,
+   624.0
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-4459-_jpg.rf.1d204cfffc16328802626be060531178.jpg",
+  "n": 0,
+  "box": [
+   125.8,
+   373.2,
+   258.2,
+   578.8
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-4490-_jpg.rf.58ca510dc333b72125ef7189cdb26d72.jpg",
+  "n": 0,
+  "box": [
+   274.0,
+   281.5,
+   442.0,
+   469.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4524-_jpg.rf.e54d35bb47a27603d9b3f27a4cff166c.jpg",
+  "n": 0,
+  "box": [
+   192.2,
+   217.0,
+   585.8,
+   491.0
+  ],
+  "auto": "sitting",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-4535-_jpg.rf.6a69a680f5aa61f03882699f8a0385c9.jpg",
+  "n": 0,
+  "box": [
+   175.8,
+   242.0,
+   609.2,
+   468.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4549-_jpg.rf.47550f95c8e14f3d5621c748e031121f.jpg",
+  "n": 0,
+  "box": [
+   153.3,
+   444.0,
+   553.8,
+   612.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4566-_jpg.rf.e6c4510dd355805061fe2ce8ba384f4e.jpg",
+  "n": 0,
+  "box": [
+   390.0,
+   183.3,
+   488.0,
+   303.8
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-4687-_jpg.rf.4b02b92f2c974c88f947c172b1dfa6c5.jpg",
+  "n": 0,
+  "box": [
+   305.0,
+   300.0,
+   484.0,
+   385.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-469-_jpg.rf.9439276c0428f22138827e65224f8b35.jpg",
+  "n": 0,
+  "box": [
+   62.3,
+   296.2,
+   499.8,
+   598.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4694-_jpg.rf.2494b1113f3c4065619d631ea6cb6133.jpg",
+  "n": 0,
+  "box": [
+   130.5,
+   346.5,
+   323.5,
+   478.5
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-473-_jpg.rf.7c12d45bc157a277b71dbd12721bdeeb.jpg",
+  "n": 0,
+  "box": [
+   87.5,
+   285.8,
+   422.5,
+   534.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4746-_jpg.rf.0f882e498563e9e3582c613863067afd.jpg",
+  "n": 0,
+  "box": [
+   286.2,
+   423.8,
+   463.8,
+   637.2
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-4754-_jpg.rf.c0230eed85d762e8769da4a6ea42b2ca.jpg",
+  "n": 0,
+  "box": [
+   193.8,
+   445.0,
+   448.2,
+   640.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4761-_jpg.rf.4eab952e807459b3587c00f41ea6df0c.jpg",
+  "n": 0,
+  "box": [
+   260.8,
+   139.5,
+   382.2,
+   310.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4765-_jpg.rf.9c4c08754065eebc4202e04c4f0566d8.jpg",
+  "n": 0,
+  "box": [
+   240.8,
+   285.5,
+   414.2,
+   469.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4772-_jpg.rf.9c67ce4894bea000830c19c3b1d2e595.jpg",
+  "n": 0,
+  "box": [
+   255.2,
+   272.0,
+   384.8,
+   440.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4779-_jpg.rf.08fe2a7a2e3918a1b6bde81ffc21ac9d.jpg",
+  "n": 0,
+  "box": [
+   144.0,
+   276.5,
+   312.0,
+   562.5
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-4848-_jpg.rf.9ded9a05a951b692cd1db0a319ea9595.jpg",
+  "n": 0,
+  "box": [
+   181.0,
+   280.2,
+   440.0,
+   509.8
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-4866-_jpg.rf.e2d01eb3f4622b8925ad569185752f55.jpg",
+  "n": 0,
+  "box": [
+   229.2,
+   392.0,
+   403.8,
+   640.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4873-_jpg.rf.b026a3006851c0baae4081bf0d549061.jpg",
+  "n": 0,
+  "box": [
+   277.2,
+   283.2,
+   635.8,
+   481.8
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-4904-_jpg.rf.921b57fe8f7f92f4d6263f21fa0caaca.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   406.2,
+   388.0,
+   631.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-492-_jpg.rf.1d197f1612b6fd920f9eedae14065276.jpg",
+  "n": 0,
+  "box": [
+   147.2,
+   423.5,
+   639.8,
+   626.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4921-_jpg.rf.29734702d543919fb8331506bd13f6fe.jpg",
+  "n": 0,
+  "box": [
+   220.8,
+   338.2,
+   502.2,
+   615.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4924-_jpg.rf.336b3093a134ae1fded87c4c0d46ddbf.jpg",
+  "n": 0,
+  "box": [
+   135.5,
+   406.0,
+   419.5,
+   640.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4941-_jpg.rf.00ad5a7191a76031fe7ea7db58f3f5b9.jpg",
+  "n": 0,
+  "box": [
+   113.8,
+   255.3,
+   610.2,
+   593.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4945-_jpg.rf.5894653078a15b97496b3ade3ce78c42.jpg",
+  "n": 0,
+  "box": [
+   229.2,
+   449.0,
+   537.8,
+   640.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4984-_jpg.rf.14dcb3587a3fc36293c34bd801cdc5b9.jpg",
+  "n": 0,
+  "box": [
+   14.0,
+   367.5,
+   632.0,
+   603.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-4993-_jpg.rf.58015175521817a42d2c224a7cd492df.jpg",
+  "n": 0,
+  "box": [
+   189.0,
+   49.0,
+   518.0,
+   640.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-500-_jpg.rf.425d285bdfa9b0cbaea7454c89a644f4.jpg",
+  "n": 0,
+  "box": [
+   244.2,
+   326.5,
+   602.8,
+   634.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5015-_jpg.rf.0ca783f17811871c0999f437cb244a6e.jpg",
+  "n": 0,
+  "box": [
+   294.3,
+   423.2,
+   524.8,
+   639.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5016-_jpg.rf.50617ff5c03f8eb12bb4942cb05b5e5c.jpg",
+  "n": 0,
+  "box": [
+   38.3,
+   151.0,
+   528.8,
+   555.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5026-_jpg.rf.74f673108bfdd48ba6430036790241d9.jpg",
+  "n": 0,
+  "box": [
+   150.2,
+   112.2,
+   497.8,
+   510.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5036-_jpg.rf.7e6e14dc3a5ef9e0a2ff51d0b10f633c.jpg",
+  "n": 0,
+  "box": [
+   424.0,
+   402.0,
+   608.0,
+   640.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5055-_jpg.rf.dbf58523fdf6bfbe6979f3b495c2b858.jpg",
+  "n": 0,
+  "box": [
+   57.2,
+   281.8,
+   327.8,
+   469.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5099-_jpg.rf.63f85d13ea26026953182bd00738e972.jpg",
+  "n": 0,
+  "box": [
+   267.0,
+   421.2,
+   507.0,
+   629.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5166-_jpg.rf.ce8100cc79d0185c8848ca1f954fb7f1.jpg",
+  "n": 0,
+  "box": [
+   68.3,
+   360.8,
+   352.8,
+   623.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5183-_jpg.rf.6e62627b2aaebf9cda3b902dcb16848d.jpg",
+  "n": 0,
+  "box": [
+   39.5,
+   148.0,
+   537.5,
+   565.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5200-_jpg.rf.5167c17a6e60551692f71defe6cf8da7.jpg",
+  "n": 0,
+  "box": [
+   165.0,
+   358.0,
+   544.0,
+   550.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5251-_jpg.rf.6dd62b7e1f98919525c5a4219207e8d0.jpg",
+  "n": 0,
+  "box": [
+   217.5,
+   254.0,
+   425.5,
+   640.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-526-_jpg.rf.9035629e299838ae46967ddfa1550705.jpg",
+  "n": 0,
+  "box": [
+   272.0,
+   201.5,
+   486.0,
+   498.5
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5272-_jpg.rf.13130c8c5e6340efe2b925e516ca2a77.jpg",
+  "n": 0,
+  "box": [
+   83.3,
+   310.2,
+   553.8,
+   473.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5278-_jpg.rf.24e4a5167ceb37395b96ba4f718f7535.jpg",
+  "n": 0,
+  "box": [
+   124.7,
+   436.2,
+   318.2,
+   542.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5306-_jpg.rf.5645b83b0f9b671b4b5d80339097954f.jpg",
+  "n": 0,
+  "box": [
+   93.0,
+   367.0,
+   397.0,
+   640.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5332-_jpg.rf.5d9053e60e9efd32fff7e00cecc3d4b5.jpg",
+  "n": 0,
+  "box": [
+   345.0,
+   307.2,
+   532.0,
+   353.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5338-_jpg.rf.986329cd1e991e381e62728a5a32de87.jpg",
+  "n": 0,
+  "box": [
+   229.2,
+   353.0,
+   359.8,
+   457.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5366-_jpg.rf.ef4b263b867ec1f3fb87d613fb4e3d14.jpg",
+  "n": 0,
+  "box": [
+   213.2,
+   226.5,
+   501.8,
+   627.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5369-_jpg.rf.5a83c7b079c210d4774191504b00d67f.jpg",
+  "n": 0,
+  "box": [
+   211.2,
+   280.8,
+   630.8,
+   431.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-545-_jpg.rf.b1f2afe8a09a485694bf2657ea4791ca.jpg",
+  "n": 0,
+  "box": [
+   191.0,
+   217.0,
+   634.0,
+   627.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-5484-_jpg.rf.c1f3fc04d1896898f365022fda8cf66e.jpg",
+  "n": 0,
+  "box": [
+   99.3,
+   181.0,
+   604.8,
+   587.0
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-556-_jpg.rf.31ae2301a990be20771ba3c275fe1195.jpg",
+  "n": 0,
+  "box": [
+   11.0,
+   268.8,
+   610.0,
+   579.2
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-574-_jpg.rf.0a1f49d38a45482209cd683dcd2f189e.jpg",
+  "n": 0,
+  "box": [
+   73.5,
+   147.2,
+   424.5,
+   624.8
+  ],
+  "auto": "sitting",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-576-_jpg.rf.8a5c30d8b0568857c38884298d23be6c.jpg",
+  "n": 0,
+  "box": [
+   35.5,
+   68.5,
+   480.5,
+   564.5
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-5841-_jpg.rf.f52cdf6e4d82e67da91ce2f59945f377.jpg",
+  "n": 0,
+  "box": [
+   326.2,
+   147.2,
+   639.8,
+   556.8
+  ],
+  "auto": "sitting",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-5854-_jpg.rf.b7811e5005f3eeed2b208ed7ed48d488.jpg",
+  "n": 0,
+  "box": [
+   163.8,
+   266.5,
+   349.2,
+   628.5
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-5872-_jpg.rf.ce826b3445cfb3c6c4d8803e83802f89.jpg",
+  "n": 0,
+  "box": [
+   53.5,
+   355.0,
+   595.5,
+   631.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-588-_jpg.rf.c2241646f5f98c78e7b68042c98f70e3.jpg",
+  "n": 0,
+  "box": [
+   109.2,
+   379.3,
+   453.8,
+   639.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5895-_jpg.rf.3477f27354901edaca46dce07a5f5606.jpg",
+  "n": 0,
+  "box": [
+   51.2,
+   241.0,
+   377.8,
+   539.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5897-_jpg.rf.f6cd6e4496da8a97e636bea1ea61d06b.jpg",
+  "n": 0,
+  "box": [
+   148.8,
+   231.5,
+   407.2,
+   526.5
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-5906-_jpg.rf.26e67fc9a69a353aa077968d175bfa85.jpg",
+  "n": 0,
+  "box": [
+   192.0,
+   234.8,
+   640.0,
+   597.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5912-_jpg.rf.32f337c1f77e273323277366feee3b72.jpg",
+  "n": 0,
+  "box": [
+   326.5,
+   152.8,
+   496.5,
+   398.2
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-5917-_jpg.rf.f3da1f0c6ecf6dd06151ac5be5d17730.jpg",
+  "n": 0,
+  "box": [
+   9.0,
+   335.5,
+   348.0,
+   510.5
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5928-_jpg.rf.13bee03c6a02da189bc8512318e41ba4.jpg",
+  "n": 0,
+  "box": [
+   97.3,
+   46.0,
+   418.8,
+   504.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5938-_jpg.rf.b06a7b8b192cabf2826d2f80ae0dc2fc.jpg",
+  "n": 0,
+  "box": [
+   95.8,
+   366.0,
+   468.2,
+   606.0
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-5947-_jpg.rf.a5d6d7c2fe522e4a555142b8e435b466.jpg",
+  "n": 0,
+  "box": [
+   144.8,
+   55.2,
+   617.2,
+   574.8
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-5972-_jpg.rf.84f813c4ae87bae0f16b6988c3e2c589.jpg",
+  "n": 0,
+  "box": [
+   20.0,
+   0.0,
+   552.0,
+   606.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5989-_jpg.rf.f6414b6d6dd8654fab3c0e2a6a99b81d.jpg",
+  "n": 0,
+  "box": [
+   115.5,
+   496.5,
+   460.5,
+   630.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5997-_jpg.rf.539b98333559511c345cc210c87a1ff4.jpg",
+  "n": 0,
+  "box": [
+   168.0,
+   127.0,
+   530.0,
+   451.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-5998-_jpg.rf.7ee2c84fe350098d5c6d9494d2507c3c.jpg",
+  "n": 0,
+  "box": [
+   44.8,
+   265.5,
+   440.2,
+   555.5
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6053-_jpg.rf.c83402c620250e8a5e07b3fa5483d730.jpg",
+  "n": 0,
+  "box": [
+   328.2,
+   73.5,
+   624.8,
+   432.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6083-_jpg.rf.bc9665f8128adef3b7770670967d1233.jpg",
+  "n": 0,
+  "box": [
+   154.2,
+   210.8,
+   546.8,
+   449.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6089-_jpg.rf.f4f57bda2806bc035dd520ecef02c7e1.jpg",
+  "n": 0,
+  "box": [
+   231.8,
+   464.8,
+   420.3,
+   597.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6099-_jpg.rf.aee96e6b4d00d1a784353f8da1819030.jpg",
+  "n": 0,
+  "box": [
+   52.3,
+   32.7,
+   639.8,
+   476.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6106-_jpg.rf.54ee94b6ad309ea8fe90232dd6d96181.jpg",
+  "n": 0,
+  "box": [
+   243.3,
+   314.0,
+   403.8,
+   410.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-612-_jpg.rf.635d6d604ce441d33071935105a448f5.jpg",
+  "n": 0,
+  "box": [
+   226.2,
+   361.5,
+   424.7,
+   528.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6121-_jpg.rf.2fc4afa927186cb279ad2cf653aa0041.jpg",
+  "n": 0,
+  "box": [
+   265.0,
+   313.0,
+   380.0,
+   442.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-613-_jpg.rf.763c9eebb417e9ce89a785ffe011a65d.jpg",
+  "n": 0,
+  "box": [
+   219.0,
+   350.0,
+   440.0,
+   495.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6136-_jpg.rf.73389b6dd955d625198b9c70f858548c.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   47.3,
+   640.0,
+   589.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6143-_jpg.rf.c526226687240ab390cc893da40645bb.jpg",
+  "n": 0,
+  "box": [
+   146.0,
+   402.0,
+   338.0,
+   619.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6161-_jpg.rf.2e3045fff84bc982840b238ed07f3f79.jpg",
+  "n": 0,
+  "box": [
+   75.0,
+   0.0,
+   489.0,
+   631.0
+  ],
+  "auto": "sitting",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-6189-_jpg.rf.1b7bc4e5c7dd3ababfec6decb0edb0ac.jpg",
+  "n": 0,
+  "box": [
+   98.5,
+   388.8,
+   271.5,
+   527.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6205-_jpg.rf.8e7b5d8f55ff6bbcbbd7104e26de84b2.jpg",
+  "n": 0,
+  "box": [
+   98.0,
+   230.8,
+   549.0,
+   533.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6207-_jpg.rf.ca2d617866a5e382f24aa5cfca0ecfc8.jpg",
+  "n": 0,
+  "box": [
+   181.8,
+   368.8,
+   334.2,
+   510.3
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6222-_jpg.rf.4d75a56dbf96e4a4cbcb8f337021811e.jpg",
+  "n": 0,
+  "box": [
+   129.2,
+   132.5,
+   590.8,
+   309.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6233-_jpg.rf.ee040f9cc604a1f1f32862b787cdffa2.jpg",
+  "n": 0,
+  "box": [
+   4.0,
+   188.2,
+   566.0,
+   639.8
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6237-_jpg.rf.3a2dfdeb3755ff06db670a4c83dc0e50.jpg",
+  "n": 0,
+  "box": [
+   39.7,
+   106.0,
+   448.2,
+   618.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6241-_jpg.rf.da1c2c09cf0bf8d91f2dcfb32801ddd7.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   5.5,
+   640.0,
+   621.5
+  ],
+  "auto": "sitting",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-6255-_jpg.rf.7fe231f16c0f4ca669f2ad9a1b5563f5.jpg",
+  "n": 0,
+  "box": [
+   257.2,
+   215.2,
+   368.8,
+   409.8
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-626-_jpg.rf.cf1db1cf104364f23e8785fb0fd6d1c7.jpg",
+  "n": 0,
+  "box": [
+   81.2,
+   97.8,
+   488.8,
+   596.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6272-_jpg.rf.36eaef9eeb486e11fe3dae86276f0d80.jpg",
+  "n": 0,
+  "box": [
+   182.5,
+   81.0,
+   469.5,
+   608.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6287-_jpg.rf.a0f48a961aba4e6544c84b4dc9d0d35a.jpg",
+  "n": 0,
+  "box": [
+   269.0,
+   242.0,
+   434.0,
+   534.0
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-6329-_jpg.rf.1bdcc4b2efe650b8303993dee2454638.jpg",
+  "n": 0,
+  "box": [
+   252.0,
+   473.0,
+   640.0,
+   635.0
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-6330-_jpg.rf.cc210a5f40737ce0a91787505f984631.jpg",
+  "n": 0,
+  "box": [
+   50.2,
+   231.0,
+   382.8,
+   449.0
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6331-_jpg.rf.c0d7a21fc4639d6db38c3c847e26408e.jpg",
+  "n": 0,
+  "box": [
+   62.8,
+   8.5,
+   634.2,
+   616.5
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6336-_jpg.rf.55c097151d904e84bb1fbfdafd76e050.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   56.2,
+   640.0,
+   639.8
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6341-_jpg.rf.1fe3a06727b1cdbf5315f5a5116da0f5.jpg",
+  "n": 0,
+  "box": [
+   14.0,
+   114.0,
+   508.0,
+   567.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6351-_jpg.rf.57ea0e140e0f73e3561f45bf3d5b6c48.jpg",
+  "n": 0,
+  "box": [
+   178.0,
+   183.0,
+   448.0,
+   566.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6416-_jpg.rf.fb4802ae976ad0b7a0fb02221d05fb00.jpg",
+  "n": 0,
+  "box": [
+   146.5,
+   241.2,
+   602.5,
+   443.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-644-_jpg.rf.d4e386a5866cf9cac409f8fbeea1e38e.jpg",
+  "n": 0,
+  "box": [
+   234.2,
+   392.0,
+   412.8,
+   640.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6481-_jpg.rf.e5cace2a86a3abea4691911a53c123a9.jpg",
+  "n": 0,
+  "box": [
+   160.0,
+   67.7,
+   548.0,
+   435.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6489-_jpg.rf.6ad4b634f8c4995645c6c7beb3c61f7a.jpg",
+  "n": 0,
+  "box": [
+   321.5,
+   16.5,
+   627.5,
+   535.5
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6495-_jpg.rf.b8ec05086ce6ffbfb63ca7267614c78a.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   296.0,
+   435.0,
+   541.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6517-_jpg.rf.e8cc1b43ac9d89e2893f0370b1ed4257.jpg",
+  "n": 0,
+  "box": [
+   5.0,
+   453.0,
+   111.0,
+   630.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6518-_jpg.rf.4f9a4be9e24f6967c1bb5e405e1762bb.jpg",
+  "n": 0,
+  "box": [
+   253.5,
+   167.0,
+   490.5,
+   379.0
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6525-_jpg.rf.fcf10cc7243c76acd224a45f1fe2cbd2.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   36.0,
+   376.0,
+   639.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-656-_jpg.rf.18c5a15877abdb3609501550412edfcf.jpg",
+  "n": 0,
+  "box": [
+   247.0,
+   403.0,
+   439.0,
+   640.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6573-_jpg.rf.11d525dbfa15c20d1f4b2f6fac661e0e.jpg",
+  "n": 0,
+  "box": [
+   7.7,
+   50.5,
+   637.2,
+   581.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6578-_jpg.rf.305c0bcff469928bbcbdccc5186c4425.jpg",
+  "n": 0,
+  "box": [
+   182.8,
+   134.5,
+   431.2,
+   501.5
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-6588-_jpg.rf.30d5de9c03430d479cbf49321fa7b3d0.jpg",
+  "n": 0,
+  "box": [
+   196.0,
+   54.0,
+   507.0,
+   588.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6606-_jpg.rf.aebf9c0e54c66e17ff63f5b7d90a5fcc.jpg",
+  "n": 0,
+  "box": [
+   24.0,
+   281.5,
+   421.0,
+   418.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6617-_jpg.rf.f0f5f7d59f683c8524e08c0b99690555.jpg",
+  "n": 0,
+  "box": [
+   74.5,
+   276.5,
+   373.5,
+   500.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6637-_jpg.rf.5c959844b9a8e5454e905160bff6fd46.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   0.0,
+   640.0,
+   640.0
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6644-_jpg.rf.ad48d321380f45d09d1578b1f9f409dd.jpg",
+  "n": 0,
+  "box": [
+   32.0,
+   401.5,
+   640.0,
+   628.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6679-_jpg.rf.a532acb5952d1c4fd7e7c14de333a1a7.jpg",
+  "n": 0,
+  "box": [
+   47.3,
+   103.8,
+   394.8,
+   594.2
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6684-_jpg.rf.0af8a78c6ab1362d7e25f2718241bf4b.jpg",
+  "n": 0,
+  "box": [
+   79.2,
+   393.5,
+   273.8,
+   529.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6698-_jpg.rf.0e8a6ad4d20af7bc8146568ec378f627.jpg",
+  "n": 0,
+  "box": [
+   156.5,
+   317.8,
+   338.5,
+   627.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6718-_jpg.rf.ef7ce4a130adffb094d1576b8b637ec7.jpg",
+  "n": 0,
+  "box": [
+   193.0,
+   12.0,
+   631.0,
+   328.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6736-_jpg.rf.c13a9f570d73d495d86bfd3f128741f9.jpg",
+  "n": 0,
+  "box": [
+   8.5,
+   9.5,
+   625.5,
+   564.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6762-_jpg.rf.6e3a1dec76a9611905d191be5f3c676d.jpg",
+  "n": 0,
+  "box": [
+   102.2,
+   228.7,
+   515.8,
+   482.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6766-_jpg.rf.ff626c67d8032b202cae46b39281f619.jpg",
+  "n": 0,
+  "box": [
+   36.0,
+   44.3,
+   608.0,
+   639.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6775-_jpg.rf.668aad9d97d1a88fb595829c242bf244.jpg",
+  "n": 0,
+  "box": [
+   367.8,
+   266.5,
+   613.2,
+   439.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6783-_jpg.rf.e1dce0d775a4ad90b83e7e9f9c2298ab.jpg",
+  "n": 0,
+  "box": [
+   68.5,
+   11.5,
+   628.5,
+   613.5
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6793-_jpg.rf.7c1343bf29b447722591163607b971d4.jpg",
+  "n": 0,
+  "box": [
+   354.8,
+   173.5,
+   389.3,
+   219.5
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-6823-_jpg.rf.a4fa61493df1fc78f8f24d599561e71d.jpg",
+  "n": 0,
+  "box": [
+   221.7,
+   51.2,
+   412.2,
+   455.8
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6864-_jpg.rf.6d43f8f915d08c656ac73c428425a7be.jpg",
+  "n": 0,
+  "box": [
+   53.5,
+   292.8,
+   267.5,
+   599.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6885-_jpg.rf.dd6e3336bea09424d3b2e2325baaa8eb.jpg",
+  "n": 0,
+  "box": [
+   92.0,
+   183.0,
+   568.0,
+   442.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6887-_jpg.rf.72534626e5b796e6e6f78b072317636e.jpg",
+  "n": 0,
+  "box": [
+   208.5,
+   175.0,
+   414.5,
+   371.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6892-_jpg.rf.ca32fc83135c839b1c0d3b0351f15115.jpg",
+  "n": 0,
+  "box": [
+   193.2,
+   202.5,
+   494.7,
+   492.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-6895-_jpg.rf.d70e537932452212c0019994445aa676.jpg",
+  "n": 0,
+  "box": [
+   248.3,
+   291.0,
+   373.8,
+   486.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6935-_jpg.rf.926a5f0323f8e1f2c6ddebf5a393a6d0.jpg",
+  "n": 0,
+  "box": [
+   224.0,
+   198.0,
+   466.0,
+   488.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-6942-_jpg.rf.6a2673bed0e28ceb2e797e709960a073.jpg",
+  "n": 0,
+  "box": [
+   143.5,
+   179.7,
+   495.5,
+   471.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7026-_jpg.rf.11318765167df94a85df565a09ed2688.jpg",
+  "n": 0,
+  "box": [
+   132.5,
+   362.5,
+   503.5,
+   532.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7032-_jpg.rf.e39d3d2e1914e1e7901ec3534779909b.jpg",
+  "n": 0,
+  "box": [
+   47.3,
+   80.5,
+   639.8,
+   614.5
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-7051-_jpg.rf.17e6d4567015976b2fb1106452087d77.jpg",
+  "n": 0,
+  "box": [
+   233.0,
+   7.5,
+   604.0,
+   605.5
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-7076-_jpg.rf.44afff434911e357f48b2f941d44830a.jpg",
+  "n": 0,
+  "box": [
+   240.0,
+   151.5,
+   510.0,
+   530.5
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-7085-_jpg.rf.e282bfd0710e529e181ef15a1c28e72b.jpg",
+  "n": 0,
+  "box": [
+   219.0,
+   172.2,
+   434.0,
+   526.8
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-7096-_jpg.rf.d0d6750216ed93498926d4d339151e49.jpg",
+  "n": 0,
+  "box": [
+   261.0,
+   323.2,
+   632.0,
+   588.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7113-_jpg.rf.cae3e4b749aad17249f9ce901d087622.jpg",
+  "n": 0,
+  "box": [
+   101.8,
+   45.5,
+   595.2,
+   584.5
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-7126-_jpg.rf.5730958867c7b47382c2577fb24a2217.jpg",
+  "n": 0,
+  "box": [
+   130.3,
+   322.0,
+   431.8,
+   591.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7179-_jpg.rf.48aef64346e7393e653269f3d03e716d.jpg",
+  "n": 0,
+  "box": [
+   193.2,
+   162.2,
+   501.8,
+   493.8
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7210-_jpg.rf.3c373886081cbd811f6c4d095da2903b.jpg",
+  "n": 0,
+  "box": [
+   38.8,
+   10.5,
+   587.2,
+   614.5
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-7223-_jpg.rf.1a55bdc9bed88ff95f32d10b42293355.jpg",
+  "n": 0,
+  "box": [
+   27.3,
+   17.3,
+   599.8,
+   392.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7237-_jpg.rf.a9830824fdbe27769d8d6b8e1322a9b5.jpg",
+  "n": 0,
+  "box": [
+   68.0,
+   209.2,
+   580.0,
+   547.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7255-_jpg.rf.8ef68cbfe8750e4995e4fbacaff4a9df.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   65.0,
+   573.0,
+   563.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7286-_jpg.rf.4cd5a3e1094cae3b87bbda10eab000ac.jpg",
+  "n": 0,
+  "box": [
+   123.0,
+   172.5,
+   433.0,
+   512.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7308-_jpg.rf.145b965f4227976a4f832dfd1130620b.jpg",
+  "n": 0,
+  "box": [
+   224.5,
+   336.8,
+   621.5,
+   629.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7310-_jpg.rf.1eb5cd65673fc7c47fdfc95a28ff8a56.jpg",
+  "n": 0,
+  "box": [
+   205.0,
+   275.2,
+   272.0,
+   347.8
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-7337-_jpg.rf.56846c2c541d464e0a8efac54ce19be7.jpg",
+  "n": 0,
+  "box": [
+   411.0,
+   375.5,
+   535.0,
+   452.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7343-_jpg.rf.8c2767695ca9de9425f708849ac3329a.jpg",
+  "n": 0,
+  "box": [
+   182.0,
+   113.2,
+   438.0,
+   505.8
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-7351-_jpg.rf.b65741ac05a07992f9581fd082f4f9c9.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   1.8,
+   425.0,
+   570.2
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-7376-_jpg.rf.aa83ead0117e0fd26e1188f0cdfc8a36.jpg",
+  "n": 0,
+  "box": [
+   222.5,
+   298.0,
+   596.5,
+   475.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7395-_jpg.rf.3692a83172a3ef9ee77897ffaed6a353.jpg",
+  "n": 0,
+  "box": [
+   29.3,
+   112.7,
+   639.8,
+   512.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7447-_jpg.rf.3a28ca31fb6f77493f2d185bf7ec7858.jpg",
+  "n": 0,
+  "box": [
+   134.2,
+   9.5,
+   565.8,
+   428.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7450-_jpg.rf.d2fb2847012a6035e6f76e7d76fc7b39.jpg",
+  "n": 0,
+  "box": [
+   16.5,
+   106.5,
+   537.5,
+   334.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7485-_jpg.rf.df406e203a72cc5967cff28c6d1d9f39.jpg",
+  "n": 0,
+  "box": [
+   119.5,
+   369.7,
+   453.5,
+   593.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7493-_jpg.rf.f6e4c1605987b0e12e9dca72ec6a816a.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   93.5,
+   640.0,
+   479.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7495-_jpg.rf.100b7b90112c647ff366e1fc17a4918d.jpg",
+  "n": 0,
+  "box": [
+   10.5,
+   42.7,
+   625.5,
+   582.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7520-_jpg.rf.c1a6852e96194ae63345691a12cf8498.jpg",
+  "n": 0,
+  "box": [
+   69.5,
+   68.5,
+   561.5,
+   567.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7521-_jpg.rf.0f4900fd482aaabc0a679a21504e8e7b.jpg",
+  "n": 0,
+  "box": [
+   80.8,
+   223.5,
+   440.3,
+   527.5
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7552-_jpg.rf.5047e2d9fbb3afe76c9406050584c6b0.jpg",
+  "n": 0,
+  "box": [
+   115.0,
+   0.0,
+   585.0,
+   640.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-7563-_jpg.rf.f1b5b7d9f8c931f775887ad702929281.jpg",
+  "n": 0,
+  "box": [
+   0.2,
+   0.2,
+   587.8,
+   358.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7620-_jpg.rf.8080a4151952f7c122bd3ae26b8d471c.jpg",
+  "n": 0,
+  "box": [
+   112.5,
+   170.8,
+   534.5,
+   541.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7630-_jpg.rf.03a7f6c9a56e91589123a210aa22e616.jpg",
+  "n": 0,
+  "box": [
+   213.8,
+   175.0,
+   575.2,
+   369.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7641-_jpg.rf.58f257937041f7b2391eaeeff2a8e278.jpg",
+  "n": 0,
+  "box": [
+   12.5,
+   12.0,
+   369.5,
+   625.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-7648-_jpg.rf.e0531fb161eb4f7469068b3ad745dcce.jpg",
+  "n": 0,
+  "box": [
+   146.2,
+   94.5,
+   441.8,
+   605.5
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-7693-_jpg.rf.f5fe849438d2e9ba9d9c9c555e206fa4.jpg",
+  "n": 0,
+  "box": [
+   81.8,
+   184.0,
+   563.2,
+   523.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7710-_jpg.rf.85d6eab6584540482edf539e2b6e6a5e.jpg",
+  "n": 0,
+  "box": [
+   24.0,
+   113.5,
+   558.0,
+   461.5
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-7733-_jpg.rf.c82d08270f4f64ce2bdae4f6ccb16eee.jpg",
+  "n": 0,
+  "box": [
+   103.8,
+   75.5,
+   604.2,
+   556.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7751-_jpg.rf.53bd4fc8f39e15e05e4c3719d2c1d249.jpg",
+  "n": 0,
+  "box": [
+   215.0,
+   269.8,
+   398.0,
+   454.3
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-784-_jpg.rf.526018aa1e59c57f46efa1ac34707f62.jpg",
+  "n": 0,
+  "box": [
+   127.0,
+   70.0,
+   640.0,
+   640.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7873-_jpg.rf.415c86ac3af68e3304c31f753c7dff87.jpg",
+  "n": 0,
+  "box": [
+   87.5,
+   85.5,
+   571.5,
+   469.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7876-_jpg.rf.494a600fc27a59024db25fae6863ec61.jpg",
+  "n": 0,
+  "box": [
+   10.0,
+   125.0,
+   618.0,
+   517.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-7898-_jpg.rf.b916421d8dc60c93578742b17ea0e722.jpg",
+  "n": 0,
+  "box": [
+   15.5,
+   111.5,
+   604.5,
+   528.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-79-_jpg.rf.0bd49fe5c448a061709fa3492377530b.jpg",
+  "n": 0,
+  "box": [
+   235.8,
+   246.8,
+   348.2,
+   345.2
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-8002-_jpg.rf.96d0f1c4e7b7c09592ca8e4497457550.jpg",
+  "n": 0,
+  "box": [
+   248.5,
+   196.5,
+   454.5,
+   483.5
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-8005-_jpg.rf.95ea29492791b3bcb6bbed285bad7d60.jpg",
+  "n": 0,
+  "box": [
+   18.2,
+   184.8,
+   404.7,
+   575.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8056-_jpg.rf.2cb3a96213ef3ddb7101644b0ce532b1.jpg",
+  "n": 0,
+  "box": [
+   95.8,
+   161.0,
+   623.2,
+   613.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8073-_jpg.rf.610ed76e3a71f29feaa218e887e2d0ff.jpg",
+  "n": 0,
+  "box": [
+   36.2,
+   33.5,
+   605.8,
+   541.5
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-8101-_jpg.rf.0321daa45847d361ebf35cd529bf61d4.jpg",
+  "n": 0,
+  "box": [
+   17.7,
+   199.0,
+   545.2,
+   567.0
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-8104-_jpg.rf.ee2541832c2a3eb5771bef50fbe08408.jpg",
+  "n": 0,
+  "box": [
+   27.0,
+   185.0,
+   183.0,
+   534.0
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-8152-_jpg.rf.2661eb36e114e02e665683104374a9f4.jpg",
+  "n": 0,
+  "box": [
+   403.2,
+   392.0,
+   633.8,
+   520.0
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-8173-_jpg.rf.0faeb4673fcdb8dc673f13afeedd0700.jpg",
+  "n": 0,
+  "box": [
+   74.5,
+   160.0,
+   480.5,
+   625.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8177-_jpg.rf.2dc171a12193d825bcb28f61d42c52c6.jpg",
+  "n": 0,
+  "box": [
+   189.5,
+   147.8,
+   519.5,
+   465.2
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8181-_jpg.rf.cf290100c5ef815225d8da5c375e9ae5.jpg",
+  "n": 0,
+  "box": [
+   96.0,
+   212.0,
+   489.0,
+   468.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8192-_jpg.rf.d56cda17fa6d2db50683d8196982d73c.jpg",
+  "n": 0,
+  "box": [
+   263.0,
+   115.0,
+   640.0,
+   458.0
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-8217-_jpg.rf.7e17a82df87ac4a6ddd6810eb2029eae.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   393.0,
+   463.0,
+   600.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8231-_jpg.rf.96ea02c28382f04e534bd8dcd27eb017.jpg",
+  "n": 0,
+  "box": [
+   330.0,
+   379.8,
+   448.0,
+   467.2
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-8295-_jpg.rf.28c3f82abadc49fd113d88569175ac90.jpg",
+  "n": 0,
+  "box": [
+   89.7,
+   121.2,
+   544.2,
+   465.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-83-_jpg.rf.f5e085e9e1ef7351a40b82a167f8dd73.jpg",
+  "n": 0,
+  "box": [
+   359.8,
+   154.0,
+   467.2,
+   227.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8304-_jpg.rf.4504068c06bc28ab0e297d37dc0bc664.jpg",
+  "n": 0,
+  "box": [
+   18.0,
+   35.0,
+   616.0,
+   640.0
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-8342-_jpg.rf.9ee628a9aa76b2a7e161bb6d2061c9a6.jpg",
+  "n": 0,
+  "box": [
+   176.5,
+   147.2,
+   542.5,
+   338.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8346-_jpg.rf.3cbfbfb9cf1f2d038a98154a19de055d.jpg",
+  "n": 0,
+  "box": [
+   47.0,
+   82.0,
+   640.0,
+   628.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8361-_jpg.rf.816ad0a281cab49fba9709294665dccc.jpg",
+  "n": 0,
+  "box": [
+   184.5,
+   237.0,
+   638.5,
+   547.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-845-_jpg.rf.b352da8317b2a2d1580a08364e47ce0c.jpg",
+  "n": 0,
+  "box": [
+   57.0,
+   342.5,
+   512.0,
+   632.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-851-_jpg.rf.2a1fa78dc9c188439717af26e2a5df5e.jpg",
+  "n": 0,
+  "box": [
+   371.5,
+   280.5,
+   550.5,
+   571.5
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-861-_jpg.rf.19d0b71ce01efe791b7419ddfb974bed.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   10.0,
+   454.0,
+   618.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8698-_jpg.rf.ec476ce775d4087f50a7ce88438e1382.jpg",
+  "n": 0,
+  "box": [
+   164.0,
+   186.3,
+   604.0,
+   522.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8704-_jpg.rf.22b9e9a03508c901246c18b8fc7ac333.jpg",
+  "n": 0,
+  "box": [
+   167.0,
+   22.8,
+   615.0,
+   354.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8711-_jpg.rf.18f0955e0d2c4d68dad88e05c15303f4.jpg",
+  "n": 0,
+  "box": [
+   33.8,
+   136.2,
+   605.2,
+   498.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8714-_jpg.rf.42211493ed89b0898c9db93e40f8052d.jpg",
+  "n": 0,
+  "box": [
+   39.2,
+   48.0,
+   603.8,
+   576.0
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-8739-_jpg.rf.2ea7ca7211a8c499e1b562ce8cf6c190.jpg",
+  "n": 0,
+  "box": [
+   56.7,
+   152.2,
+   571.2,
+   559.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8756-_jpg.rf.2be6aa2cee36e2d82821d15417ec55ff.jpg",
+  "n": 0,
+  "box": [
+   61.8,
+   78.0,
+   583.2,
+   550.0
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-8759-_jpg.rf.dfec8df789fc36956b05b46523bbca4a.jpg",
+  "n": 0,
+  "box": [
+   49.0,
+   141.0,
+   404.0,
+   476.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-878-_jpg.rf.57d76208681896658feea9cc95542383.jpg",
+  "n": 0,
+  "box": [
+   112.5,
+   400.8,
+   342.5,
+   633.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8789-_jpg.rf.246aafc7c20bc2f895b4144bb669d192.jpg",
+  "n": 0,
+  "box": [
+   123.3,
+   249.8,
+   535.8,
+   460.2
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-8793-_jpg.rf.770a8fea2c507d2b2c1bdd45ab62d27c.jpg",
+  "n": 0,
+  "box": [
+   92.7,
+   44.5,
+   605.2,
+   585.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8794-_jpg.rf.f193b2ead8f73c14252e058dc495a99b.jpg",
+  "n": 0,
+  "box": [
+   26.0,
+   53.3,
+   604.0,
+   563.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8803-_jpg.rf.088dc706c2bd36e67000157552904433.jpg",
+  "n": 0,
+  "box": [
+   40.8,
+   136.8,
+   591.2,
+   444.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8808-_jpg.rf.1ce84f644b354c682290590b0b5efe26.jpg",
+  "n": 0,
+  "box": [
+   66.5,
+   271.8,
+   497.5,
+   517.2
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8815-_jpg.rf.ea64c457734064dff9524d5aa68bd072.jpg",
+  "n": 0,
+  "box": [
+   184.0,
+   324.0,
+   367.0,
+   501.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8818-_jpg.rf.98801503dcfd80e03007577f81940b48.jpg",
+  "n": 0,
+  "box": [
+   196.0,
+   10.0,
+   380.0,
+   487.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8822-_jpg.rf.a8b0e294607b0fa67b42d0c5cae11df0.jpg",
+  "n": 0,
+  "box": [
+   174.5,
+   64.5,
+   603.5,
+   564.5
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8829-_jpg.rf.272da05f1a07bbdde6d9fbf881faa01e.jpg",
+  "n": 0,
+  "box": [
+   33.5,
+   137.5,
+   420.5,
+   448.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8843-_jpg.rf.e83f61765c0a36e23d13c50f976029c8.jpg",
+  "n": 0,
+  "box": [
+   27.0,
+   101.5,
+   610.0,
+   525.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8902-_jpg.rf.01f8ddb51882f6c272de9695d247152c.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   485.0,
+   433.0,
+   637.0
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8944-_jpg.rf.a0145680562b40a4a2ad2ca1c6b9d68a.jpg",
+  "n": 0,
+  "box": [
+   10.0,
+   102.5,
+   613.0,
+   585.5
+  ],
+  "auto": "sitting",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-8945-_jpg.rf.5423da99a4949b6938746a8f74e13219.jpg",
+  "n": 0,
+  "box": [
+   18.5,
+   45.5,
+   624.5,
+   580.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-900-_jpg.rf.67342a4bc6774c9a88a14e550ecc8d7e.jpg",
+  "n": 0,
+  "box": [
+   32.2,
+   180.2,
+   395.8,
+   639.8
+  ],
+  "auto": "lying",
+  "reviewed": "unclear"
+ },
+ {
+  "image": "people-908-_jpg.rf.0b479c9aa7c6a58cf5deb92d0e66b470.jpg",
+  "n": 0,
+  "box": [
+   348.5,
+   309.2,
+   482.5,
+   608.8
+  ],
+  "auto": "sitting",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-934-_jpg.rf.36fd360f2c9b165a9795c96928d16559.jpg",
+  "n": 0,
+  "box": [
+   60.0,
+   240.3,
+   354.0,
+   548.8
+  ],
+  "auto": "lying",
+  "reviewed": "sitting"
+ },
+ {
+  "image": "people-935-_jpg.rf.cffd36332c5e7517f8231f6d5d3fa9b7.jpg",
+  "n": 0,
+  "box": [
+   412.2,
+   358.2,
+   541.8,
+   458.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-967-_jpg.rf.515c08d119c6549bd4316a86a695399b.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   228.0,
+   503.0,
+   593.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-968-_jpg.rf.ea24740100bacb6cd5a782d8eb248a0b.jpg",
+  "n": 0,
+  "box": [
+   60.5,
+   202.2,
+   518.5,
+   429.8
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-979-_jpg.rf.6962f6b16c99d1da7b9b99b6bc6b9c90.jpg",
+  "n": 0,
+  "box": [
+   272.2,
+   54.5,
+   488.8,
+   103.5
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ },
+ {
+  "image": "people-983-_jpg.rf.464c03a1b2e63dcc18f637e5a6e29c56.jpg",
+  "n": 0,
+  "box": [
+   0.0,
+   366.0,
+   387.0,
+   551.0
+  ],
+  "auto": "lying",
+  "reviewed": "lying"
+ }
+]

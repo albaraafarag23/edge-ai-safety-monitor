@@ -1,0 +1,1183 @@
+{
+ "summary": {
+  "plugin": "construction_demo",
+  "every": 4,
+  "verify_at": 0.5,
+  "falls_caught": "19/30",
+  "adl_false_alarms": "7/40",
+  "false_alarm_sequences": [
+   "adl-10",
+   "adl-11",
+   "adl-30",
+   "adl-36",
+   "adl-38",
+   "adl-39",
+   "adl-40"
+  ],
+  "delay_median_s": 6.4
+ },
+ "sequences": {
+  "adl-01": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 14,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-02": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 4,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-03": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 19,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-04": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 14,
+   "check_said_lying": 2,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-05": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 17,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-06": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 20,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-07": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 12,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-08": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 14,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-09": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 121,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-10": {
+   "fall_start_frame": 170,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 427,
+     "t": 14.23,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 8.56,
+   "checks": 139,
+   "check_said_lying": 133,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 119,
+    "fell": true,
+    "max_down_s": 15.7
+   }
+  },
+  "adl-11": {
+   "fall_start_frame": 161,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 387,
+     "t": 12.9,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 7.53,
+   "checks": 155,
+   "check_said_lying": 128,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 126,
+    "fell": true,
+    "max_down_s": 17.1
+   }
+  },
+  "adl-12": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 5,
+   "check_said_lying": 1,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-13": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 0,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-14": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 0,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-15": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 1,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-16": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 3,
+   "check_said_lying": 1,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-17": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 0,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-18": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 0,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-19": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 0,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-20": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 2,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-21": {
+   "fall_start_frame": 162,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 1,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-22": {
+   "fall_start_frame": 151,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 0,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-23": {
+   "fall_start_frame": 123,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 0,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-24": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 10,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-25": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 14,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-26": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 10,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-27": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 1,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-28": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 4,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-29": {
+   "fall_start_frame": null,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 2,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-30": {
+   "fall_start_frame": 180,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 479,
+     "t": 15.97,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 9.97,
+   "checks": 146,
+   "check_said_lying": 144,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 131,
+    "fell": true,
+    "max_down_s": 17.3
+   }
+  },
+  "adl-31": {
+   "fall_start_frame": 95,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 117,
+   "check_said_lying": 2,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-32": {
+   "fall_start_frame": 75,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 1,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-33": {
+   "fall_start_frame": 70,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 8,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-34": {
+   "fall_start_frame": 65,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 4,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-35": {
+   "fall_start_frame": 40,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 19,
+   "check_said_lying": 7,
+   "diag": {
+    "frames_with_box": 0,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-36": {
+   "fall_start_frame": 211,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 447,
+     "t": 14.9,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 7.87,
+   "checks": 147,
+   "check_said_lying": 137,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 124,
+    "fell": true,
+    "max_down_s": 16.4
+   }
+  },
+  "adl-37": {
+   "fall_start_frame": 235,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 140,
+   "check_said_lying": 2,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "adl-38": {
+   "fall_start_frame": 135,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 359,
+     "t": 11.97,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 7.47,
+   "checks": 148,
+   "check_said_lying": 143,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 112,
+    "reported_down": 141,
+    "fell": true,
+    "max_down_s": 19.5
+   }
+  },
+  "adl-39": {
+   "fall_start_frame": 140,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 415,
+     "t": 13.83,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 9.16,
+   "checks": 131,
+   "check_said_lying": 128,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 112,
+    "reported_down": 114,
+    "fell": true,
+    "max_down_s": 15.1
+   }
+  },
+  "adl-40": {
+   "fall_start_frame": 210,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 495,
+     "t": 16.5,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 9.5,
+   "checks": 131,
+   "check_said_lying": 122,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 112,
+    "reported_down": 109,
+    "fell": true,
+    "max_down_s": 14.4
+   }
+  },
+  "fall-01": {
+   "fall_start_frame": 83,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 319,
+     "t": 10.63,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 7.86,
+   "checks": 150,
+   "check_said_lying": 119,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 111,
+    "fell": true,
+    "max_down_s": 14.7
+   }
+  },
+  "fall-02": {
+   "fall_start_frame": 40,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 150,
+   "check_said_lying": 2,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "fall-03": {
+   "fall_start_frame": 148,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 164,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "fall-04": {
+   "fall_start_frame": 14,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 143,
+   "check_said_lying": 2,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "fall-05": {
+   "fall_start_frame": 79,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 343,
+     "t": 11.43,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 8.8,
+   "checks": 153,
+   "check_said_lying": 116,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 103,
+    "fell": true,
+    "max_down_s": 13.6
+   }
+  },
+  "fall-06": {
+   "fall_start_frame": 11,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 263,
+     "t": 8.77,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 8.4,
+   "checks": 142,
+   "check_said_lying": 121,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 110,
+    "fell": true,
+    "max_down_s": 14.5
+   }
+  },
+  "fall-07": {
+   "fall_start_frame": 85,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 155,
+   "check_said_lying": 5,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 0,
+    "reported_down": 1,
+    "fell": true,
+    "max_down_s": 0
+   }
+  },
+  "fall-08": {
+   "fall_start_frame": 30,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 135,
+   "check_said_lying": 0,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "fall-09": {
+   "fall_start_frame": 121,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 363,
+     "t": 12.1,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 8.07,
+   "checks": 160,
+   "check_said_lying": 116,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 112,
+    "reported_down": 106,
+    "fell": true,
+    "max_down_s": 14.0
+   }
+  },
+  "fall-10": {
+   "fall_start_frame": 40,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 144,
+   "check_said_lying": 5,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 0,
+    "reported_down": 0,
+    "fell": null,
+    "max_down_s": 0
+   }
+  },
+  "fall-11": {
+   "fall_start_frame": 49,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 303,
+     "t": 10.1,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 8.47,
+   "checks": 145,
+   "check_said_lying": 119,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 112,
+    "reported_down": 107,
+    "fell": true,
+    "max_down_s": 14.1
+   }
+  },
+  "fall-12": {
+   "fall_start_frame": 25,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 223,
+     "t": 7.43,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 6.6,
+   "checks": 143,
+   "check_said_lying": 126,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 112,
+    "reported_down": 122,
+    "fell": true,
+    "max_down_s": 16.1
+   }
+  },
+  "fall-13": {
+   "fall_start_frame": 44,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 235,
+     "t": 7.83,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 6.36,
+   "checks": 133,
+   "check_said_lying": 119,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 112,
+    "reported_down": 113,
+    "fell": true,
+    "max_down_s": 14.9
+   }
+  },
+  "fall-14": {
+   "fall_start_frame": 16,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 207,
+     "t": 6.9,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 6.37,
+   "checks": 244,
+   "check_said_lying": 233,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 112,
+    "reported_down": 114,
+    "fell": true,
+    "max_down_s": 15.1
+   }
+  },
+  "fall-15": {
+   "fall_start_frame": 28,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 231,
+     "t": 7.7,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 6.77,
+   "checks": 249,
+   "check_said_lying": 240,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 128,
+    "fell": true,
+    "max_down_s": 17.1
+   }
+  },
+  "fall-16": {
+   "fall_start_frame": 17,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 207,
+     "t": 6.9,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 6.33,
+   "checks": 241,
+   "check_said_lying": 240,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 125,
+    "fell": true,
+    "max_down_s": 16.5
+   }
+  },
+  "fall-17": {
+   "fall_start_frame": 59,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 243,
+     "t": 8.1,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 6.13,
+   "checks": 253,
+   "check_said_lying": 248,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 135,
+    "fell": true,
+    "max_down_s": 17.9
+   }
+  },
+  "fall-18": {
+   "fall_start_frame": 16,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 203,
+     "t": 6.77,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 6.24,
+   "checks": 246,
+   "check_said_lying": 238,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 112,
+    "reported_down": 127,
+    "fell": true,
+    "max_down_s": 16.8
+   }
+  },
+  "fall-19": {
+   "fall_start_frame": 25,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 139,
+   "check_said_lying": 130,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 135,
+    "fell": false,
+    "max_down_s": 18.0
+   }
+  },
+  "fall-20": {
+   "fall_start_frame": 18,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 207,
+     "t": 6.9,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 6.3,
+   "checks": 268,
+   "check_said_lying": 263,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 112,
+    "reported_down": 138,
+    "fell": true,
+    "max_down_s": 18.3
+   }
+  },
+  "fall-21": {
+   "fall_start_frame": 21,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 127,
+   "check_said_lying": 9,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 0,
+    "reported_down": 9,
+    "fell": false,
+    "max_down_s": 1.6
+   }
+  },
+  "fall-22": {
+   "fall_start_frame": 4,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 242,
+   "check_said_lying": 124,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 125,
+    "fell": true,
+    "max_down_s": 16.5
+   }
+  },
+  "fall-23": {
+   "fall_start_frame": 27,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 133,
+   "check_said_lying": 126,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 118,
+    "fell": false,
+    "max_down_s": 15.6
+   }
+  },
+  "fall-24": {
+   "fall_start_frame": 12,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 199,
+     "t": 6.63,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 6.23,
+   "checks": 246,
+   "check_said_lying": 127,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 126,
+    "fell": true,
+    "max_down_s": 15.3
+   }
+  },
+  "fall-25": {
+   "fall_start_frame": 45,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 239,
+     "t": 7.97,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 6.47,
+   "checks": 135,
+   "check_said_lying": 134,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 112,
+    "reported_down": 132,
+    "fell": true,
+    "max_down_s": 14.8
+   }
+  },
+  "fall-26": {
+   "fall_start_frame": 13,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 199,
+     "t": 6.63,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 6.2,
+   "checks": 129,
+   "check_said_lying": 126,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 112,
+    "reported_down": 126,
+    "fell": true,
+    "max_down_s": 15.3
+   }
+  },
+  "fall-27": {
+   "fall_start_frame": 51,
+   "alarms": [],
+   "first_down_alarm_s_after_fall": null,
+   "checks": 137,
+   "check_said_lying": 131,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 134,
+    "fell": false,
+    "max_down_s": 17.7
+   }
+  },
+  "fall-28": {
+   "fall_start_frame": 27,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 219,
+     "t": 7.3,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 6.4,
+   "checks": 129,
+   "check_said_lying": 123,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 112,
+    "reported_down": 116,
+    "fell": true,
+    "max_down_s": 14.8
+   }
+  },
+  "fall-29": {
+   "fall_start_frame": 49,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 255,
+     "t": 8.5,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 6.87,
+   "checks": 257,
+   "check_said_lying": 244,
+   "diag": {
+    "frames_with_box": 113,
+    "frames_box_confirmed": 113,
+    "reported_down": 129,
+    "fell": true,
+    "max_down_s": 18.0
+   }
+  },
+  "fall-30": {
+   "fall_start_frame": 25,
+   "alarms": [
+    {
+     "rule": "RULE_POSE_01",
+     "frame": 211,
+     "t": 7.03,
+     "fell": true
+    }
+   ],
+   "first_down_alarm_s_after_fall": 6.2,
+   "checks": 132,
+   "check_said_lying": 127,
+   "diag": {
+    "frames_with_box": 112,
+    "frames_box_confirmed": 112,
+    "reported_down": 128,
+    "fell": true,
+    "max_down_s": 15.2
+   }
+  }
+ }
+}

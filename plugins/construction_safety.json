@@ -49,17 +49,26 @@
         "default_confidence": 0.35,
         "classes": {
           "bottle": {},
-          "cup": {}
+          "cup": {},
+          "person": {
+            "confidence": 0.4,
+            "internal": true
+          }
         }
       },
       {
-        "model": "yolo11n-pose.pt",
-        "pose": true,
+        "model": "person_down2.pt",
         "imgsz": 640,
         "every_n_frames": 4,
-        "default_confidence": 0.5,
+        "default_confidence": 0.25,
         "classes": {
           "lying": {}
+        },
+        "fall": {
+          "detects": "person_down",
+          "verifier": "lying_verify.pt",
+          "verify_at": 0.8,
+          "upright_class": "person"
         }
       }
     ]
@@ -448,7 +457,8 @@
           "url": "https://mc.spsa.shj.ae/media/documents/8ZTXXGJk0O0HgcHO0bs6g_OSHJ-CoP-02%20OSH%20Management%20in%20Construction%20Version%201%20English.pdf"
         }
       ],
-      "cooldown_s": 120
+      "cooldown_s": 120,
+      "unseen_fall_after_s": 30
     },
     {
       "rule_id": "RULE_POSE_02",

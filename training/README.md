@@ -112,3 +112,20 @@ Current set and model (2026-10-21): `data/smoking_act2` (three labels; see `docs
         --crop 384 --imgsz 320
 
 The hand-checked labels are in `outputs/dataset_checks/smoking_act2/review_*.json` (re-applied by apply_review.py).
+
+## Person down v2: fall detector + "lying?" check (2026-11-17, see docs/team_notes.md)
+
+    # crops the fall detector gives (fall_fyp people = down; its false boxes + site / hospital people = not down)
+    python training/build_down_crops.py
+    # posture crops (lie / sit / bend / stand) from data/fall_posture_dqhnv + data/fall_posture_lutcc (Roboflow, CC BY 4.0)
+    python training/build_posture_crops.py
+    # lying vs not lying (drops clearly-sitting fall_fyp crops; adds posture crops) -> data/lying_verify
+    python training/build_lying_set.py
+    # the hand reviews of sitting people (outputs/eval/train_sitting_review.json) gave data/lying_verify2 / 3,
+    # then: YOLO("yolo11s-cls.pt").train(data="data/lying_verify3", imgsz=224, ...) -> models/lying_verify.pt
+    # photos: lying caught / sitting alarmed / false alarms, on the hand-reviewed test people
+    python training/eval_down_confirm.py --verifier models/lying_verify.pt --conf 0.25 0.35 [--sit-veto models/yolo11m-pose.pt]
+    # videos, end to end through the rule engine (data/urfd: UR Fall Detection, CC BY-NC-SA, test only)
+    python training/eval_fall_videos.py --plugin construction_demo [--verify-at 0.8] [--only fall-01,adl-10]
+    # review sheets for lying / sitting of the test people
+    python training/down_posture.py models/yolo11m-pose.pt outputs/eval/fall_test_sheets
