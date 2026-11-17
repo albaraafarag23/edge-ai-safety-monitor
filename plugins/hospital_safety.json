@@ -16,11 +16,21 @@
         "confidence": 0.5,
         "max_width": 0.6
       },
-      "Coverall": {},
-      "Mask": {},
-      "Gloves": {},
-      "Goggles": {},
-      "Face Shield": {}
+      "Coverall": {
+        "confidence": 0.3
+      },
+      "Mask": {
+        "confidence": 0.3
+      },
+      "Gloves": {
+        "confidence": 0.15
+      },
+      "Goggles": {
+        "confidence": 0.15
+      },
+      "Face Shield": {
+        "confidence": 0.15
+      }
     },
     "extra_models": [
       {
@@ -159,9 +169,7 @@
       "recommended_actions": [
         "Ask the staff member to put on gloves before touching the patient or the surroundings.",
         "Check that gloves in every size are stocked at the room's entrance."
-      ],
-      "enabled": false,
-      "requires": "A model that finds gloves more reliably (this one finds about 6 in 10)"
+      ]
     },
     {
       "rule_id": "RULE_EYES_01",
@@ -187,9 +195,7 @@
       "recommended_actions": [
         "Ask the staff member to put on goggles or a face shield before going back in.",
         "Check that eye protection is stocked at the room's entrance."
-      ],
-      "enabled": false,
-      "requires": "A model that finds goggles and face shields more reliably (this one finds 6 to 7 in 10)"
+      ]
     },
     {
       "rule_id": "RULE_ZONE_01",
@@ -313,7 +319,6 @@
         "RULE_GLOVES_01": {
           "name": "القفازات",
           "description": "القفازات إلزامية في غرفة العزل",
-          "requires": "نموذج يرصد القفازات بدقة أعلى (النموذج الحالي يرصد نحو 6 من كل 10)",
           "recommended_actions": [
             "اطلب من العامل ارتداء القفازات قبل لمس المريض أو ما حوله.",
             "تأكد من توفر القفازات بكل المقاسات عند مدخل الغرفة."
@@ -322,7 +327,6 @@
         "RULE_EYES_01": {
           "name": "حماية العينين",
           "description": "النظارات الواقية أو واقي الوجه إلزامي في غرفة العزل",
-          "requires": "نموذج يرصد النظارات الواقية وواقي الوجه بدقة أعلى (النموذج الحالي يرصد 6 إلى 7 من كل 10)",
           "recommended_actions": [
             "اطلب من العامل ارتداء نظارات واقية أو واقي الوجه قبل العودة إلى الغرفة.",
             "تأكد من توفر وسائل حماية العينين عند مدخل الغرفة."

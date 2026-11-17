@@ -17,14 +17,19 @@ T0 = datetime(2026, 11, 16, 10, 0, 0, tzinfo=timezone.utc)
 ISOLATION_X, STORE_X, CORRIDOR_X = 1300, 100, 650
 
 
-def person(x, mask=True, gown=True, track=1, y_feet=1000, w=200, h=700):
-    """A person whose box starts at x, with the mask and gown the model found on them."""
+def person(x, mask=True, gown=True, gloves=True, eyes="Goggles", track=1, y_feet=1000, w=200, h=700):
+    """A person whose box starts at x, with the mask, gown, gloves and eye protection the model found on them
+    (eyes: "Goggles", "Face Shield" or None)."""
     objects = [{"class_name": "Person", "confidence": 0.9, "bbox": [x, y_feet - h, x + w, y_feet],
                 "attributes": {"track_id": track}}]
     if mask:
         objects.append({"class_name": "Mask", "confidence": 0.9, "bbox": [x + 70, y_feet - h + 40, x + 130, y_feet - h + 90]})
     if gown:
         objects.append({"class_name": "Coverall", "confidence": 0.9, "bbox": [x + 10, y_feet - h + 110, x + 190, y_feet - 20]})
+    if gloves:
+        objects.append({"class_name": "Gloves", "confidence": 0.9, "bbox": [x + 5, y_feet - h + 380, x + 45, y_feet - h + 430]})
+    if eyes:
+        objects.append({"class_name": eyes, "confidence": 0.9, "bbox": [x + 65, y_feet - h + 15, x + 135, y_feet - h + 45]})
     return objects
 
 
@@ -78,11 +83,15 @@ smoker = person(CORRIDOR_X) + [{"class_name": "smoking", "confidence": 0.9, "bbo
 f, _ = run(smoker)
 check("Smoking anywhere in the building fires", rules_of(f) == ["RULE_SMOKE_01"] and f[0]["severity"] == "HIGH", rules_of(f))
 off = {r["rule_id"] for r in PLUGIN["rules"] if not usable(r)}
-check("Gloves, eye protection and patient fall are listed but not in use yet",
-      off == {"RULE_GLOVES_01", "RULE_EYES_01", "RULE_POSE_01"}, off)
-f, _ = run([o for o in person(ISOLATION_X) if o["class_name"] != "Coverall"]
-           + [{"class_name": "Gloves", "confidence": 0.9, "bbox": [1310, 600, 1350, 650]}])
-check("A rule that is not in use never fires (no gloves rule, gown rule does)", rules_of(f) == ["RULE_GOWN_01"], rules_of(f))
+check("Only patient fall is listed but not in use yet", off == {"RULE_POSE_01"}, off)
+f, _ = run(person(ISOLATION_X, gloves=False))
+check("Isolation room: no gloves fires the gloves rule", rules_of(f) == ["RULE_GLOVES_01"], rules_of(f))
+f, _ = run(person(ISOLATION_X, eyes=None))
+check("Isolation room: no goggles or face shield fires the eye rule", rules_of(f) == ["RULE_EYES_01"], rules_of(f))
+f, _ = run(person(ISOLATION_X, eyes="Face Shield"))
+check("A face shield counts as eye protection", rules_of(f) == [], rules_of(f))
+f, _ = run(person(CORRIDOR_X, gloves=False, eyes=None))
+check("Gloves and eye protection are only checked in the isolation room", rules_of(f) == [], rules_of(f))
 ar = PLUGIN["translations"]["ar"]
 check("Every rule, zone and item has its Arabic text",
       set(ar["rules"]) == {r["rule_id"] for r in PLUGIN["rules"]} and set(ar["zones"]) == set(PLUGIN["zones"])
