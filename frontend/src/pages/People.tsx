@@ -1,16 +1,16 @@
-import { Check, CircleAlert, ImagePlus, Loader2, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Check, CircleAlert, ImagePlus, Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
-import { personPhotoUrl } from "../api/client";
 import { usePeople, usePeopleMutations } from "../api/queries";
-import type { People as PeopleData, Person, PersonPhoto } from "../api/types";
+import type { People as PeopleData, Person } from "../api/types";
 import { PageHeader } from "../components/Layout";
 import { BUTTON_PRIMARY, BUTTON_SECONDARY, Card, EmptyState, ErrorState, INPUT, Modal, Spinner } from "../components/ui";
 import { useAuth } from "../lib/auth";
 import { bilingual, useText } from "../lib/i18n";
 
 // People the cameras recognise by face (backend/people.py). Photos are checked by the detector within seconds
-// of being added; this page shows how each one did, in plain words.
+// of being added; this page says how they did, in plain words. Photos already added are never shown (user's
+// decision, 2026-11-17): the server has no way to send them, only to add and delete.
 
 const ENOUGH = 5; // usable photos for reliable recognition (docs/faces.md)
 const MAX_SIDE = 1600; // photos are shrunk to this before upload: plenty for a face, and quick to send
@@ -46,8 +46,6 @@ const TEXT = bilingual(
     usable: (ok: number, all: number) => (all ? `${ok} of ${all} photo${all === 1 ? "" : "s"} usable` : "No photos yet"),
     addPhotos: "Add photos",
     uploading: (n: number) => `Uploading ${n}…`,
-    checking: "Being checked…",
-    good: "Good",
     problems: {
       no_face: "No face found",
       small_face: "Face too small: stand closer",
@@ -56,14 +54,17 @@ const TEXT = bilingual(
       different_person: "Looks like someone else",
       unreadable: "File can't be read",
     } as Record<string, string>,
-    removePhoto: "Remove this photo",
+    checkingSome: (n: number) => `${n} new photo${n === 1 ? " is" : "s are"} being checked…`,
+    unusable: (n: number) => `${n} photo${n === 1 ? " can't" : "s can't"} be used:`,
+    removeUnusable: (n: number) => `Remove ${n === 1 ? "it" : `these ${n}`}`,
+    hidden: "Photos already added are not shown here, to protect people's privacy.",
     rename: "Change name",
     removePerson: "Remove",
     confirmRemove: (name: string) => `Remove ${name} and all their photos? The cameras stop recognising them.`,
     cantRead: (file: string) => `${file} can't be opened here. Save it as a JPEG and try again.`,
     failed: (msg: string) => `Couldn't add a photo: ${msg}`,
     tooMany: (max: number) => `A person can have up to ${max} photos.`,
-    privacy: "Face photos stay on this system and only managers can see them. Enrol people only with their agreement.",
+    privacy: "Face photos stay on this system. Once added, nobody can view or download them from the console. Enrol people only with their agreement.",
   },
   {
     title: "الأشخاص",
@@ -95,8 +96,6 @@ const TEXT = bilingual(
     usable: (ok: number, all: number) => (all ? `${ok} من ${all} صالحة للاستخدام` : "لا صور بعد"),
     addPhotos: "إضافة صور",
     uploading: (n: number) => `جارٍ رفع ${n}…`,
-    checking: "قيد الفحص…",
-    good: "جيدة",
     problems: {
       no_face: "لم يُعثر على وجه",
       small_face: "الوجه صغير: اقترب أكثر",
@@ -105,14 +104,17 @@ const TEXT = bilingual(
       different_person: "تبدو لشخص آخر",
       unreadable: "تعذّرت قراءة الملف",
     },
-    removePhoto: "إزالة هذه الصورة",
+    checkingSome: (n: number) => (n === 1 ? "صورة جديدة قيد الفحص…" : `${n} صور جديدة قيد الفحص…`),
+    unusable: (n: number) => (n === 1 ? "صورة لا يمكن استخدامها:" : `${n} صور لا يمكن استخدامها:`),
+    removeUnusable: (n: number) => (n === 1 ? "إزالتها" : `إزالة هذه الصور (${n})`),
+    hidden: "لا تُعرض هنا الصور المضافة سابقًا، حفاظًا على خصوصية الأشخاص.",
     rename: "تغيير الاسم",
     removePerson: "إزالة",
     confirmRemove: (name: string) => `إزالة ${name} وكل صوره؟ ستتوقف الكاميرات عن التعرف عليه.`,
     cantRead: (file: string) => `تعذّر فتح ${file} هنا. احفظه بصيغة JPEG وحاول مجددًا.`,
     failed: (msg: string) => `تعذّرت إضافة صورة: ${msg}`,
     tooMany: (max: number) => `يمكن أن يكون للشخص حتى ${max} صورة.`,
-    privacy: "تبقى صور الوجوه على هذا النظام ولا يراها إلا المديرون. لا تسجّل أحدًا إلا بموافقته.",
+    privacy: "تبقى صور الوجوه على هذا النظام. بعد إضافتها لا يمكن لأحد عرضها أو تنزيلها من لوحة التحكم. لا تسجّل أحدًا إلا بموافقته.",
   },
 );
 
@@ -171,42 +173,32 @@ function NameDialog({ person, onClose }: { person?: Person; onClose: () => void 
   );
 }
 
-function Photo({ person, photo }: { person: Person; photo: PersonPhoto }) {
-  const t = useText(TEXT);
-  const { removePhoto } = usePeopleMutations();
-  const state = !photo.checked ? "checking" : photo.ok ? "good" : "bad";
-  const label = state === "checking" ? t.checking : state === "good" ? t.good : (t.problems[photo.problem ?? ""] ?? photo.problem ?? "");
-  return (
-    <li className="group relative">
-      <div className={`relative aspect-square overflow-hidden rounded-xl bg-slate-100 ring-2 ${state === "bad" ? "ring-red-400" : "ring-transparent"}`}>
-        <img src={personPhotoUrl(person.person_id, photo.file)} alt="" loading="lazy" className={`h-full w-full object-cover ${state === "bad" ? "opacity-60" : ""}`} />
-        <span
-          className={`absolute start-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-white shadow ${
-            state === "good" ? "bg-emerald-600" : state === "bad" ? "bg-red-600" : "bg-slate-500"
-          }`}
-        >
-          {state === "good" ? <Check className="h-3.5 w-3.5" /> : state === "bad" ? <CircleAlert className="h-3.5 w-3.5" /> : <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-        </span>
-        <button
-          onClick={() => removePhoto.mutate({ id: person.person_id, file: photo.file })}
-          className="absolute end-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition group-hover:opacity-100 focus:opacity-100 [@media(hover:none)]:opacity-100"
-          aria-label={t.removePhoto}
-          title={t.removePhoto}
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </div>
-      <p className={`mt-1 text-xs leading-snug ${state === "bad" ? "font-medium text-red-700" : "text-ink/60"}`}>{label}</p>
-    </li>
-  );
-}
-
 function PersonCard({ person, limits, onRename }: { person: Person; limits: PeopleData["limits"]; onRename: () => void }) {
   const t = useText(TEXT);
-  const { addPhoto, remove } = usePeopleMutations();
+  const { addPhoto, removePhoto, remove } = usePeopleMutations();
   const input = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(0);
+  const [removing, setRemoving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // what the detector made of the photos, as words: no picture is ever shown
+  const checking = person.photos.filter((p) => !p.checked).length;
+  const bad = person.photos.filter((p) => p.checked && !p.ok);
+  const problemCounts = bad.reduce<Record<string, number>>((acc, p) => {
+    const key = p.problem ?? "unreadable";
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+  const removeUnusable = async () => {
+    setRemoving(true);
+    for (const p of bad) {
+      try {
+        await removePhoto.mutateAsync({ id: person.person_id, file: p.file });
+      } catch {
+        /* already gone */
+      }
+    }
+    setRemoving(false);
+  };
 
   const upload = async (files: FileList | null) => {
     if (!files?.length) return;
@@ -263,22 +255,45 @@ function PersonCard({ person, limits, onRename }: { person: Person; limits: Peop
         </div>
       </div>
 
-      <ul className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-        {person.photos.map((photo) => (
-          <Photo key={photo.file} person={person} photo={photo} />
-        ))}
-        <li>
+      {checking > 0 && (
+        <p className="mt-4 flex items-center gap-2 text-sm text-ink/65">
+          <Loader2 className="h-4 w-4 animate-spin" /> {t.checkingSome(checking)}
+        </p>
+      )}
+      {bad.length > 0 && (
+        <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">
+          <p className="flex items-center gap-2 font-medium">
+            <CircleAlert className="h-4 w-4 shrink-0" /> {t.unusable(bad.length)}
+          </p>
+          <ul className="mt-1.5 list-disc space-y-0.5 ps-9">
+            {Object.entries(problemCounts).map(([problem, n]) => (
+              <li key={problem}>
+                {t.problems[problem] ?? problem}
+                {n > 1 ? ` (${n})` : ""}
+              </li>
+            ))}
+          </ul>
           <button
-            onClick={() => input.current?.click()}
-            disabled={uploading > 0 || person.photos.length >= limits.photos_per_person}
-            className="flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-ink/20 text-sm font-medium text-ink/65 hover:border-ink/40 hover:text-ink disabled:opacity-50"
+            onClick={removeUnusable}
+            disabled={removing}
+            className="mt-2.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-red-800 ring-1 ring-red-700/30 hover:bg-red-100 disabled:opacity-50"
           >
-            {uploading > 0 ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
-            <span className="px-1 text-center text-xs">{uploading > 0 ? t.uploading(uploading) : t.addPhotos}</span>
+            {removing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />} {t.removeUnusable(bad.length)}
           </button>
-          <input ref={input} type="file" accept="image/*" multiple hidden onChange={(e) => upload(e.target.files)} />
-        </li>
-      </ul>
+        </div>
+      )}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          onClick={() => input.current?.click()}
+          disabled={uploading > 0 || person.photos.length >= limits.photos_per_person}
+          className="inline-flex items-center gap-2 rounded-xl border-2 border-dashed border-ink/20 px-4 py-3 text-sm font-medium text-ink/70 hover:border-ink/40 hover:text-ink disabled:opacity-50"
+        >
+          {uploading > 0 ? <Loader2 className="h-5 w-5 animate-spin" /> : <ImagePlus className="h-5 w-5" />}
+          {uploading > 0 ? t.uploading(uploading) : t.addPhotos}
+        </button>
+        <input ref={input} type="file" accept="image/*" multiple hidden onChange={(e) => upload(e.target.files)} />
+        <p className="text-xs text-ink/55">{t.hidden}</p>
+      </div>
       {message && <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">{message}</p>}
     </section>
   );

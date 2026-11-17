@@ -5,7 +5,8 @@ reads them, picks up changes within seconds and reports through Redis how each p
   faces:photos   hash "<person_id>/<file>" -> {"ok", "problem", "face_px"}
   faces:state    {"engine", "people", "photos", "updated_at"}, expires when the detector stops
 There is no database table: the folder is the whole truth, so photos can also be copied in by hand.
-Face photos are personal data: they are served to admins only and never leave this machine.
+Face photos are personal data: they can be added and deleted from the console but never viewed or downloaded,
+and never leave this machine.
 """
 import asyncio
 import json
@@ -19,7 +20,6 @@ from pathlib import Path
 
 import redis.asyncio as aioredis
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 import auth
@@ -219,12 +219,8 @@ async def add_photo(person_id: str, request: Request, _: None = Depends(confirm.
     return {"file": name, "checked": False, "ok": False, "problem": None, "face_px": None}
 
 
-@router.get("/{person_id}/photos/{file}")
-async def get_photo(person_id: str, file: str):
-    path = _inside(person_id, file)
-    if path.suffix.lower() not in IMAGE_TYPES or not path.is_file():
-        raise HTTPException(status_code=404, detail="Not found")
-    return FileResponse(path, headers={"Cache-Control": "private, max-age=3600"})
+# There is deliberately no way to download a face photo (user's decision, 2026-11-17): once added, a photo is only
+# read by the detector on this machine. The console shows each photo's result as text, never the picture.
 
 
 @router.delete("/{person_id}/photos/{file}", status_code=204)
