@@ -425,6 +425,25 @@ def follow_plugin(r, running: str):
         threading.Thread(target=watch, daemon=True, name="plugin-watch").start()
 
 
+def relist_cameras(r, detector_id: str, camera_ids: list[str]) -> list[str]:
+    """The console lists the cameras in the Redis set "cameras". A camera taken out of the configuration (e.g. a
+    test webcam) would otherwise stay listed as offline for good, and two listed cameras put the console on
+    1-a-second stills. So drop the ones this detector listed last time and no longer has; other detectors sharing
+    this Redis (DETECTOR_ID) keep theirs. A configured camera that is unplugged stays listed (offline).
+    Returns the cameras dropped. `r` must decode responses."""
+    mine = f"cameras:detector:{detector_id}"
+    current = set(camera_ids)
+    gone = set(r.smembers(mine)) - current
+    with r.pipeline() as pipe:
+        if gone:
+            pipe.srem("cameras", *gone)
+        pipe.delete(mine)
+        pipe.sadd(mine, *current)
+        pipe.sadd("cameras", *current)
+        pipe.execute()
+    return sorted(gone)
+
+
 def main():
     global PLUGIN_ID, MODELS_DIR
     r = redis.from_url(REDIS_URL, decode_responses=True)
@@ -441,6 +460,9 @@ def main():
           + (" from a rule drive" if plugin_source.from_drive(PLUGIN_ID) else ""), flush=True)
     follow_plugin(r, PLUGIN_ID)
     settings = camera_settings()
+    gone = relist_cameras(r, os.getenv("DETECTOR_ID") or settings[0]["id"], [c["id"] for c in settings])
+    if gone:
+        print(f"[CV] No longer listed (not in the camera settings any more): {', '.join(gone)}", flush=True)
 
     units = []
     for c in settings:
