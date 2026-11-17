@@ -47,7 +47,7 @@ with tempfile.TemporaryDirectory() as tmp:
     good = make(tmp / "good", TEAM)
     manifest, plugin = pack.verify(good, SERIAL, [TEAM.public_key()])
     check("A drive the team signed, plugged in itself, is accepted",
-          plugin["plugin_id"] == "hospital_safety" and set(manifest["files"]) == {"plugin.json", "models/medical_ppe.pt", "models/smoking_act.pt"})
+          plugin["plugin_id"] == "hospital_safety" and set(manifest["files"]) == {"plugin.json", "models/medical_ppe.pt", "models/smoking_act3.pt"})
     check("The same files copied to another drive are refused", reason(good, serial="ZZ99") == "wrong_drive")
     check("A drive with no serial number is refused", reason(good, serial="") == "wrong_drive")
     check("A drive signed by someone else is refused", reason(make(tmp / "stranger", STRANGER)) == "unsigned")
@@ -75,13 +75,13 @@ with tempfile.TemporaryDirectory() as tmp:
     check("A drive without a signature is refused", reason(nosig) == "unsigned")
 
     short = make(tmp / "short", TEAM)
-    (short / "models" / "smoking_act.pt").unlink()
+    (short / "models" / "smoking_act3.pt").unlink()
     check("A drive missing a signed file is refused", reason(short) == "damaged")
 
     lean = {**PLUGIN, "detection": {**PLUGIN["detection"], "extra_models": []}}
     out = tmp / "lean" / pack.FOLDER
     (out / "models").mkdir(parents=True)
-    (out / "plugin.json").write_text(json.dumps(PLUGIN))    # the plugin still wants smoking_act.pt
+    (out / "plugin.json").write_text(json.dumps(PLUGIN))    # the plugin still wants smoking_act3.pt
     (out / "models" / "medical_ppe.pt").write_bytes(b"x")
     manifest = pack.build_manifest(out, PLUGIN, SERIAL, "now")
     (out / "manifest.json").write_bytes(manifest)
