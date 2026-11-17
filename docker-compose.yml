@@ -180,6 +180,7 @@ services:
     environment:
       <<: *backend-env
       BACKEND_ROLE: live
+      LIVE_WINDOW: ${LIVE_WINDOW:-}   # pictures in flight per viewer (backend/cameras.py, default 4)
     volumes:
       - ./plugins:/app/plugins:ro
       - plugin_slot:/plugin_slot:ro
